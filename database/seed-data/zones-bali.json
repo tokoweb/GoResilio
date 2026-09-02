@@ -1,0 +1,31 @@
+[
+  {
+    "id": "bali-megathrust-01",
+    "name": "Zona Subduksi Megathrust Selatan Bali & Sesar Busur Belakang",
+    "category": "earthquake",
+    "level": "high",
+    "score": 82,
+    "latitude": -8.6705,
+    "longitude": 115.2126,
+    "radiusMeters": 25000,
+    "nearestDistanceKm": 45.0,
+    "estimatedPgaG": 0.44,
+    "soilClass": "SC (Tanah Keras)",
+    "description": "Potensi gempa subduksi megathrust M8.5+ dan amplifikasi gelombang seismik di zona pesisir selatan Bali.",
+    "standardRef": "PusGen 2024 / BMKG Bali"
+  },
+  {
+    "id": "bali-heat-01",
+    "name": "Heat Stress Koridor Urban Denpasar & Badung",
+    "category": "heat",
+    "level": "medium",
+    "score": 64,
+    "latitude": -8.6500,
+    "longitude": 115.2200,
+    "radiusMeters": 8000,
+    "avgMaxTempC": 33.8,
+    "urbanHeatIslandFactor": "Moderate",
+    "description": "Indeks kenyamanan termal dan kenaikan beban pendingin ruang (AC) proyeksi iklim 2050.",
+    "standardRef": "BMKG Klimatologi & ERA5"
+  }
+]

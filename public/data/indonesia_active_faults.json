@@ -1,0 +1,75 @@
+[
+  {
+    "id": "FL-ID-01",
+    "name": "Sesar Baribis (Baribis Fault)",
+    "segment": "Jakarta - Bekasi - Purwakarta Segment",
+    "country": "Indonesia",
+    "slipRateMmYr": 5.0,
+    "maxMagnitude": 6.8,
+    "mechanism": "Thrust Fault",
+    "coordinates": [
+      [-6.345, 106.720],
+      [-6.330, 106.850],
+      [-6.310, 107.020],
+      [-6.350, 107.250],
+      [-6.550, 107.450]
+    ]
+  },
+  {
+    "id": "FL-ID-02",
+    "name": "Sesar Lembang (Lembang Fault)",
+    "segment": "Mount Tangkuban Parahu - Maribaya Segment",
+    "country": "Indonesia",
+    "slipRateMmYr": 4.0,
+    "maxMagnitude": 6.9,
+    "mechanism": "Sinistral Strike-Slip with Normal Component",
+    "coordinates": [
+      [-6.800, 107.500],
+      [-6.815, 107.600],
+      [-6.830, 107.720]
+    ]
+  },
+  {
+    "id": "FL-ID-03",
+    "name": "Sesar Seririt & Tejakula (North Bali Fault)",
+    "segment": "Seririt - Buleleng - Denpasar Peripheral Segment",
+    "country": "Indonesia",
+    "slipRateMmYr": 3.5,
+    "maxMagnitude": 6.7,
+    "mechanism": "Back-arc Thrust",
+    "coordinates": [
+      [-8.200, 114.900],
+      [-8.180, 115.100],
+      [-8.250, 115.350],
+      [-8.450, 115.250]
+    ]
+  },
+  {
+    "id": "FL-ID-04",
+    "name": "Zona Subduksi Megathrust Jawa-Bali",
+    "segment": "Southern Offshore Bali Megathrust Segment",
+    "country": "Indonesia",
+    "slipRateMmYr": 70.0,
+    "maxMagnitude": 8.7,
+    "mechanism": "Subduction Interplate Thrust",
+    "coordinates": [
+      [-9.500, 114.500],
+      [-9.650, 115.200],
+      [-9.800, 116.000]
+    ]
+  },
+  {
+    "id": "FL-ID-05",
+    "name": "Sesar Cimandiri (Cimandiri Fault)",
+    "segment": "Pelabuhan Ratu - Sukabumi - Cianjur Segment",
+    "country": "Indonesia",
+    "slipRateMmYr": 4.5,
+    "maxMagnitude": 6.8,
+    "mechanism": "Oblique Strike-Slip",
+    "coordinates": [
+      [-7.000, 106.550],
+      [-6.920, 106.930],
+      [-6.820, 107.150]
+    ]
+  }
+]

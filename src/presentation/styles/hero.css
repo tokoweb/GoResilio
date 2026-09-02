@@ -1,0 +1,994 @@
+/* ==========================================================================
+   GoTangguh — 2026 Ultra-Modern Precision Hero Section Stylesheet
+   Benchmark: High-Tech Spatial Telemetry · Linear & Stripe Press Architecture
+   Super-Responsive Mobile Optimization (320px to 1440px+)
+   ========================================================================== */
+
+.gt-hero-stage {
+  position: relative;
+  background: radial-gradient(circle at 50% -10%, #152238 0%, #0a0f1d 55%, #050811 100%);
+  padding: 8.5rem 2rem 5.5rem;
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 980px) {
+  .gt-hero-stage {
+    padding: 7rem 1.5rem 4.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .gt-hero-stage {
+    padding: 5.5rem 1rem 3rem;
+  }
+}
+
+/* 2026 Ultra-Fine Precision Spatial Grid & Micro-Mesh Texture */
+.gt-topo-texture {
+  position: absolute;
+  inset: 0;
+  opacity: 0.08;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(circle at 50% 40%, black 20%, transparent 80%);
+  -webkit-mask-image: radial-gradient(circle at 50% 40%, black 20%, transparent 80%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Ambient Radiant Volumetric Glow Behind Hero */
+.gt-hero-stage::before {
+  content: '';
+  position: absolute;
+  top: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 720px;
+  max-width: 95vw;
+  height: 380px;
+  background: radial-gradient(circle, rgba(194, 65, 12, 0.18) 0%, rgba(234, 88, 12, 0.08) 40%, transparent 75%);
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.gt-hero-container {
+  position: relative;
+  z-index: 1;
+  max-width: 1040px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   1. Editorial Headline & Eyebrow Badge
+   ========================================================================== */
+.gt-hero-header {
+  text-align: center;
+  margin-bottom: 2.8rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .gt-hero-header {
+    margin-bottom: 1.8rem;
+  }
+}
+
+.gt-hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fb923c;
+  margin-bottom: 1.2rem;
+  padding: 6px 14px;
+  border: 1px solid rgba(251, 146, 60, 0.25);
+  border-radius: 8px;
+  background: rgba(234, 88, 12, 0.08);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), 0 2px 10px rgba(194, 65, 12, 0.15);
+  max-width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  line-height: 1.4;
+}
+
+@media (max-width: 480px) {
+  .gt-hero-eyebrow {
+    font-size: 0.65rem;
+    padding: 5px 10px;
+    margin-bottom: 0.8rem;
+    letter-spacing: 0.03em;
+  }
+}
+
+.gt-eyebrow-icon {
+  color: #ea580c;
+  flex-shrink: 0;
+}
+
+.gt-hero-heading {
+  font-size: clamp(1.75rem, 5.8vw, 3.8rem);
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.18;
+  letter-spacing: -0.035em;
+  margin-bottom: 1.1rem;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.gt-hero-accent {
+  background: linear-gradient(135deg, #fed7aa 0%, #fb923c 45%, #ea580c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+  filter: drop-shadow(0 2px 12px rgba(234, 88, 12, 0.3));
+}
+
+.gt-hero-lead {
+  color: #94a3b8;
+  font-size: 1.05rem;
+  line-height: 1.65;
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .gt-hero-lead {
+    font-size: 0.88rem;
+    line-height: 1.55;
+  }
+}
+
+/* ==========================================================================
+   2. 2026 Unified High-Precision Search Terminal
+   ========================================================================== */
+.gt-search-terminal {
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  padding: 16px;
+  position: relative;
+  z-index: 100;
+  box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.5),
+              inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .gt-search-terminal {
+    padding: 10px;
+    border-radius: 14px;
+  }
+}
+
+.gt-terminal-main-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: rgba(6, 11, 20, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 5px 6px 5px 14px;
+  gap: 10px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.gt-terminal-main-row:focus-within {
+  border-color: #c2410c;
+  box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.2), 0 8px 24px rgba(0, 0, 0, 0.4);
+  background: rgba(4, 8, 16, 0.92);
+}
+
+.gt-terminal-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.gt-terminal-pin {
+  color: #ea580c;
+  flex-shrink: 0;
+}
+
+.gt-terminal-field {
+  width: 100%;
+  min-width: 0;
+  background: none;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  font-size: 0.92rem;
+  font-weight: 500;
+  font-family: inherit;
+  padding: 10px 0;
+}
+
+.gt-terminal-field::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.gt-terminal-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #c2410c;
+  color: #ffffff;
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 11px 20px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 4px 16px rgba(194, 65, 12, 0.35);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  min-height: 44px;
+}
+
+.gt-terminal-submit-btn:hover {
+  background: #9a3412;
+  transform: translateY(-1.5px);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.35), 0 6px 22px rgba(194, 65, 12, 0.5);
+}
+
+.gt-submit-arrow {
+  transition: transform 0.2s ease;
+}
+
+.gt-terminal-submit-btn:hover .gt-submit-arrow {
+  transform: translateX(3px);
+}
+
+/* Autocomplete Dropdown */
+.gt-terminal-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #e7e3da;
+  border-radius: 12px;
+  max-height: 280px;
+  overflow-y: auto;
+  z-index: 2500;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+}
+
+.gt-terminal-dropdown-row {
+  padding: 12px 16px;
+  font-size: 0.88rem;
+  color: #334155;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.gt-dropdown-pin {
+  color: #c2410c;
+  flex-shrink: 0;
+}
+
+.gt-terminal-dropdown-row:hover {
+  background: #faf8f4;
+  color: #121926;
+}
+
+/* Inline Options Row */
+.gt-terminal-options-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.gt-terminal-select-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 8px 12px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  transition: all 0.2s ease;
+  min-height: 42px;
+  box-sizing: border-box;
+}
+
+.gt-terminal-select-box:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.gt-select-icon {
+  color: rgba(255, 255, 255, 0.6);
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Ultra-Modern Custom Select Dropdown UI
+   ========================================================================== */
+.gt-custom-select-container {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+.gt-custom-select-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9px;
+  padding: 8px 12px;
+  color: #ffffff;
+  font-size: 0.84rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  min-height: 42px;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.gt-custom-select-trigger:hover,
+.gt-custom-select-trigger.is-open {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 0 14px rgba(194, 65, 12, 0.2);
+}
+
+.gt-select-trigger-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gt-select-trigger-lead-icon {
+  color: #ea580c;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.gt-select-trigger-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.84rem;
+}
+
+.gt-select-chevron {
+  color: rgba(255, 255, 255, 0.6);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.gt-select-chevron.rotate-180 {
+  transform: rotate(180deg);
+}
+
+.gt-custom-select-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 2600;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 260px;
+  overflow-y: auto;
+  animation: gtSelectFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes gtSelectFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.gt-custom-select-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: #cbd5e1;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.gt-custom-select-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.gt-custom-select-item.selected {
+  background: rgba(194, 65, 12, 0.18);
+  color: #fb923c;
+  font-weight: 700;
+}
+
+.gt-select-item-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gt-select-item-check {
+  color: #fb923c;
+}
+
+/* ==========================================================================
+   Light Theme Variants (For White/Off-White Consultation & Form Chassis)
+   ========================================================================== */
+.gt-custom-select-container.theme-light .gt-custom-select-trigger {
+  background: #ffffff;
+  border: 1px solid #dcd7ce;
+  color: #121926;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.gt-custom-select-container.theme-light .gt-custom-select-trigger:hover,
+.gt-custom-select-container.theme-light .gt-custom-select-trigger.is-open {
+  background: #ffffff;
+  border-color: #c2410c;
+  box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.12);
+}
+
+.gt-custom-select-container.theme-light .gt-select-trigger-lead-icon,
+.gt-custom-select-container.theme-light .gt-select-opt-icon {
+  color: #c2410c;
+}
+
+.gt-custom-select-container.theme-light .gt-select-trigger-label {
+  color: #121926;
+  font-weight: 600;
+}
+
+.gt-custom-select-container.theme-light .gt-select-chevron {
+  color: #64748b;
+}
+
+.gt-custom-select-container.theme-light .gt-custom-select-dropdown {
+  background: #ffffff;
+  border: 1px solid #dcd7ce;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.04);
+  z-index: 9999;
+}
+
+.gt-custom-select-container.theme-light .gt-custom-select-item {
+  color: #334155;
+  font-weight: 500;
+  padding: 9px 12px;
+  border-radius: 6px;
+}
+
+.gt-custom-select-container.theme-light .gt-custom-select-item:hover {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.gt-custom-select-container.theme-light .gt-custom-select-item.selected {
+  background: #ffedd5;
+  color: #c2410c;
+  font-weight: 700;
+}
+
+.gt-custom-select-container.theme-light .gt-select-item-icon {
+  color: #c2410c;
+}
+
+.gt-custom-select-container.theme-light .gt-select-item-check {
+  color: #c2410c;
+}
+
+.gt-custom-select-container.theme-light .gt-select-item-badge {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid rgba(194, 65, 12, 0.2);
+  font-size: 0.68rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.gt-terminal-sep {
+  width: 1px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+@media (max-width: 680px) {
+  .gt-terminal-main-row {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 10px;
+    gap: 10px;
+  }
+  .gt-terminal-submit-btn {
+    justify-content: center;
+    width: 100%;
+    padding: 12px;
+  }
+  .gt-terminal-options-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+  .gt-terminal-sep {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   3. Quick Presets Cluster
+   ========================================================================== */
+.gt-presets-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 1.2rem;
+  flex-wrap: wrap;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.gt-presets-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.gt-presets-list {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.gt-preset-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+  padding: 5px 12px;
+  border-radius: 7px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 32px;
+}
+
+.gt-preset-pin {
+  color: #ea580c;
+}
+
+.gt-preset-pill:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.gt-preset-pill--active {
+  background: rgba(194, 65, 12, 0.2);
+  border-color: #c2410c;
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   4. Live Simulation Bar
+   ========================================================================== */
+.gt-sim-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  padding: 8px 14px;
+  border-radius: 8px;
+  margin-top: 1rem;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.55);
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.gt-sim-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.gt-sim-icon {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.gt-sim-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.gt-sim-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 28px;
+}
+
+.gt-sim-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.gt-sim-btn.active-high {
+  background: rgba(239, 68, 68, 0.25);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.gt-sim-btn.active-med {
+  background: rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.5);
+}
+
+.gt-sim-btn.active-low {
+  background: rgba(16, 185, 129, 0.25);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+/* ==========================================================================
+   5. 4 Precision Hazard Intelligence Cards
+   ========================================================================== */
+.gt-hazard-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-top: 2rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 900px) {
+  .gt-hazard-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+@media (max-width: 520px) {
+  .gt-hazard-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+.gt-hazard-card {
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.gt-hazard-card:hover {
+  background: rgba(20, 30, 50, 0.75);
+  border-color: rgba(194, 65, 12, 0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+}
+
+.gt-hazard-card__head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.gt-hazard-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gt-hazard-icon-box--flood {
+  background: rgba(2, 132, 199, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(2, 132, 199, 0.3);
+}
+
+.gt-hazard-icon-box--quake {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.gt-hazard-icon-box--heat {
+  background: rgba(234, 88, 12, 0.15);
+  color: #fb923c;
+  border: 1px solid rgba(234, 88, 12, 0.3);
+}
+
+.gt-hazard-icon-box--transit {
+  background: rgba(147, 51, 234, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(147, 51, 234, 0.3);
+}
+
+.gt-hazard-card__badge {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.gt-hazard-card__body {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.gt-hazard-metric {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  font-feature-settings: 'tnum' 1;
+}
+
+.gt-hazard-status {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.gt-hazard-card__foot {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.01em;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 8px;
+}
+
+/* ==========================================================================
+   6. 2026 Smooth Organic Wave Transition
+   ========================================================================== */
+.gt-hero-bottom-transition {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  line-height: 0;
+  pointer-events: none;
+}
+
+.gt-hero-bottom-transition svg {
+  width: 100%;
+  height: 48px;
+  display: block;
+}
+
+/* ==========================================================================
+   7. Live Multi-Stage Scanning Telemetry Indicator
+   ========================================================================== */
+.gt-hero-scanning-toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(15, 23, 42, 0.94);
+  border: 1px solid rgba(234, 88, 12, 0.4);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(234, 88, 12, 0.2);
+  border-radius: 12px;
+  padding: 12px 18px;
+  margin: 14px 0;
+  position: relative;
+  overflow: hidden;
+  animation: gt-toast-entrance 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(12px);
+}
+
+@keyframes gt-toast-entrance {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.gt-scanning-glow-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ea580c;
+  box-shadow: 0 0 12px #ea580c;
+  animation: gt-dot-pulse 1.2s infinite ease-in-out;
+  flex-shrink: 0;
+}
+
+@keyframes gt-dot-pulse {
+  0%, 100% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 6px #ea580c; }
+  50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 16px #ea580c; }
+}
+
+.gt-scanning-toast-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.gt-scanning-toast-kicker {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #fb923c;
+  text-transform: uppercase;
+}
+
+.gt-scanning-toast-msg {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.gt-scanning-bar-track {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.gt-scanning-bar-fill {
+  height: 100%;
+  width: 40%;
+  background: linear-gradient(90deg, #ea580c, #fb923c, #38bdf8);
+  border-radius: 2px;
+  animation: gt-bar-slide 1.6s infinite ease-in-out;
+}
+
+@keyframes gt-bar-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+
+.gt-preset-pill.is-disabled {
+  opacity: 0.55;
+  cursor: not-allowed !important;
+  pointer-events: none;
+}
+
+/* Map HUD scanning indicator */
+.gt-map-scanning-hud-container {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.gt-map-scanning-hud-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(234, 88, 12, 0.45);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  border-radius: 24px;
+  padding: 8px 18px;
+  backdrop-filter: blur(10px);
+}
+
+.gt-hud-text-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.gt-hud-kicker {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #fb923c;
+  text-transform: uppercase;
+}
+
+.gt-hud-step-msg {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #ffffff;
+}

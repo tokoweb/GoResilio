@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 480" width="100%" height="100%">
+  <defs>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1d4ed8" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    <linearGradient id="tealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f766e" />
+      <stop offset="100%" stop-color="#14b8a6" />
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#047857" />
+      <stop offset="100%" stop-color="#10b981" />
+    </linearGradient>
+    <linearGradient id="pinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ea580c" />
+      <stop offset="100%" stop-color="#f97316" />
+    </linearGradient>
+    <linearGradient id="navyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#091428" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Hexagon Shield Outer Frame -->
+  <g filter="url(#shadow)">
+    <!-- Hexagon Background -->
+    <path d="M 200,20 L 340,100 L 340,260 L 200,340 L 60,260 L 60,100 Z" 
+          fill="#0a192f" stroke="#2563eb" stroke-width="14" stroke-linejoin="round" />
+
+    <!-- Top Roof / Sky Section (Dark Navy) -->
+    <path d="M 200,20 L 340,100 L 290,140 L 200,80 L 110,140 L 60,100 Z" fill="#0b192c" />
+
+    <!-- Top Center House Silhouette -->
+    <path d="M 200,100 L 245,135 L 235,135 L 235,185 L 165,185 L 165,135 L 155,135 Z" fill="#ffffff" />
+    <!-- Windows in House -->
+    <rect x="175" y="145" width="18" height="15" fill="#0b192c" rx="2" />
+    <rect x="207" y="145" width="18" height="15" fill="#0b192c" rx="2" />
+    <rect x="175" y="165" width="18" height="15" fill="#0b192c" rx="2" />
+    <rect x="207" y="165" width="18" height="15" fill="#0b192c" rx="2" />
+
+    <!-- Top Right Location Pin (Orange) -->
+    <g transform="translate(260, 45)">
+      <path d="M 40,15 C 20,15 10,32 10,50 C 10,75 40,105 40,105 C 40,105 70,75 70,50 C 70,32 60,15 40,15 Z" fill="url(#pinGrad)" />
+      <circle cx="40" cy="48" r="12" fill="#ffffff" />
+    </g>
+
+    <!-- Left Topographic Section (Teal with contour lines) -->
+    <path d="M 60,100 L 110,140 L 130,225 L 60,260 Z" fill="url(#tealGrad)" />
+    <!-- Topographic contour curves -->
+    <path d="M 70,140 Q 90,125 100,145 T 85,190 T 115,215" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity="0.85" />
+    <path d="M 75,180 Q 95,170 100,185" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity="0.85" />
+
+    <!-- Right Terrain & Dots Section (Emerald Green) -->
+    <path d="M 340,100 L 290,140 L 245,210 L 340,260 Z" fill="url(#greenGrad)" />
+    <!-- Pattern Dots -->
+    <circle cx="300" cy="180" r="5" fill="#ffffff" opacity="0.9" />
+    <circle cx="318" cy="195" r="5" fill="#ffffff" opacity="0.9" />
+    <circle cx="285" cy="205" r="5" fill="#ffffff" opacity="0.9" />
+    <circle cx="305" cy="225" r="5" fill="#ffffff" opacity="0.9" />
+    <circle cx="325" cy="235" r="5" fill="#ffffff" opacity="0.9" />
+
+    <!-- Center Winding Road (Black with white dashed line) -->
+    <path d="M 170,185 Q 230,200 280,155 L 290,165 Q 230,225 160,255 L 130,225 Q 160,200 170,185 Z" fill="#0b192c" />
+    <path d="M 145,240 Q 200,210 285,160" fill="none" stroke="#ffffff" stroke-width="5" stroke-dasharray="10 8" stroke-linecap="round" />
+
+    <!-- Bottom Left Earthquake / Tectonic Crack (Royal Blue Ground + White Lightning Fracture) -->
+    <path d="M 60,260 L 160,255 L 180,330 L 200,340 L 60,260 Z" fill="url(#blueGrad)" />
+    <!-- Fracture Crack -->
+    <path d="M 120,258 L 110,290 L 135,305 L 125,335" fill="none" stroke="#ffffff" stroke-width="6" stroke-linejoin="miter" stroke-linecap="square" />
+
+    <!-- Bottom Right Water Waves / Flood Ripples (Cyan Blue) -->
+    <path d="M 160,255 L 340,260 L 200,340 L 180,330 Z" fill="#0284c7" />
+    <!-- Wave lines -->
+    <path d="M 185,280 Q 220,260 255,280 T 325,280" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity="0.9" />
+    <path d="M 195,305 Q 230,285 265,305 T 310,305" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity="0.9" />
+    <path d="M 210,325 Q 240,310 270,325" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity="0.9" />
+  </g>
+
+  <!-- Typography: GoTangguh -->
+  <text x="200" y="420" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-weight="800" font-size="48" letter-spacing="-1">
+    <tspan fill="#0f172a">Go</tspan><tspan fill="#2563eb">Tangguh</tspan>
+  </text>
+  <text x="200" y="445" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-weight="600" font-size="14" fill="#64748b" letter-spacing="2">
+    DISASTER RESILIENCE PLATFORM
+  </text>
+</svg>

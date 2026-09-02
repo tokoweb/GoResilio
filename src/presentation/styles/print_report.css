@@ -1,0 +1,654 @@
+/* ==========================================================================
+   GoTangguh — Groundsure Standard PDF Report Stylesheet
+   Benchmark: Multi-Page Comprehensive Due Diligence Report (Zero-Blank-Page)
+   High-Contrast Editorial Typography · A4 Multi-Page Print Engine
+   ========================================================================== */
+
+.groundsure-pdf-document {
+  background: #ffffff;
+  color: #121926;
+  padding: 32px 40px;
+  border-radius: 14px;
+  font-size: 0.86rem;
+  margin: 0 auto;
+  max-width: 100%;
+  width: 100%;
+  box-shadow: 0 4px 24px rgba(18, 25, 38, 0.05);
+  border: 1px solid #e7e3da;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* Individual PDF Page Simulation (Screen View) */
+.gs-pdf-page {
+  background: #ffffff;
+  padding: 8px 0 24px;
+  border-bottom: 2px dashed #eae6dd;
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.gs-pdf-page:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.gs-page-badge-title {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #c2410c;
+  background: #fff7ed;
+  border: 1px solid rgba(194, 65, 12, 0.25);
+  padding: 3px 10px;
+  border-radius: 5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.gs-page-intro {
+  font-size: 0.84rem;
+  color: #475569;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+/* 1. Header Section */
+.gs-header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2.5px solid #121926;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+}
+
+.gs-brand-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gs-logo-icon {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.gs-title-main {
+  font-size: 1.32rem;
+  font-weight: 800;
+  color: #121926;
+  letter-spacing: -0.02em;
+}
+
+.gs-subtitle-tag {
+  font-size: 0.68rem;
+  color: #c2410c;
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.gs-meta-info-box {
+  font-size: 0.74rem;
+  color: #475569;
+  text-align: right;
+  line-height: 1.5;
+}
+
+/* 2. Site Context Banner */
+.gs-site-context-banner {
+  background: #faf8f4;
+  border: 1px solid #e7e3da;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+}
+
+.gs-site-addr-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  color: #121926;
+  margin-bottom: 6px;
+}
+
+.gs-addr-ico {
+  color: #c2410c;
+  flex-shrink: 0;
+}
+
+.gs-site-meta-pills {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.gs-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.74rem;
+  color: #475569;
+  background: #ffffff;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid #eae6dd;
+}
+
+/* 3. Professional Opinion Box */
+.gs-opinion-banner-box {
+  background: #faf8f4;
+  border: 1px solid #e7e3da;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.gs-opinion-text-col {
+  flex: 1;
+}
+
+.gs-opinion-text-col h4 {
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: #121926;
+  margin-bottom: 4px;
+  letter-spacing: -0.01em;
+}
+
+.gs-opinion-text-col p {
+  font-size: 0.82rem;
+  color: #475569;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.gs-opinion-score-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.gs-opinion-score-dial {
+  display: flex;
+  align-items: baseline;
+}
+
+.gs-dial-num {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #121926;
+  line-height: 1;
+}
+
+.gs-dial-den {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #64748b;
+  margin-left: 2px;
+}
+
+.gs-status-badge {
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.gs-status-badge.extreme { background: #fef2f2; color: #dc2626; border: 1px solid rgba(220, 38, 38, 0.3); }
+.gs-status-badge.high { background: #fff7ed; color: #c2410c; border: 1px solid rgba(194, 65, 12, 0.3); }
+.gs-status-badge.medium { background: #fffbeb; color: #d97706; border: 1px solid rgba(217, 119, 6, 0.3); }
+.gs-status-badge.low { background: #ecfdf5; color: #15803d; border: 1px solid rgba(21, 128, 61, 0.3); }
+
+/* Cover Summary Grid */
+.gs-cover-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.gs-cover-meta-item {
+  background: #faf8f4;
+  border: 1px solid #e7e3da;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.gs-meta-kicker {
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.gs-meta-val {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #121926;
+}
+
+/* 4. Section Headings */
+.gs-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #121926;
+  letter-spacing: -0.01em;
+  margin-bottom: 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #eeebe3;
+}
+
+/* 5. Structured Table */
+.gs-structured-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px 0 16px;
+}
+
+.gs-structured-table th, .gs-structured-table td {
+  border: 1px solid #e7e3da;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 0.78rem;
+}
+
+.gs-structured-table th {
+  background: #121926;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.gs-table-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.gs-table-badge.gs-level-low { background: #ecfdf5; color: #15803d; }
+.gs-table-badge.gs-level-medium { background: #fffbeb; color: #d97706; }
+.gs-table-badge.gs-level-high { background: #fff7ed; color: #c2410c; }
+.gs-table-badge.gs-level-extreme { background: #fef2f2; color: #dc2626; }
+
+/* 6. Deep Dive Adaptive Multi-Card Grid */
+.gs-deepdive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.gs-deepdive-card {
+  background: #faf8f4;
+  border: 1px solid #e7e3da;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.gs-deepdive-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: block;
+}
+
+.gs-deepdive-val {
+  font-size: 0.94rem;
+  font-weight: 800;
+  color: #121926;
+  margin: 3px 0;
+  letter-spacing: -0.01em;
+}
+
+.gs-deepdive-desc {
+  font-size: 0.74rem;
+  color: #475569;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Info Box Note */
+.gs-info-box-note {
+  background: #faf8f4;
+  border: 1px solid #e7e3da;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.76rem;
+  color: #475569;
+  line-height: 1.45;
+  margin-top: 10px;
+}
+
+/* 7. Prescriptions List */
+.gs-prescriptions-pdf-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.gs-rx-pdf-item {
+  background: #faf8f4;
+  border: 1px solid #e7e3da;
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.gs-rx-pdf-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+  font-size: 0.82rem;
+  color: #121926;
+}
+
+.gs-rx-num {
+  font-weight: 800;
+  color: #c2410c;
+}
+
+.gs-rx-badge {
+  font-size: 0.64rem;
+  font-weight: 700;
+  background: #ffffff;
+  border: 1px solid #eae6dd;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #0d9488;
+  text-transform: uppercase;
+}
+
+.gs-rx-cost {
+  margin-left: auto;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #121926;
+  background: #ffffff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #eae6dd;
+}
+
+.gs-rx-desc {
+  font-size: 0.76rem;
+  color: #475569;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* 8. Source Attribution Footer */
+.gs-source-attribution-footer {
+  background: #fcfbf9;
+  border: 1px solid #e7e3da;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.72rem;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.gs-pdf-footer-note {
+  margin-top: 14px;
+  font-size: 0.7rem;
+  color: #94a3b8;
+  text-align: right;
+  border-top: 1px solid #eeebe3;
+  padding-top: 6px;
+}
+
+/* Modal Actions */
+.modal-actions-bar-flex {
+  margin-top: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.btn-print-download {
+  background: #c2410c;
+  color: #ffffff;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(194, 65, 12, 0.25);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-print-download:hover {
+  background: #9a3412;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 22px rgba(194, 65, 12, 0.35);
+}
+
+@media screen and (max-width: 640px) {
+  .groundsure-pdf-document {
+    padding: 16px 12px;
+    font-size: 0.8rem;
+    border-radius: 10px;
+  }
+
+  .gs-header-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .gs-meta-info-box {
+    text-align: left;
+  }
+
+  .gs-opinion-banner-box {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .gs-cover-summary-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .gs-detail-stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .gs-data-table th,
+  .gs-data-table td {
+    padding: 7px 8px;
+    font-size: 0.76rem;
+  }
+}
+
+/* ==========================================================================
+   PRINT MEDIA ENGINE (Zero-Blank-Page A4 Precision)
+   ========================================================================== */
+@page {
+  size: A4 portrait;
+  margin: 10mm 12mm 10mm 12mm;
+}
+
+@media print {
+  html, body {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Keep app root and main wrappers visible */
+  #__next,
+  .app-root-container,
+  main {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  /* Specifically hide all interactive landing page & admin sections during print */
+  header.gt-editorial-header,
+  .gt-hero-stage,
+  .gt-console-section,
+  .gt-pricing-section,
+  .demo-section-wrapper,
+  .report-structure-wrapper,
+  .gt-calm-admin-shell,
+  .gt-login-modal-card,
+  .report-modal-header-bar,
+  .modal-actions-bar-flex,
+  .modal-close-trigger,
+  .app-footer,
+  footer {
+    display: none !important;
+    height: 0 !important;
+    visibility: hidden !important;
+    overflow: hidden !important;
+  }
+
+  /* Modal Shell Unraveling for Continuous Multi-Page Pagination */
+  .report-modal-overlay {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100% !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    z-index: auto !important;
+  }
+
+  .report-modal-inner {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  .report-modal-scroll-body {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+  }
+
+  .groundsure-pdf-document {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    visibility: visible !important;
+  }
+
+  .groundsure-pdf-document * {
+    visibility: visible !important;
+  }
+
+  /* Each A4 Page Break */
+  .gs-pdf-page {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    position: relative !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 255mm !important; /* Full A4 content height */
+    box-sizing: border-box !important;
+    page-break-before: auto !important;
+    page-break-after: always !important;
+    page-break-inside: avoid !important;
+    break-before: auto !important;
+    break-after: page !important;
+    break-inside: avoid !important;
+    margin: 0 0 12mm 0 !important;
+    padding: 2mm 0 6mm 0 !important;
+    background: #ffffff !important;
+    border-bottom: none !important;
+  }
+
+  .gs-pdf-page:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+    margin-bottom: 0 !important;
+  }
+
+  .gs-pdf-footer-note {
+    margin-top: auto !important;
+    padding-top: 6px !important;
+    border-top: 1px solid #e2e8f0 !important;
+  }
+}
+

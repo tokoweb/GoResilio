@@ -1,0 +1,30 @@
+[
+  {
+    "id": "mnl-wvf-01",
+    "name": "West Valley Fault (Marikina Valley Fault System)",
+    "category": "earthquake",
+    "level": "extreme",
+    "score": 92,
+    "latitude": 14.5995,
+    "longitude": 120.9842,
+    "radiusMeters": 20000,
+    "nearestDistanceKm": 2.8,
+    "estimatedPgaG": 0.55,
+    "soilClass": "SE (Soft Soil)",
+    "description": "Active right-lateral strike-slip fault crossing Metro Manila with recurrence interval due for M7.2+ scenario.",
+    "standardRef": "PHIVOLCS / NSCP 2015"
+  },
+  {
+    "id": "mnl-typhoon-01",
+    "name": "Manila Bay Typhoon Storm Surge & Fluvial Basin",
+    "category": "flood",
+    "level": "high",
+    "score": 88,
+    "latitude": 14.5800,
+    "longitude": 120.9700,
+    "radiusMeters": 10000,
+    "elevationMeters": 2.1,
+    "description": "High vulnerability to extreme monsoon precipitation (Habagat) and coastal storm surge.",
+    "standardRef": "PAGASA Hydro-Meteorological Bureau"
+  }
+]

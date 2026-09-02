@@ -1,0 +1,46 @@
+[
+  {
+    "id": "FL-PH-01",
+    "name": "West Valley Fault (Marikina Valley Fault System)",
+    "segment": "Bulacan - Quezon City - Marikina - Pasig - Taguig - Muntinlupa - Laguna - Cavite Segment",
+    "country": "Philippines",
+    "slipRateMmYr": 11.0,
+    "maxMagnitude": 7.2,
+    "mechanism": "Dextral Strike-Slip",
+    "coordinates": [
+      [14.780, 121.090],
+      [14.680, 121.110],
+      [14.620, 121.085],
+      [14.540, 121.060],
+      [14.420, 121.040],
+      [14.310, 121.020]
+    ]
+  },
+  {
+    "id": "FL-PH-02",
+    "name": "East Valley Fault",
+    "segment": "Rodriguez - San Mateo Rizal Segment",
+    "country": "Philippines",
+    "slipRateMmYr": 5.0,
+    "maxMagnitude": 6.5,
+    "mechanism": "Dextral Strike-Slip",
+    "coordinates": [
+      [14.740, 121.160],
+      [14.650, 121.150]
+    ]
+  },
+  {
+    "id": "FL-PH-03",
+    "name": "Manila Trench Subduction Zone",
+    "segment": "West Luzon - Manila Bay Offshore Megathrust",
+    "country": "Philippines",
+    "slipRateMmYr": 80.0,
+    "maxMagnitude": 8.5,
+    "mechanism": "Subduction Thrust",
+    "coordinates": [
+      [14.000, 119.500],
+      [14.800, 119.200],
+      [16.000, 119.000]
+    ]
+  }
+]

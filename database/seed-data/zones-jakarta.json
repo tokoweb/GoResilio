@@ -1,0 +1,31 @@
+[
+  {
+    "id": "jkt-fault-baribis-01",
+    "name": "Sesar Baribis (Segmen Jakarta - Baribis Fault)",
+    "category": "earthquake",
+    "level": "high",
+    "score": 78,
+    "latitude": -6.2800,
+    "longitude": 106.9200,
+    "radiusMeters": 15000,
+    "nearestDistanceKm": 8.2,
+    "estimatedPgaG": 0.38,
+    "soilClass": "SD (Tanah Sedang)",
+    "description": "Segmen sesar aktif teridentifikasi dalam Peta Bahaya Gempa PusGen 2024 dengan pergeseran geser aktif.",
+    "standardRef": "SNI 1726:2019 / PusGen 2024"
+  },
+  {
+    "id": "jkt-flood-fluvial-01",
+    "name": "Bantaran Fluvial Kali Ciliwung & Kali Angke",
+    "category": "flood",
+    "level": "high",
+    "score": 85,
+    "latitude": -6.2100,
+    "longitude": 106.8400,
+    "radiusMeters": 5000,
+    "elevationMeters": 4.2,
+    "max24hRainfallMm": 185,
+    "description": "Elevasi rendah DEMNAS BIG < 8m terhadap muka air banjir kiriman DAS Ciliwung.",
+    "standardRef": "Peraturan Menteri PUPR No. 28/PRT/M/2015"
+  }
+]

@@ -1,0 +1,517 @@
+/* ==========================================================================
+   GoTangguh — 2026 Ultra-Modern Precision Consultation Stylesheet
+   Benchmark: High-Tech Architectural Consultation Suite · Linear & Stripe Press
+   Super-Responsive Mobile Optimization (320px to 1440px+)
+   ========================================================================== */
+
+.demo-section-wrapper {
+  max-width: 1440px;
+  margin: 6rem auto 7.5rem;
+  padding: 0 2.5rem;
+  position: relative;
+  z-index: 10;
+}
+
+@media (max-width: 1200px) {
+  .demo-section-wrapper {
+    padding: 0 1.5rem;
+    margin: 4.5rem auto 5.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .demo-section-wrapper {
+    padding: 0 1rem;
+    margin: 3.5rem auto 4.5rem;
+  }
+}
+
+.gt-luxury-consult-slab {
+  background: #ffffff;
+  border: 1px solid #e7e3da;
+  border-radius: 20px;
+  padding: 48px 52px;
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 48px;
+  align-items: start;
+  box-shadow: 0 16px 48px -8px rgba(18, 25, 38, 0.05), 0 1px 3px rgba(18, 25, 38, 0.02);
+}
+
+@media (max-width: 1024px) {
+  .gt-luxury-consult-slab {
+    grid-template-columns: 1fr;
+    padding: 32px 24px;
+    gap: 32px;
+  }
+}
+
+@media (max-width: 640px) {
+  .gt-luxury-consult-slab {
+    padding: 24px 16px;
+    border-radius: 16px;
+    gap: 24px;
+  }
+}
+
+/* 1. Left Information Column */
+.gt-consult-info-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.gt-consult-kicker-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff7ed;
+  color: #c2410c;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 5px 12px;
+  border-radius: 6px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid rgba(194, 65, 12, 0.2);
+  margin-bottom: 16px;
+  width: fit-content;
+}
+
+.gt-consult-title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #121926;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 640px) {
+  .gt-consult-title {
+    font-size: 1.75rem;
+  }
+}
+
+.gt-consult-subtitle {
+  color: #64748b;
+  font-size: 0.98rem;
+  line-height: 1.65;
+  margin-bottom: 28px;
+}
+
+@media (max-width: 640px) {
+  .gt-consult-subtitle {
+    font-size: 0.88rem;
+    margin-bottom: 20px;
+  }
+}
+
+.gt-consult-value-deck {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 640px) {
+  .gt-consult-value-deck {
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+}
+
+.gt-consult-val-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: #faf8f4;
+  border: 1px solid #e7e3da;
+  border-radius: 12px;
+  padding: 16px 18px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (max-width: 480px) {
+  .gt-consult-val-item {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+}
+
+.gt-consult-val-item:hover {
+  transform: translateY(-2px);
+  border-color: #c2410c;
+  box-shadow: 0 6px 18px rgba(18, 25, 38, 0.04);
+}
+
+.gt-consult-val-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid #e7e3da;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c2410c;
+  flex-shrink: 0;
+}
+
+.gt-consult-val-item strong {
+  display: block;
+  font-size: 0.94rem;
+  color: #121926;
+  margin-bottom: 3px;
+}
+
+.gt-consult-val-item p {
+  font-size: 0.84rem;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.gt-consult-backing-badge {
+  font-size: 0.8rem;
+  color: #64748b;
+  padding-top: 18px;
+  border-top: 1px solid #eeebe3;
+  line-height: 1.5;
+}
+
+.gt-consult-backing-badge strong {
+  color: #121926;
+}
+
+/* 2. Right High-Precision Form Chassis */
+.gt-consult-form-col {
+  background: #faf8f4;
+  border: 1px solid #e7e3da;
+  border-radius: 16px;
+  padding: 32px 28px;
+  box-shadow: 0 4px 16px rgba(18, 25, 38, 0.02);
+}
+
+@media (max-width: 640px) {
+  .gt-consult-form-col {
+    padding: 22px 16px;
+    border-radius: 14px;
+  }
+}
+
+.gt-consult-form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.gt-form-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #121926;
+  letter-spacing: -0.015em;
+  margin-bottom: 6px;
+}
+
+.gt-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.gt-form-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #334155;
+  letter-spacing: 0.01em;
+}
+
+.gt-form-input,
+.gt-form-select,
+.gt-form-textarea {
+  background: #ffffff;
+  border: 1px solid #dcd7ce;
+  color: #121926;
+  padding: 11px 14px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  min-height: 42px;
+}
+
+.gt-form-input:focus,
+.gt-form-select:focus,
+.gt-form-textarea:focus {
+  border-color: #c2410c;
+  box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.12);
+  background: #ffffff;
+}
+
+.gt-form-input::placeholder,
+.gt-form-textarea::placeholder {
+  color: #94a3b8;
+}
+
+.gt-form-textarea {
+  resize: vertical;
+  min-height: 64px;
+}
+
+.gt-btn-submit-consult {
+  background: #c2410c;
+  color: #ffffff;
+  padding: 14px;
+  border-radius: 9px;
+  font-weight: 700;
+  font-size: 0.92rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  cursor: pointer;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 4px 16px rgba(194, 65, 12, 0.25);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-top: 6px;
+  min-height: 48px;
+  width: 100%;
+}
+
+.gt-btn-submit-consult:hover {
+  background: #9a3412;
+  transform: translateY(-1.5px);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.35), 0 6px 22px rgba(194, 65, 12, 0.35);
+}
+
+/* 3. Success State Booking Voucher Card */
+.gt-consult-success-box {
+  text-align: center;
+  padding: 24px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.gt-success-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #ecfdf5;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #10b981;
+  margin-bottom: 16px;
+}
+
+.gt-success-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #121926;
+  letter-spacing: -0.015em;
+  margin-bottom: 8px;
+}
+
+.gt-success-sub {
+  font-size: 0.86rem;
+  color: #64748b;
+  line-height: 1.55;
+  max-width: 380px;
+  margin-bottom: 20px;
+}
+
+.gt-booking-ref-card {
+  background: #ffffff;
+  border: 1px solid #e7e3da;
+  border-radius: 10px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 20px;
+}
+
+.gt-ref-kicker {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.gt-ref-num {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #c2410c;
+  letter-spacing: 0.04em;
+  font-feature-settings: 'tnum' 1;
+}
+
+.gt-ref-loc {
+  font-size: 0.78rem;
+  color: #475569;
+}
+
+.gt-btn-book-another {
+  background: #ffffff;
+  border: 1px solid #e0dbcf;
+  color: #121926;
+  font-weight: 700;
+  font-size: 0.86rem;
+  padding: 11px 22px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 42px;
+}
+
+.gt-btn-book-another:hover {
+  border-color: #c2410c;
+  background: #faf8f4;
+}
+
+/* ==========================================================================
+   Custom Select Component Light Theme Styling for Consultation Form
+   ========================================================================== */
+.gt-custom-select-container.theme-light {
+  position: relative;
+  width: 100%;
+}
+
+.gt-custom-select-container.theme-light .gt-custom-select-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #dcd7ce;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #121926;
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  min-height: 42px;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.gt-custom-select-container.theme-light .gt-custom-select-trigger:hover,
+.gt-custom-select-container.theme-light .gt-custom-select-trigger.is-open {
+  background: #ffffff;
+  border-color: #c2410c;
+  box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.12);
+}
+
+.gt-custom-select-container.theme-light .gt-select-trigger-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gt-custom-select-container.theme-light .gt-select-trigger-lead-icon,
+.gt-custom-select-container.theme-light .gt-select-opt-icon {
+  color: #c2410c;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.gt-custom-select-container.theme-light .gt-select-trigger-label {
+  color: #121926;
+  font-size: 0.88rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gt-custom-select-container.theme-light .gt-select-chevron {
+  color: #64748b;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.gt-custom-select-container.theme-light .gt-select-chevron.rotate-180 {
+  transform: rotate(180deg);
+}
+
+.gt-custom-select-container.theme-light .gt-custom-select-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #dcd7ce;
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.14), 0 2px 6px rgba(15, 23, 42, 0.04);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.gt-custom-select-container.theme-light .gt-custom-select-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 6px;
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.gt-custom-select-container.theme-light .gt-custom-select-item:hover {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.gt-custom-select-container.theme-light .gt-custom-select-item.selected {
+  background: #ffedd5;
+  color: #c2410c;
+  font-weight: 700;
+}
+
+.gt-custom-select-container.theme-light .gt-select-item-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gt-custom-select-container.theme-light .gt-select-item-icon {
+  color: #c2410c;
+}
+
+.gt-custom-select-container.theme-light .gt-select-item-check {
+  color: #c2410c;
+}
+
+.gt-custom-select-container.theme-light .gt-select-item-badge {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid rgba(194, 65, 12, 0.2);
+  font-size: 0.68rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+}
