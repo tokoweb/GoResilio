@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useLanguage } from '../../context/LanguageContext';
-import { useAssessment, AccountRole } from '../../context/AssessmentContext';
+import { useAssessment, type AccountRole } from '../../context/AssessmentContext';
 import {
   X,
   User,
@@ -31,6 +32,11 @@ interface ClientLoginModalProps {
 export const ClientLoginModal: React.FC<ClientLoginModalProps> = ({ isOpen, onClose }) => {
   const { language, t } = useLanguage();
   const { loginWithUser, loginAsRole } = useAssessment();
+  const [isMounted, setIsMounted] = useState<boolean>(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Auth Mode: 'login' or 'register'
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
@@ -147,7 +153,9 @@ export const ClientLoginModal: React.FC<ClientLoginModalProps> = ({ isOpen, onCl
     }
   };
 
-  return (
+  if (!isMounted || !isOpen || typeof document === 'undefined') return null;
+
+  return createPortal(
     <div className="report-modal-overlay" onClick={onClose}>
       <div className="gt-login-modal-card" onClick={(e) => e.stopPropagation()}>
         {/* Close Button */}
@@ -402,7 +410,8 @@ export const ClientLoginModal: React.FC<ClientLoginModalProps> = ({ isOpen, onCl
           </form>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

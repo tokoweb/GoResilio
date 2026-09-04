@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { MultiHazardAssessmentResult } from '../../../domain/types/hazard.types';
 import type { SpatialFeatureRecord } from '../../../domain/types/feature.types';
 
@@ -17,8 +18,13 @@ export const DataProvenanceAuditModal: React.FC<DataProvenanceAuditModalProps> =
 }) => {
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isMounted, setIsMounted] = useState<boolean>(false);
 
-  if (!isOpen || !assessment) return null;
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted || !isOpen || !assessment || typeof document === 'undefined') return null;
 
   const features: SpatialFeatureRecord[] = assessment.features || (assessment.featureStore ? Object.values(assessment.featureStore) : []);
 
@@ -32,7 +38,7 @@ export const DataProvenanceAuditModal: React.FC<DataProvenanceAuditModalProps> =
     return matchesCategory && matchesSearch;
   });
 
-  return (
+  return createPortal(
     <div
       style={{
         position: 'fixed',
@@ -42,7 +48,7 @@ export const DataProvenanceAuditModal: React.FC<DataProvenanceAuditModalProps> =
         bottom: 0,
         backgroundColor: 'rgba(15, 23, 42, 0.75)',
         backdropFilter: 'blur(8px)',
-        zIndex: 9999,
+        zIndex: 999999,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -314,6 +320,7 @@ export const DataProvenanceAuditModal: React.FC<DataProvenanceAuditModalProps> =
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

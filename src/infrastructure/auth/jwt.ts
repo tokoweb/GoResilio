@@ -1,8 +1,7 @@
 /**
  * Lightweight, Edge-Runtime-compatible JWT implementation using standard Web Crypto API
+ * Compliant with production security standards (zero hardcoded fallback in production).
  */
-
-const JWT_SECRET = process.env.JWT_SECRET || 'gotangguh_super_resilient_secret_key_2026_rdi';
 
 export interface TokenPayload {
   userId: string;
@@ -13,8 +12,22 @@ export interface TokenPayload {
   exp?: number;
 }
 
+export function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || !secret.trim()) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('[Security Exception]: JWT_SECRET environment variable is missing in production.');
+    }
+    return 'gotangguh-development-secret-key-32chars-minimum!';
+  }
+  if (secret.length < 32 && process.env.NODE_ENV === 'production') {
+    throw new Error('[Security Exception]: JWT_SECRET must be at least 32 characters long in production.');
+  }
+  return secret;
+}
+
 // Convert string to Uint8Array
-function stringToUint8Array(str: string): any {
+function stringToUint8Array(str: string): Uint8Array {
   return new TextEncoder().encode(str);
 }
 
@@ -43,6 +56,7 @@ export class JwtHelper {
    * Sign a new JWT token valid for 7 days
    */
   public static async signToken(payload: TokenPayload): Promise<string> {
+    const secret = getJwtSecret();
     const header = {
       alg: 'HS256',
       typ: 'JWT'
@@ -61,7 +75,7 @@ export class JwtHelper {
     // Web Crypto HMAC SHA-256
     const key = await crypto.subtle.importKey(
       'raw',
-      stringToUint8Array(JWT_SECRET),
+      stringToUint8Array(secret) as unknown as BufferSource,
       { name: 'HMAC', hash: 'SHA-256' },
       false,
       ['sign']
@@ -70,7 +84,7 @@ export class JwtHelper {
     const signatureBuffer = await crypto.subtle.sign(
       'HMAC',
       key,
-      stringToUint8Array(dataToSign)
+      stringToUint8Array(dataToSign) as unknown as BufferSource
     );
 
     const signature = base64UrlEncode(new Uint8Array(signatureBuffer));
@@ -82,16 +96,18 @@ export class JwtHelper {
    */
   public static async verifyToken(token: string): Promise<TokenPayload | null> {
     try {
+      if (!token || typeof token !== 'string') return null;
       const parts = token.split('.');
       if (parts.length !== 3) return null;
 
+      const secret = getJwtSecret();
       const [encodedHeader, encodedPayload, signature] = parts;
       const dataToSign = `${encodedHeader}.${encodedPayload}`;
 
       // Verify signature
       const key = await crypto.subtle.importKey(
         'raw',
-        stringToUint8Array(JWT_SECRET),
+        stringToUint8Array(secret) as unknown as BufferSource,
         { name: 'HMAC', hash: 'SHA-256' },
         false,
         ['verify']
@@ -106,7 +122,7 @@ export class JwtHelper {
         'HMAC',
         key,
         sigBytes,
-        stringToUint8Array(dataToSign)
+        stringToUint8Array(dataToSign) as unknown as BufferSource
       );
 
       if (!isValid) return null;

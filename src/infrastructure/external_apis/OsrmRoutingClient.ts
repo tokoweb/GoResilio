@@ -50,7 +50,7 @@ export class OsrmRoutingClient {
    * Returns null if OSRM servers are unreachable without fabricating synthetic distances.
    */
   public static async getNearestRoad(coords: Coordinates): Promise<ApiResult<NearestRoadResult | null>> {
-    const cacheKey = `osrm_near_v3_${coords.lat.toFixed(5)}_${coords.lng.toFixed(5)}`;
+    const cacheKey = `osrm_near_v25_${coords.lat.toFixed(5)}_${coords.lng.toFixed(5)}`;
     const cached = LocalApiCache.get<ApiResult<NearestRoadResult | null>>(cacheKey);
     if (cached) return cached;
 
@@ -58,7 +58,7 @@ export class OsrmRoutingClient {
 
     for (const endpoint of this.NEAREST_ENDPOINTS) {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
 
       try {
         const url = `${endpoint}/${coordsParam}?number=1`;
@@ -83,7 +83,7 @@ export class OsrmRoutingClient {
             const wp = json.waypoints[0];
             const roadName = typeof wp.name === 'string' && wp.name.trim().length > 0
               ? wp.name.trim()
-              : 'Nama jalan tidak tersedia (OSRM)';
+              : 'Nama jalan tidak tersedia';
 
             const result: ApiResult<NearestRoadResult | null> = {
               data: {
@@ -129,7 +129,7 @@ export class OsrmRoutingClient {
     origin: Coordinates,
     destination: Coordinates
   ): Promise<ApiResult<RouteEstimate | null>> {
-    const cacheKey = `osrm_route_v3_${origin.lat.toFixed(4)}_${origin.lng.toFixed(4)}_${destination.lat.toFixed(4)}_${destination.lng.toFixed(4)}`;
+    const cacheKey = `osrm_route_v25_${origin.lat.toFixed(4)}_${origin.lng.toFixed(4)}_${destination.lat.toFixed(4)}_${destination.lng.toFixed(4)}`;
     const cached = LocalApiCache.get<ApiResult<RouteEstimate | null>>(cacheKey);
     if (cached) return cached;
 
@@ -138,7 +138,7 @@ export class OsrmRoutingClient {
 
     for (const endpoint of this.OSRM_ENDPOINTS) {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
 
       try {
         const url = `${endpoint}/${coordsParam}?overview=false&alternatives=false&steps=false`;

@@ -7,13 +7,19 @@ import type { PropertyEntity } from '../../../domain/entities/Property.entity';
  * and MUST NEVER be ingested into live site assessment or multi-hazard scoring pipelines.
  */
 export class GetPropertiesUseCase {
-  static async execute(): Promise<PropertyEntity[]> {
+  static async execute(allowDemoFallback: boolean = false): Promise<PropertyEntity[]> {
     const props = await MySQLPropertyRepository.getAll();
     if (props && props.length > 0) {
       return props;
     }
 
-    // Default Fallback Demo Portfolio (Offline UI only, never live assessment)
+    // Only allow demo properties if explicitly requested in development/demo mode
+    const isExplicitDemo = allowDemoFallback && (process.env.NODE_ENV !== 'production' || process.env.DEMO_MODE === 'true');
+    if (!isExplicitDemo) {
+      return [];
+    }
+
+    // Fallback Demo Portfolio (Development/Demo Mode Only)
     return [
       {
         id: 'prop-1',

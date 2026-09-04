@@ -136,27 +136,27 @@ export const DEFAULT_ADMIN_CONFIG: AdminDashboardConfig = {
   overallSummaryEn: 'High Hazard Zone — Structured Technical Mitigation Protocol Required Prior to Transaction',
 
   lowRisk: {
-    maxScore: 35,
-    labelId: 'Aman / Rendah',
+    maxScore: 30,
+    labelId: 'Rendah / Aman',
     labelEn: 'Low / Safe',
     badgeColor: '#10b981',
-    criteriaDescriptionId: 'Elevasi tanah > 15m, jarak sesar aktif > 25km, curah hujan normal, suhu nyaman.',
-    recommendationDirectiveId: 'Kondisi tapak sangat prima. Tidak memerlukan perlakuan struktur khusus, aman untuk akad KPR.'
+    criteriaDescriptionId: 'Elevasi tanah memadai, jarak aman terhadap sesar aktif, curah hujan normal, iklim mikro sejuk.',
+    recommendationDirectiveId: 'Kondisi tapak tergolong prima. Tidak memerlukan rekayasa struktur khusus di luar standar konstruksi dasar.'
   },
   mediumRisk: {
-    maxScore: 70,
+    maxScore: 60,
     labelId: 'Sedang / Waspada',
     labelEn: 'Moderate / Caution',
     badgeColor: '#f59e0b',
-    criteriaDescriptionId: 'Elevasi 8–15m, jarak sesar 10–25km (PGA 0.20–0.35g), atau beban mikroklimat termal moderat.',
-    recommendationDirectiveId: 'Disarankan uji tuntas standar, saluran drainase terintegrasi, dan perluasan asuransi FLEXAS PLUS.'
+    criteriaDescriptionId: 'Elevasi moderat, jarak sesar 10–30km (PGA 0.10–0.25g), atau beban mikroklimat termal sedang.',
+    recommendationDirectiveId: 'Disarankan uji tuntas standar, saluran drainase terintegrasi, dan perluasan asuransi multi-ancaman.'
   },
   highRisk: {
-    maxScore: 85,
+    maxScore: 80,
     labelId: 'Tinggi / Bahaya',
     labelEn: 'High / Hazard',
     badgeColor: '#ef4444',
-    criteriaDescriptionId: 'Elevasi < 8m (DAS rawan genangan), jarak sesar < 10km (PGA > 0.35g), suhu ekstrem > 34°C.',
+    criteriaDescriptionId: 'Indikasi cekungan/dataran rendah dekat sungai, sesar aktif < 10km (PGA 0.25–0.40g), atau suhu ekstrem > 34°C.',
     recommendationDirectiveId: 'Wajib peninggian peil lantai dasar (+60cm) dan struktur beton bertulang standar SNI 1726:2019.'
   },
   extremeRisk: {
@@ -164,8 +164,8 @@ export const DEFAULT_ADMIN_CONFIG: AdminDashboardConfig = {
     labelId: 'Ekstrem / Kritis',
     labelEn: 'Extreme / Critical',
     badgeColor: '#dc2626',
-    criteriaDescriptionId: 'Zona merah patahan sesar aktif permukaan (PusGen) atau sempadan sungai < 50m.',
-    recommendationDirectiveId: 'Wajib audit geoteknik lapangan (SPT/CPT) oleh tim ahli RDI dan konsultasi struktural khusus.'
+    criteriaDescriptionId: 'Zona sesar aktif terkonfirmasi permukaan (PGA > 0.40g) atau sempadan sungai < 50m.',
+    recommendationDirectiveId: 'Wajib audit geoteknik lapangan (SPT/CPT) oleh tim ahli berlisensi dan perkuatan struktur khusus.'
   },
 
   floodScore: 0,
@@ -250,8 +250,8 @@ interface AssessmentContextProps {
   assessmentCoordinates: { lat: number; lng: number } | null;
   mapViewCenter: { lat: number; lng: number };
   setMapViewCenter: (center: { lat: number; lng: number }) => void;
-  mapMarkerPosition: { lat: number; lng: number };
-  setMapMarkerPosition: (pos: { lat: number; lng: number }) => void;
+  mapMarkerPosition: { lat: number; lng: number } | null;
+  setMapMarkerPosition: (pos: { lat: number; lng: number } | null) => void;
   isLoading: boolean;
   propertyType: PropertyType;
   setPropertyType: (type: PropertyType) => void;
@@ -305,11 +305,8 @@ export const AssessmentProvider: React.FC<{ children: ReactNode }> = ({ children
     lng: 106.8456
   });
 
-  // Map Marker Position for visual pin representation
-  const [mapMarkerPosition, setMapMarkerPosition] = useState<{ lat: number; lng: number }>({
-    lat: -6.2088,
-    lng: 106.8456
-  });
+  // Map Marker Position for visual pin representation (strictly null until location confirmed)
+  const [mapMarkerPosition, setMapMarkerPosition] = useState<{ lat: number; lng: number } | null>(null);
 
   // Authoritative Assessment Coordinates: null on fresh application state until user confirms a site
   const [assessmentCoordinates, setAssessmentCoordinates] = useState<{ lat: number; lng: number } | null>(null);
@@ -442,6 +439,10 @@ export const AssessmentProvider: React.FC<{ children: ReactNode }> = ({ children
   };
 
   const loginAsRole = (role: AccountRole, email?: string) => {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[Security Guard] Demo login role bypass is strictly disabled in production environments.');
+      return;
+    }
     setActiveAccountRole(role);
     if (role === 'Super Admin (RDI)') {
       setUserPersona('Real Estate Agent');

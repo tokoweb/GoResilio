@@ -74,6 +74,24 @@ export interface NormalizedTransportComponent {
   isOfficial?: boolean;
   /** Indicates whether object is explicitly tagged for disaster evacuation / assembly */
   isEvacuationPoint?: boolean;
+  /** Raw OpenStreetMap element ID for provenance & auditability */
+  osmId?: number | null;
+  /** Raw OpenStreetMap element type ('node' | 'way' | 'relation') */
+  osmType?: 'node' | 'way' | 'relation' | null;
+  /** Calculation method used to compute the distance ('geometry_segment' | 'node_haversine' | 'center') */
+  geometryMethod?: 'geometry_segment' | 'node_haversine' | 'center' | null;
+  /** Explicit calculation method alias for provenance verification */
+  calculationMethod?: 'geometry_segment' | 'node_haversine' | 'center' | null;
+  /** Number of coordinate vertices in the OSM polyline geometry */
+  geometryPointCount?: number | null;
+  /** Raw geometry points of the feature */
+  rawGeometry?: Array<{ lat: number; lon: number }> | null;
+  /** Raw OSM key-value tags */
+  tags?: Record<string, string> | null;
+  /** ISO timestamp when provider data was retrieved */
+  retrievedAt?: string | null;
+  /** Waterway classification type if applicable (e.g., 'river', 'canal', 'stream') */
+  waterwayType?: string | null;
   /** Error or failure reason if query was unsuccessful */
   error?: string | null;
 }

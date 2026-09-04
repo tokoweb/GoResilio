@@ -1,32 +1,15 @@
-import crypto from 'crypto';
 import { getDbPool } from '../connection/mysql.connection';
 import type { UserEntity } from '../../../domain/entities/User.entity';
 import type { AccountRole } from '../../../lib/models/User';
+import { PasswordService } from '../../../lib/auth/password';
 
 export class PasswordHelper {
   static hashPassword(password: string): string {
-    const salt = crypto.randomBytes(16).toString('hex');
-    const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
-    return `pbkdf2$1000$${salt}$${hash}`;
+    return PasswordService.hashSync(password);
   }
 
   static verifyPassword(password: string, storedHash: string): boolean {
-    if (!storedHash || !password) return false;
-    if (storedHash.startsWith('pbkdf2$')) {
-      const parts = storedHash.split('$');
-      if (parts.length === 4) {
-        const iterations = parseInt(parts[1], 10);
-        const salt = parts[2];
-        const originalHash = parts[3];
-        const verifyHash = crypto.pbkdf2Sync(password, salt, iterations, 64, 'sha512').toString('hex');
-        return verifyHash === originalHash;
-      }
-    }
-    // Backward compatibility with legacy SHA256 hashes if any
-    if (storedHash.includes('hashed_') || storedHash.includes('$2b$10$')) {
-      return true;
-    }
-    return false;
+    return PasswordService.verifySync(password, storedHash);
   }
 }
 

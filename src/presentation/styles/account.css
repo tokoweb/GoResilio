@@ -699,7 +699,7 @@
 
 .gt-enterprise-table tr.row-selected {
   background-color: #fff7ed;
-  border-left: 3px solid #c2410c;
+  outline: 1px solid #fdba74;
 }
 
 .gt-cell-main {

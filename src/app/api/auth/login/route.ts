@@ -1,22 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AuthenticateUserUseCase } from '../../../../application/use_cases/auth/AuthenticateUser.usecase';
 import { JwtHelper } from '../../../../infrastructure/auth/jwt';
+import { RateLimiter } from '../../../../infrastructure/security/rateLimiter';
+import { InputValidator } from '../../../../infrastructure/security/inputValidator';
 
 export async function POST(req: NextRequest) {
+  // 1. Enforce rate limiting: 10 attempts per minute per IP
+  const rateLimitResponse = RateLimiter.enforce(req, 'auth_login', 10, 60000);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const body = await req.json();
-    const { email, password } = body;
-
-    if (!email || !password) {
-      return NextResponse.json(
-        { success: false, error: 'Email dan kata sandi wajib diisi.' },
-        { status: 400 }
-      );
-    }
+    const email = InputValidator.validateEmail(body.email);
+    const password = InputValidator.validateString(body.password, 'kata sandi', 1, 100);
 
     const user = await AuthenticateUserUseCase.execute(email, password);
 
-    // Sign persistent session JWT
+    // 2. Sign persistent session JWT
     const token = await JwtHelper.signToken({
       userId: user.id,
       email: user.email,
@@ -27,13 +27,12 @@ export async function POST(req: NextRequest) {
 
     const response = NextResponse.json({
       success: true,
-      token,
       user
     });
 
-    // Set persistent session cookie (7 days)
+    // 3. Set secure HttpOnly session cookie (7 days)
     response.cookies.set('gotangguh_session_token', token, {
-      httpOnly: false,
+      httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
@@ -43,7 +42,7 @@ export async function POST(req: NextRequest) {
     return response;
   } catch (error: any) {
     return NextResponse.json(
-      { success: false, error: error.message || 'Autentikasi gagal. Akun tidak ditemukan.' },
+      { success: false, error: error.message || 'Autentikasi gagal. Akun tidak ditemukan atau kata sandi tidak sesuai.' },
       { status: 401 }
     );
   }

@@ -168,40 +168,42 @@ export const MyAccountDashboard: React.FC = () => {
     }
   }, [currentUser, accountEmail, activeAccountRole, isEn]);
 
-  // Load Real Saved Properties from MySQL for this user
+  // Load Real Saved Properties
   useEffect(() => {
-    const fetchRealProperties = async () => {
+    const fetchUserProperties = async () => {
       setIsLoadingProps(true);
-      const emailToQuery = currentUser?.email || accountEmail;
       try {
+        const emailToQuery = currentUser?.email || accountEmail;
         const url = emailToQuery ? `/api/properties?email=${encodeURIComponent(emailToQuery)}` : '/api/properties';
         const res = await fetch(url);
         const data = await res.json();
 
         if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-          const mapped: MonitoredProperty[] = data.data.map((p: any) => ({
-            id: p.id || p.refNumber,
-            name: p.propertyName || (isEn ? 'Monitored Plot' : 'Aset Terpantau'),
-            address: p.address || '-',
-            city: p.address?.split(',').pop()?.trim() || 'Indonesia',
-            type: p.propertyType || 'Residential',
-            overallScore: p.overallScore || 50,
-            overallLevel: (p.riskLevel || 'medium') as any,
-            floodScore: p.floodScore || 30,
-            quakeScore: p.quakeScore || 40,
-            heatScore: p.heatScore || 35,
-            elevationMeters: Number(p.elevationMeters) || 15.0,
-            nearestFaultKm: Number(p.faultDistanceKm) || 12.5,
-            lastScanned: p.lastUpdatedStr || (isEn ? 'Today' : 'Hari ini'),
-            auditStatus: p.overallScore > 75 ? 'Zona Kritis' : p.overallScore > 45 ? 'Perlu Mitigasi' : 'Siap Transaksi'
-          }));
+          const mapped: MonitoredProperty[] = data.data.map((p: any) => {
+            const hasScore = typeof p.overallScore === 'number';
+            return {
+              id: p.id || p.refNumber,
+              name: p.propertyName || (isEn ? 'Monitored Plot' : 'Aset Terpantau'),
+              address: p.address || '-',
+              city: p.address?.split(',').pop()?.trim() || 'Indonesia',
+              type: p.propertyType || (isEn ? 'Data unavailable' : 'Data belum tersedia'),
+              overallScore: hasScore ? p.overallScore : null,
+              overallLevel: (p.riskLevel || 'medium') as any,
+              floodScore: typeof p.floodScore === 'number' ? p.floodScore : null,
+              quakeScore: typeof p.quakeScore === 'number' ? p.quakeScore : null,
+              heatScore: typeof p.heatScore === 'number' ? p.heatScore : null,
+              elevationMeters: p.elevationMeters !== null && p.elevationMeters !== undefined ? Number(p.elevationMeters) : null,
+              nearestFaultKm: p.faultDistanceKm !== null && p.faultDistanceKm !== undefined ? Number(p.faultDistanceKm) : null,
+              lastScanned: p.lastUpdatedStr || (isEn ? 'Today' : 'Hari ini'),
+              auditStatus: !hasScore ? 'Belum Dinilai' : p.overallScore > 75 ? 'Zona Kritis' : p.overallScore > 45 ? 'Perlu Mitigasi' : 'Siap Transaksi'
+            };
+          });
           setProperties(mapped);
           setSelectedPropertyId(mapped[0].id);
           if (mapped.length > 0) setSlotAId(mapped[0].id);
           if (mapped.length > 1) setSlotBId(mapped[1].id);
           if (mapped.length > 2) setSlotCId(mapped[2].id);
         } else if (assessment && emailToQuery) {
-          // If no properties stored yet, auto-save active scan into database
           try {
             await fetch('/api/properties', {
               method: 'POST',
@@ -211,7 +213,7 @@ export const MyAccountDashboard: React.FC = () => {
                 userId: currentUser?.id,
                 propertyName: assessment.location.formattedAddress?.split(',')[0] || 'Kavling Tapak Terpilih',
                 address: assessment.location.formattedAddress || 'Titik Koordinat Geospasial',
-                propertyType: 'Residential',
+                propertyType: assessment.propertyType || (isEn ? 'Data unavailable' : 'Data belum tersedia'),
                 latitude: assessment.location.latitude,
                 longitude: assessment.location.longitude,
                 overallScore: assessment.overallScore,
@@ -227,24 +229,30 @@ export const MyAccountDashboard: React.FC = () => {
             const refetch = await fetch(url);
             const refData = await refetch.json();
             if (refData.success && Array.isArray(refData.data)) {
-              const mapped: MonitoredProperty[] = refData.data.map((p: any) => ({
-                id: p.id || p.refNumber,
-                name: p.propertyName || (isEn ? 'Monitored Plot' : 'Aset Terpantau'),
-                address: p.address || '-',
-                city: p.address?.split(',').pop()?.trim() || 'Indonesia',
-                type: p.propertyType || 'Residential',
-                overallScore: p.overallScore || 50,
-                overallLevel: (p.riskLevel || 'medium') as any,
-                floodScore: p.floodScore || 30,
-                quakeScore: p.quakeScore || 40,
-                heatScore: p.heatScore || 35,
-                elevationMeters: Number(p.elevationMeters) || 15.0,
-                nearestFaultKm: Number(p.faultDistanceKm) || 12.5,
-                lastScanned: p.lastUpdatedStr || (isEn ? 'Today' : 'Hari ini'),
-                auditStatus: p.overallScore > 75 ? 'Zona Kritis' : p.overallScore > 45 ? 'Perlu Mitigasi' : 'Siap Transaksi'
-              }));
+              const mapped: MonitoredProperty[] = refData.data.map((p: any) => {
+                const hasScore = typeof p.overallScore === 'number';
+                return {
+                  id: p.id || p.refNumber,
+                  name: p.propertyName || (isEn ? 'Monitored Plot' : 'Aset Terpantau'),
+                  address: p.address || '-',
+                  city: p.address?.split(',').pop()?.trim() || 'Indonesia',
+                  type: p.propertyType || (isEn ? 'Data unavailable' : 'Data belum tersedia'),
+                  overallScore: hasScore ? p.overallScore : null,
+                  overallLevel: (p.riskLevel || 'medium') as any,
+                  floodScore: typeof p.floodScore === 'number' ? p.floodScore : null,
+                  quakeScore: typeof p.quakeScore === 'number' ? p.quakeScore : null,
+                  heatScore: typeof p.heatScore === 'number' ? p.heatScore : null,
+                  elevationMeters: p.elevationMeters !== null && p.elevationMeters !== undefined ? Number(p.elevationMeters) : null,
+                  nearestFaultKm: p.faultDistanceKm !== null && p.faultDistanceKm !== undefined ? Number(p.faultDistanceKm) : null,
+                  lastScanned: p.lastUpdatedStr || (isEn ? 'Today' : 'Hari ini'),
+                  auditStatus: !hasScore ? 'Belum Dinilai' : p.overallScore > 75 ? 'Zona Kritis' : p.overallScore > 45 ? 'Perlu Mitigasi' : 'Siap Transaksi'
+                };
+              });
               setProperties(mapped);
-              if (mapped.length > 0) setSelectedPropertyId(mapped[0].id);
+              if (mapped.length > 0) {
+                setSelectedPropertyId(mapped[0].id);
+                setSlotAId(mapped[0].id);
+              }
             }
           } catch {}
         } else {
@@ -260,7 +268,7 @@ export const MyAccountDashboard: React.FC = () => {
       }
     };
 
-    fetchRealProperties();
+    fetchUserProperties();
   }, [currentUser, accountEmail, assessment]);
 
   // Selected Active Property for Inspector HUD
@@ -282,8 +290,9 @@ export const MyAccountDashboard: React.FC = () => {
 
   // Dynamic Metrics Computed from Real Portfolio Data
   const totalAssetsCount = properties.length;
-  const avgRiskScore = totalAssetsCount > 0
-    ? (properties.reduce((acc, p) => acc + p.overallScore, 0) / totalAssetsCount).toFixed(1)
+  const scoredProperties = properties.filter((p) => typeof p.overallScore === 'number');
+  const avgRiskScore = scoredProperties.length > 0
+    ? (scoredProperties.reduce((acc, p) => acc + (p.overallScore ?? 0), 0) / scoredProperties.length).toFixed(1)
     : '0';
   const criticalAssetsCount = properties.filter(
     (p) => p.overallLevel === 'high' || p.overallLevel === 'extreme'
@@ -853,7 +862,7 @@ export const MyAccountDashboard: React.FC = () => {
                                       border: `1px solid ${p.overallLevel === 'high' || p.overallLevel === 'extreme' ? 'rgba(220, 38, 38, 0.3)' : p.overallLevel === 'medium' ? 'rgba(217, 119, 6, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`
                                     }}
                                   >
-                                    {p.overallScore}
+                                    {p.overallScore !== null ? p.overallScore : '-'}
                                   </div>
                                 </div>
                               </div>
@@ -861,10 +870,10 @@ export const MyAccountDashboard: React.FC = () => {
                               {/* Mini Spatial Metric Vector Chips */}
                               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                                 <span style={{ fontSize: '0.7rem', padding: '3px 8px', borderRadius: '6px', background: '#f1f0ea', color: '#475569', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                  <Mountain size={11} style={{ color: '#059669' }} /> Elev: {p.elevationMeters}m
+                                  <Mountain size={11} style={{ color: '#059669' }} /> Elev: {p.elevationMeters !== null ? `${p.elevationMeters}m` : '-'}
                                 </span>
                                 <span style={{ fontSize: '0.7rem', padding: '3px 8px', borderRadius: '6px', background: '#f1f0ea', color: '#475569', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                  <Zap size={11} style={{ color: '#ea580c' }} /> {isEn ? 'Fault' : 'Sesar'}: {p.nearestFaultKm}km
+                                  <Zap size={11} style={{ color: '#ea580c' }} /> {isEn ? 'Fault' : 'Sesar'}: {p.nearestFaultKm !== null ? `${p.nearestFaultKm}km` : '-'}
                                 </span>
                               </div>
 
@@ -876,10 +885,10 @@ export const MyAccountDashboard: React.FC = () => {
                                   style={{
                                     fontSize: '0.72rem',
                                     fontWeight: 800,
-                                    color: p.auditStatus === 'Zona Kritis' || p.overallScore > 75 ? '#dc2626' : p.auditStatus === 'Perlu Mitigasi' || p.overallScore > 45 ? '#d97706' : '#059669'
+                                    color: p.auditStatus === 'Zona Kritis' || (p.overallScore ?? 0) > 75 ? '#dc2626' : p.auditStatus === 'Perlu Mitigasi' || (p.overallScore ?? 0) > 45 ? '#d97706' : p.overallScore !== null ? '#059669' : '#64748b'
                                   }}
                                 >
-                                  {isEn ? (p.overallScore > 75 ? 'Critical Zone' : p.overallScore > 45 ? 'Mitigation Needed' : 'Ready for Transaction') : p.auditStatus}
+                                  {isEn ? (p.overallScore === null ? 'Pending Assessment' : p.overallScore > 75 ? 'Critical Zone' : p.overallScore > 45 ? 'Mitigation Needed' : 'Ready for Transaction') : p.auditStatus}
                                 </span>
                               </div>
 
@@ -903,7 +912,7 @@ export const MyAccountDashboard: React.FC = () => {
                                       {isEn ? 'Environmental Hazard Index' : 'Indeks Bahaya Lingkungan'}
                                     </span>
                                     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '4px', margin: '4px 0' }}>
-                                      <span style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.03em' }}>{p.overallScore}</span>
+                                      <span style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.03em' }}>{p.overallScore !== null ? p.overallScore : '-'}</span>
                                       <span style={{ fontSize: '0.88rem', color: '#94a3b8', fontWeight: 700 }}>/100</span>
                                     </div>
                                     <span
@@ -1095,14 +1104,14 @@ export const MyAccountDashboard: React.FC = () => {
                                       color: p.overallLevel === 'high' || p.overallLevel === 'extreme' ? '#dc2626' : p.overallLevel === 'medium' ? '#d97706' : '#059669'
                                     }}
                                   >
-                                    {p.overallScore} / 100
+                                    {p.overallScore !== null ? `${p.overallScore} / 100` : '-'}
                                   </span>
                                 </td>
-                                <td>{p.elevationMeters} m dpl</td>
-                                <td>{p.nearestFaultKm} km</td>
+                                <td>{p.elevationMeters !== null ? `${p.elevationMeters} m dpl` : '-'}</td>
+                                <td>{p.nearestFaultKm !== null ? `${p.nearestFaultKm} km` : '-'}</td>
                                 <td>
-                                  <span className={`gt-status-chip ${p.overallScore > 75 ? 'danger' : p.overallScore > 45 ? 'warning' : 'success'}`}>
-                                    {isEn ? (p.overallScore > 75 ? 'Critical Zone' : p.overallScore > 45 ? 'Mitigation Needed' : 'Ready for Transaction') : p.auditStatus}
+                                  <span className={`gt-status-chip ${(p.overallScore ?? 0) > 75 ? 'danger' : (p.overallScore ?? 0) > 45 ? 'warning' : p.overallScore !== null ? 'success' : 'neutral'}`}>
+                                    {isEn ? (p.overallScore === null ? 'Pending Assessment' : p.overallScore > 75 ? 'Critical Zone' : p.overallScore > 45 ? 'Mitigation Needed' : 'Ready for Transaction') : p.auditStatus}
                                   </span>
                                 </td>
                                 <td style={{ textAlign: 'right' }}>
@@ -1198,11 +1207,11 @@ export const MyAccountDashboard: React.FC = () => {
                         {isEn ? 'Environmental Hazard Index' : 'Indeks Bahaya Lingkungan'}
                       </span>
                       <div className="gt-score-large-row">
-                        <span className="gt-score-huge">{activeProperty.overallScore}</span>
+                        <span className="gt-score-huge">{activeProperty.overallScore !== null ? activeProperty.overallScore : '-'}</span>
                         <span className="gt-score-max">/100</span>
                       </div>
                       <span className={`gt-inspector-level-badge ${activeProperty.overallLevel === 'extreme' ? 'high' : activeProperty.overallLevel}`}>
-                        {isEn ? (activeProperty.overallScore > 75 ? 'Critical Zone' : activeProperty.overallScore > 45 ? 'Mitigation Needed' : 'Ready for Transaction') : activeProperty.auditStatus}
+                        {isEn ? (activeProperty.overallScore === null ? 'Pending Assessment' : activeProperty.overallScore > 75 ? 'Critical Zone' : activeProperty.overallScore > 45 ? 'Mitigation Needed' : 'Ready for Transaction') : activeProperty.auditStatus}
                       </span>
                     </div>
 
@@ -1210,9 +1219,11 @@ export const MyAccountDashboard: React.FC = () => {
                     <div className="gt-inspector-metrics-list">
                       <div className="gt-insp-row">
                         <span className="gt-insp-label" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                          <Droplets size={13} style={{ color: '#0284c7' }} /> {isEn ? 'Fluvial / Flood Risk' : 'Risiko Banjir Fluvial / Rob'}
+                          <Droplets size={13} style={{ color: '#0284c7' }} /> {isEn ? 'Flood Risk' : 'Risiko Banjir'}
                         </span>
-                        <span className="gt-insp-val" style={{ color: '#c2410c' }}>{activeProperty.floodScore} / 100</span>
+                        <span className="gt-insp-val" style={{ color: '#c2410c' }}>
+                          {activeProperty.floodScore !== null ? `${activeProperty.floodScore} / 100` : '-'}
+                        </span>
                       </div>
 
                       <div className="gt-insp-row">
@@ -1445,7 +1456,7 @@ export const MyAccountDashboard: React.FC = () => {
               { slotName: isEn ? 'CANDIDATE 3' : 'KANDIDAT 3', prop: propC, currentId: propC.id, setSlot: setSlotCId }
             ];
 
-            const winner = [...slots].sort((a, b) => a.prop.overallScore - b.prop.overallScore)[0];
+            const winner = [...slots].sort((a, b) => (a.prop.overallScore ?? 999) - (b.prop.overallScore ?? 999))[0];
             const allCandidatesList = properties;
 
             return (
@@ -1495,7 +1506,7 @@ export const MyAccountDashboard: React.FC = () => {
                   </span>
                   <div>
                     <strong style={{ color: '#166534', fontSize: '0.9rem', display: 'block', marginBottom: '2px' }}>
-                      {winner.prop.name} ({winner.prop.city}) — {isEn ? 'Lowest Multi-Hazard Score' : 'Skor Risiko Terendah'}: {winner.prop.overallScore}/100 ({winner.prop.overallLevel.toUpperCase()})
+                      {winner.prop.name} ({winner.prop.city}) — {isEn ? 'Lowest Multi-Hazard Score' : 'Skor Risiko Terendah'}: {winner.prop.overallScore !== null ? `${winner.prop.overallScore}/100` : '-'} ({winner.prop.overallLevel.toUpperCase()})
                     </strong>
                     <span style={{ fontSize: '0.78rem', color: '#15803d', lineHeight: 1.4 }}>
                       {isEn
@@ -1505,30 +1516,14 @@ export const MyAccountDashboard: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 3-Column Comparison Grid */}
-                <div className="gt-compare-grid">
-                  {slots.map((s, idx) => {
-                    const isWinner = s.prop.id === winner.prop.id;
-                    return (
-                      <div key={idx} className={`gt-compare-card ${isWinner ? 'is-winner' : ''}`}>
-                        {/* Slot Header with Selector */}
-                        <div className="gt-compare-card-head">
-                          <div style={{ flexGrow: 1, marginRight: '10px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                              <span className="gt-compare-slot-tag">{s.slotName}</span>
-                              {isWinner && (
-                                <span style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '2px 8px', borderRadius: '4px', fontSize: '0.66rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                  <Star size={11} />
-                                  <span>{isEn ? 'Best Choice' : 'Paling Aman'}</span>
-                                </span>
-                              )}
-                            </div>
-                            <h4 className="gt-compare-prop-name">{s.prop.name}</h4>
-                            <span className="gt-compare-prop-city">{s.prop.address}</span>
-                          </div>
-                        </div>
+                {/* Triple Benchmark Comparative Slots */}
+                <div className="gt-compare-slots-grid">
+                  {slots.map((s, idx) => (
+                    <div key={idx} className="gt-compare-slot-col">
+                      <div className="gt-compare-slot-card">
+                        <span className="gt-compare-slot-badge">{s.slotName}</span>
 
-                        {/* Property Switcher Dropdown */}
+                        {/* Candidate Dropdown Selector */}
                         <div>
                           <label style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '4px' }}>
                             {isEn ? 'Switch Monitored Plot:' : 'Ganti Tapak Terpilih:'}
@@ -1540,7 +1535,7 @@ export const MyAccountDashboard: React.FC = () => {
                           >
                             {allCandidatesList.map((cand) => (
                               <option key={cand.id} value={cand.id}>
-                                {cand.name} ({cand.city}) — {isEn ? 'Score' : 'Skor'}: {cand.overallScore}
+                                {cand.name} ({cand.city}) — {isEn ? 'Score' : 'Skor'}: {cand.overallScore !== null ? cand.overallScore : '-'}
                               </option>
                             ))}
                           </select>
@@ -1552,20 +1547,20 @@ export const MyAccountDashboard: React.FC = () => {
                             <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
                               {isEn ? 'Composite Risk' : 'Skor Risiko Komposit'}
                             </span>
-                            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: s.prop.overallScore > 70 ? '#dc2626' : s.prop.overallScore > 40 ? '#d97706' : '#16a34a' }}>
-                              {s.prop.overallScore}<span style={{ fontSize: '0.76rem', color: '#94a3b8' }}>/100</span>
+                            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: (s.prop.overallScore ?? 0) > 70 ? '#dc2626' : (s.prop.overallScore ?? 0) > 40 ? '#d97706' : '#16a34a' }}>
+                              {s.prop.overallScore !== null ? s.prop.overallScore : '-'}<span style={{ fontSize: '0.76rem', color: '#94a3b8' }}>/100</span>
                             </div>
                           </div>
                           <span
                             className="gt-tag-neutral"
                             style={{
-                              background: s.prop.overallScore > 70 ? '#fef2f2' : s.prop.overallScore > 40 ? '#fffbeb' : '#f0fdf4',
-                              color: s.prop.overallScore > 70 ? '#b91c1c' : s.prop.overallScore > 40 ? '#b45309' : '#15803d',
-                              borderColor: s.prop.overallScore > 70 ? '#fecaca' : s.prop.overallScore > 40 ? '#fde68a' : '#bbf7d0',
+                              background: (s.prop.overallScore ?? 0) > 70 ? '#fef2f2' : (s.prop.overallScore ?? 0) > 40 ? '#fffbeb' : '#f0fdf4',
+                              color: (s.prop.overallScore ?? 0) > 70 ? '#b91c1c' : (s.prop.overallScore ?? 0) > 40 ? '#b45309' : '#15803d',
+                              borderColor: (s.prop.overallScore ?? 0) > 70 ? '#fecaca' : (s.prop.overallScore ?? 0) > 40 ? '#fde68a' : '#bbf7d0',
                               fontWeight: 800
                             }}
                           >
-                            {isEn ? (s.prop.overallScore > 75 ? 'Critical Zone' : s.prop.overallScore > 45 ? 'Mitigation Needed' : 'Ready for Transaction') : s.prop.auditStatus}
+                            {isEn ? (s.prop.overallScore === null ? 'Pending Assessment' : s.prop.overallScore > 75 ? 'Critical Zone' : s.prop.overallScore > 45 ? 'Mitigation Needed' : 'Ready for Transaction') : s.prop.auditStatus}
                           </span>
                         </div>
 
@@ -1575,10 +1570,10 @@ export const MyAccountDashboard: React.FC = () => {
                           <div className="gt-compare-metric-row">
                             <span className="gt-compare-metric-lbl">
                               <Droplets size={14} style={{ color: '#0284c7' }} />
-                              <span>{isEn ? 'Flood & Inundation:' : 'Pilar Banjir & Peil:'}</span>
+                              <span>{isEn ? 'Flood & Inundation:' : 'Banjir & Genangan:'}</span>
                             </span>
-                            <span className="gt-compare-metric-val" style={{ color: s.prop.floodScore > 70 ? '#dc2626' : s.prop.floodScore > 40 ? '#d97706' : '#16a34a' }}>
-                              {s.prop.floodScore}/100 (+{s.prop.elevationMeters}m dpl)
+                            <span className="gt-compare-metric-val" style={{ color: (s.prop.floodScore ?? 0) > 70 ? '#dc2626' : (s.prop.floodScore ?? 0) > 40 ? '#d97706' : '#16a34a' }}>
+                              {s.prop.floodScore !== null ? `${s.prop.floodScore}/100` : '-'} {s.prop.elevationMeters !== null ? `(+${s.prop.elevationMeters}m dpl)` : ''}
                             </span>
                           </div>
 
@@ -1586,10 +1581,10 @@ export const MyAccountDashboard: React.FC = () => {
                           <div className="gt-compare-metric-row">
                             <span className="gt-compare-metric-lbl">
                               <Mountain size={14} style={{ color: '#ea580c' }} />
-                              <span>{isEn ? 'Active Fault Distance:' : 'Jarak Sesar PusGen:'}</span>
+                              <span>{isEn ? 'Active Fault Distance:' : 'Jarak Sesar Aktif:'}</span>
                             </span>
-                            <span className="gt-compare-metric-val" style={{ color: s.prop.nearestFaultKm < 10 ? '#dc2626' : s.prop.nearestFaultKm < 30 ? '#d97706' : '#16a34a' }}>
-                              ±{s.prop.nearestFaultKm} km ({s.prop.quakeScore}/100)
+                            <span className="gt-compare-metric-val" style={{ color: (s.prop.nearestFaultKm ?? 99) < 10 ? '#dc2626' : (s.prop.nearestFaultKm ?? 99) < 30 ? '#d97706' : '#16a34a' }}>
+                              {s.prop.nearestFaultKm !== null ? `±${s.prop.nearestFaultKm} km` : '-'} ({s.prop.quakeScore !== null ? `${s.prop.quakeScore}/100` : '-'})
                             </span>
                           </div>
 
@@ -1597,10 +1592,10 @@ export const MyAccountDashboard: React.FC = () => {
                           <div className="gt-compare-metric-row">
                             <span className="gt-compare-metric-lbl">
                               <Flame size={14} style={{ color: '#e11d48' }} />
-                              <span>{isEn ? 'Heat Stress Index:' : 'Indeks Panas & UHI:'}</span>
+                              <span>{isEn ? 'Heat Stress Index:' : 'Paparan Panas Lokasi:'}</span>
                             </span>
-                            <span className="gt-compare-metric-val" style={{ color: s.prop.heatScore > 70 ? '#dc2626' : s.prop.heatScore > 40 ? '#d97706' : '#16a34a' }}>
-                              {s.prop.heatScore}/100
+                            <span className="gt-compare-metric-val" style={{ color: (s.prop.heatScore ?? 0) > 70 ? '#dc2626' : (s.prop.heatScore ?? 0) > 40 ? '#d97706' : '#16a34a' }}>
+                              {s.prop.heatScore !== null ? `${s.prop.heatScore}/100` : '-'}
                             </span>
                           </div>
 
@@ -1610,8 +1605,8 @@ export const MyAccountDashboard: React.FC = () => {
                               <Zap size={14} style={{ color: '#ca8a04' }} />
                               <span>{isEn ? 'Est. Mitigation Budget:' : 'Estimasi Biaya Mitigasi:'}</span>
                             </span>
-                            <span className="gt-compare-metric-val" style={{ color: s.prop.overallScore > 70 ? '#dc2626' : '#0f172a' }}>
-                              {s.prop.overallScore > 70 ? (isEn ? 'IDR 80 - 150 Million' : 'Rp 80 - 150 Juta') : s.prop.overallScore > 40 ? (isEn ? 'IDR 25 - 60 Million' : 'Rp 25 - 60 Juta') : (isEn ? 'IDR 5 - 15 Million' : 'Rp 5 - 15 Juta')}
+                            <span className="gt-compare-metric-val" style={{ color: (s.prop.overallScore ?? 0) > 70 ? '#dc2626' : '#0f172a' }}>
+                              {(s.prop.overallScore ?? 0) > 70 ? (isEn ? 'IDR 80 - 150 Million' : 'Rp 80 - 150 Juta') : (s.prop.overallScore ?? 0) > 40 ? (isEn ? 'IDR 25 - 60 Million' : 'Rp 25 - 60 Juta') : (isEn ? 'IDR 5 - 15 Million' : 'Rp 5 - 15 Juta')}
                             </span>
                           </div>
                         </div>
@@ -1632,8 +1627,8 @@ export const MyAccountDashboard: React.FC = () => {
                           </button>
                         </div>
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               </div>
             );

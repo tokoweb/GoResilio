@@ -1,20 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDbPool } from '../../../../infrastructure/database/connection/mysql.connection';
-import { PasswordHelper } from '../../../../infrastructure/database/repositories/MySQLUserRepository';
+import { AuthGuard } from '../../../../infrastructure/auth/authGuard';
+import { PasswordService } from '../../../../lib/auth/password';
+import { InputValidator } from '../../../../infrastructure/security/inputValidator';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { email, fullName, phoneNumber, organization, currentPassword, newPassword } = body;
+    // 1. Authenticate request via session JWT
+    const authResult = await AuthGuard.requireAuth(req);
+    if (authResult instanceof NextResponse) {
+      return authResult; // 401 Unauthorized
+    }
 
-    if (!email) {
-      return NextResponse.json({ success: false, error: 'Email wajib diisi' }, { status: 400 });
+    const { user: authUser } = authResult;
+    const body = await req.json();
+    const { fullName, phoneNumber, organization, currentPassword, newPassword } = body;
+
+    // 2. Resolve target email strictly from authenticated session unless caller is Super Admin
+    let targetEmail = authUser.email;
+    if (authUser.role === 'Super Admin (RDI)' && body.email && typeof body.email === 'string') {
+      targetEmail = InputValidator.validateEmail(body.email);
     }
 
     const pool = getDbPool();
     const [rows]: any = await pool.query(
       'SELECT id, email, password_hash as passwordHash, full_name as fullName, role, organization, phone_number as phoneNumber, tier_level as tierLevel FROM users WHERE email = ? LIMIT 1',
-      [email]
+      [targetEmail]
     );
 
     if (!rows || rows.length === 0) {
@@ -23,36 +34,52 @@ export async function POST(req: NextRequest) {
 
     const user = rows[0];
 
-    // If changing password, verify current password first and then hash new password
-    let newPasswordHash = undefined;
+    // 3. If changing password, verify current password first using constant-time comparison
+    let newPasswordHash: string | undefined = undefined;
     if (newPassword) {
       if (!currentPassword) {
-        return NextResponse.json({ success: false, error: 'Kata sandi saat ini wajib diisi untuk mengubah kata sandi' }, { status: 400 });
+        return NextResponse.json(
+          { success: false, error: 'Kata sandi saat ini wajib diisi untuk mengubah kata sandi' },
+          { status: 400 }
+        );
       }
 
-      const isCurrentValid = PasswordHelper.verifyPassword(currentPassword, user.passwordHash);
+      const isCurrentValid = PasswordService.verifySync(currentPassword, user.passwordHash);
       if (!isCurrentValid) {
-        return NextResponse.json({ success: false, error: 'Kata sandi saat ini tidak sesuai dengan catatan sistem' }, { status: 401 });
+        return NextResponse.json(
+          { success: false, error: 'Kata sandi saat ini tidak sesuai dengan catatan sistem' },
+          { status: 401 }
+        );
       }
 
-      newPasswordHash = PasswordHelper.hashPassword(newPassword);
+      if (typeof newPassword !== 'string' || newPassword.length < 6) {
+        return NextResponse.json(
+          { success: false, error: 'Kata sandi baru minimal memiliki panjang 6 karakter' },
+          { status: 400 }
+        );
+      }
+
+      newPasswordHash = PasswordService.hashSync(newPassword);
     }
 
-    // Prepare update fields
+    // 4. Prepare sanitized update fields
     const fields: string[] = [];
     const values: any[] = [];
 
     if (fullName) {
+      const sanitizedName = InputValidator.sanitizeText(String(fullName));
       fields.push('full_name = ?');
-      values.push(fullName);
+      values.push(sanitizedName);
     }
     if (phoneNumber !== undefined) {
+      const sanitizedPhone = InputValidator.sanitizeText(String(phoneNumber));
       fields.push('phone_number = ?');
-      values.push(phoneNumber);
+      values.push(sanitizedPhone);
     }
     if (organization !== undefined) {
+      const sanitizedOrg = InputValidator.sanitizeText(String(organization));
       fields.push('organization = ?');
-      values.push(organization);
+      values.push(sanitizedOrg);
     }
     if (newPasswordHash) {
       fields.push('password_hash = ?');
@@ -67,10 +94,10 @@ export async function POST(req: NextRequest) {
     const updatedUser = {
       id: user.id,
       email: user.email,
-      fullName: fullName || user.fullName,
+      fullName: fullName ? InputValidator.sanitizeText(String(fullName)) : user.fullName,
       role: user.role,
-      organization: organization !== undefined ? organization : user.organization,
-      phoneNumber: phoneNumber !== undefined ? phoneNumber : user.phoneNumber,
+      organization: organization !== undefined ? InputValidator.sanitizeText(String(organization)) : user.organization,
+      phoneNumber: phoneNumber !== undefined ? InputValidator.sanitizeText(String(phoneNumber)) : user.phoneNumber,
       tierLevel: user.tierLevel,
       isVerified: true
     };
@@ -81,7 +108,6 @@ export async function POST(req: NextRequest) {
       user: updatedUser
     });
   } catch (error: any) {
-    console.error('[Update Profile Error]:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Gagal memperbarui pengaturan akun' },
       { status: 500 }

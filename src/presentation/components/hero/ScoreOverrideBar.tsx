@@ -11,6 +11,11 @@ export const ScoreOverrideBar: React.FC = () => {
   const { t } = useLanguage();
   const { overrideMode, setManualScoreLevel } = useAssessment();
 
+  // Section 21: Hidden from public production UI
+  if (process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_ENABLE_DEMO_SIMULATION !== 'true') {
+    return null;
+  }
+
   return (
     <div className="gt-sim-bar">
       <div className="gt-sim-label">

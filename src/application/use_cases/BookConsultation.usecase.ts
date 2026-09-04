@@ -55,7 +55,7 @@ export class BookConsultationUseCase {
             voucherCode: bookingId,
             clientName: input.fullName,
             clientEmail: input.email,
-            clientPhone: input.phone || '+6281200000000',
+            clientPhone: input.phone || null,
             targetLocation: input.targetLocation,
             packageType: input.packageInterest,
             assignedExpert: 'Tim Peneliti RDI & BGP Consultant',

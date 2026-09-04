@@ -152,6 +152,28 @@ export const ensureTablesExist = async (p: mysql.Pool) => {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // 8. User Reports Table (Persistent Official Report Dossiers)
+    await p.query(`
+      CREATE TABLE IF NOT EXISTS user_reports (
+        id VARCHAR(64) PRIMARY KEY,
+        user_id VARCHAR(64) NOT NULL,
+        user_email VARCHAR(191) NULL,
+        ref_number VARCHAR(64) NOT NULL UNIQUE,
+        property_name VARCHAR(180) NOT NULL,
+        address TEXT NOT NULL,
+        latitude DECIMAL(10, 7) NOT NULL,
+        longitude DECIMAL(10, 7) NOT NULL,
+        overall_score INT NOT NULL DEFAULT 50,
+        overall_level VARCHAR(30) NOT NULL DEFAULT 'medium',
+        package_type VARCHAR(120) NOT NULL DEFAULT 'Instant (1 Properti)',
+        report_data JSON NULL,
+        status VARCHAR(30) NOT NULL DEFAULT 'completed',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_rep_user (user_id),
+        INDEX idx_rep_ref (ref_number)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
     // Seed default users if table is empty
     const [userRows]: any = await p.query('SELECT COUNT(*) as count FROM users');
     if (userRows && userRows[0] && userRows[0].count === 0) {

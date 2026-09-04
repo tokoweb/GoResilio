@@ -383,6 +383,18 @@ export interface NasaFirmsData {
   missingReason?: string | null;
 }
 
+export interface BuildingVulnerabilityProfile {
+  propertyType: PropertyType;
+  buildingFloors: number | null;
+  constructionYear: number | null;
+  foundationType: string | null;
+  structuralSystem: string | null;
+  estimatedPropertyValueIdr: number | null;
+  profilingLevel: 'basic_location_only' | 'enriched_building_attributes' | 'expert_verified';
+  notesId: string;
+  notesEn: string;
+}
+
 export interface MultiHazardAssessmentResult {
   referenceNumber: string;
   evaluatedAt: string;
@@ -413,6 +425,7 @@ export interface MultiHazardAssessmentResult {
   heat: HeatMetrics;
   transport: TransportMetrics;
   prescriptions: PrescriptionItem[];
+  buildingProfile?: BuildingVulnerabilityProfile | null;
   financialScreening?: FinancialScreeningMetrics | null;
   /** @deprecated Use financialScreening */
   climadaFinancial?: FinancialScreeningMetrics | null;

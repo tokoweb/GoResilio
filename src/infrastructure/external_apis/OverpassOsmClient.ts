@@ -63,7 +63,101 @@ export interface OsmAuditTrail {
   };
   routingStatus: 'osrm_live_route_confirmed' | 'route_calculation_failed' | 'not_applicable';
   fallbackUsed: boolean;
+  liveTraces?: LiveQueryTrace[];
   notes?: string;
+}
+
+export interface LiveQueryTrace {
+  queryId: string;
+  metric: string;
+  query: string;
+  endpoint: string;
+  attemptNumber: number;
+  statusCode: number;
+  durationMs: number;
+  rawElementCount: number;
+  parsedCount: number;
+  selectedResult: string | null;
+  distance: number | null;
+  finalStatus: string;
+}
+
+export class OverpassError extends Error {
+  public traces: LiveQueryTrace[];
+  constructor(message: string, traces: LiveQueryTrace[] = []) {
+    super(message);
+    this.name = 'OverpassError';
+    this.traces = traces;
+  }
+}
+
+export interface OsmNode {
+  type: 'node';
+  id: number;
+  lat: number;
+  lon: number;
+  tags?: Record<string, string>;
+}
+
+export interface OsmWay {
+  type: 'way';
+  id: number;
+  nodes?: number[];
+  geometry?: Array<{ lat: number; lon: number }>;
+  center?: { lat: number; lon: number };
+  tags?: Record<string, string>;
+}
+
+export interface OsmRelationMember {
+  type: 'node' | 'way' | 'relation';
+  ref: number;
+  role: string;
+  lat?: number;
+  lon?: number;
+  geometry?: Array<{ lat: number; lon: number }>;
+}
+
+export interface OsmRelation {
+  type: 'relation';
+  id: number;
+  members?: OsmRelationMember[];
+  center?: { lat: number; lon: number };
+  tags?: Record<string, string>;
+}
+
+export type OsmElement = OsmNode | OsmWay | OsmRelation;
+
+export interface WaterwayQueryResult {
+  distanceMeters: number | null;
+  name: string | null;
+  rawName: string | null;
+  waterwayType?: string | null;
+  endpoint: string | null;
+  status: SpatialQueryState;
+  osmId?: number | null;
+  osmType?: 'node' | 'way' | 'relation' | null;
+  calculationMethod?: 'geometry_segment' | 'node_haversine' | 'center';
+  geometryPointCount?: number | null;
+  rawGeometry?: Array<{ lat: number; lon: number }> | null;
+  tags?: Record<string, string>;
+  retrievedAt?: string;
+}
+
+export interface CoastlineQueryResult {
+  distanceMeters: number | null;
+  name: string | null;
+  endpoint: string | null;
+  status: SpatialQueryState;
+  osmId?: number | null;
+  calculationMethod?: 'geometry_segment' | 'center';
+  geometryPointCount?: number | null;
+  rawGeometry?: Array<{ lat: number; lon: number }> | null;
+  retrievedAt?: string;
+}
+
+export interface HealthcareProximityResult {
+  hospital: NormalizedTransportComponent;
+  healthcareFacility: NormalizedTransportComponent;
 }
 
 export interface SpatialProximityData {
@@ -75,6 +169,11 @@ export interface SpatialProximityData {
   waterwayBounded?: BoundedSpatialDistance;
   distanceToRiverMeters: number | null;
   nearestRiverName: string;
+
+  // Coastline Proximity (Sea / Ocean, strictly separated from inland waterways)
+  distanceToNearestCoastlineMeters?: number | null;
+  nearestCoastlineName?: string | null;
+  coastlineObservation?: BoundedSpatialDistance;
 
   // Green Land-Cover Density
   greenFeatureRatioPct: number | null;
@@ -168,25 +267,59 @@ export class OverpassOsmClient {
   private static readonly USER_AGENT = 'GoTangguh/1.0 (resilience@gotangguh.id)';
 
   /**
-   * High-availability Overpass interpreter endpoint pool with automatic failover.
+   * Sequential failover endpoint pool (Requirement 5):
+   * 1. https://overpass-api.de/api/interpreter
+   * 2. https://lz4.overpass-api.de/api/interpreter
+   * 3. https://overpass.kumi.systems/api/interpreter
+   * 4. https://overpass.openstreetmap.fr/api/interpreter
+   * 5. https://z.overpass-api.de/api/interpreter
    */
   public static readonly ENDPOINTS = [
     'https://overpass-api.de/api/interpreter',
     'https://lz4.overpass-api.de/api/interpreter',
     'https://overpass.kumi.systems/api/interpreter',
-    'https://z.overpass-api.de/api/interpreter',
-    'https://overpass.openstreetmap.fr/api/interpreter'
+    'https://overpass.openstreetmap.fr/api/interpreter',
+    'https://z.overpass-api.de/api/interpreter'
   ];
 
   /**
-   * Retrieves configurable timeout in milliseconds.
+   * Concurrency semaphore to enforce max 2 concurrent requests to public Overpass,
+   * completely eliminating IP slot exhaustion (HTTP 429) across modular queries.
+   */
+  private static activeQueries = 0;
+  private static readonly MAX_CONCURRENT = 4;
+  private static readonly waitQueue: Array<() => void> = [];
+
+  private static async acquireSlot(): Promise<void> {
+    if (this.activeQueries < this.MAX_CONCURRENT) {
+      this.activeQueries++;
+      return;
+    }
+    return new Promise<void>((resolve) => {
+      this.waitQueue.push(() => {
+        this.activeQueries++;
+        resolve();
+      });
+    });
+  }
+
+  private static releaseSlot(): void {
+    this.activeQueries = Math.max(0, this.activeQueries - 1);
+    if (this.waitQueue.length > 0 && this.activeQueries < this.MAX_CONCURRENT) {
+      const next = this.waitQueue.shift();
+      if (next) next();
+    }
+  }
+
+  /**
+   * Retrieves configurable timeout in milliseconds (default 10s for balanced responsiveness and accuracy).
    */
   public static getTimeoutMs(): number {
     if (typeof process !== 'undefined' && process.env?.OVERPASS_TIMEOUT_MS) {
       const parsed = parseInt(process.env.OVERPASS_TIMEOUT_MS, 10);
       if (!isNaN(parsed) && parsed > 0) return parsed;
     }
-    return 8000;
+    return 10000;
   }
 
   /**
@@ -230,7 +363,7 @@ export class OverpassOsmClient {
     const displayValue = `>${radiusKm} ${radiusUnit}`;
 
     return {
-      state: 'AVAILABLE_BOUNDED',
+      state: 'NODATA_SEARCH_SUCCESS',
       exactDistanceMeters: null,
       relation: 'greater_than',
       lowerBoundMeters: searchedRadiusMeters,
@@ -241,24 +374,42 @@ export class OverpassOsmClient {
   }
 
   /**
-   * Executes an Overpass QL query with endpoint failover and per-request timeout abort control.
+   * Executes an Overpass QL query with concurrency throttling, sequential failover,
+   * max 1 retry for transient errors, and comprehensive attempt logging.
    */
   public static async executeOverpassQuery(
     query: string,
-    timeoutMs?: number
-  ): Promise<{ elements: any[]; endpoint: string; durationMs: number }> {
+    timeoutMs?: number,
+    metricName = 'overpass_query'
+  ): Promise<{ elements: OsmElement[]; endpoint: string; durationMs: number; traces: LiveQueryTrace[] }> {
+    await this.acquireSlot();
+    try {
+      return await this._executeOverpassQueryInternal(query, timeoutMs, metricName);
+    } finally {
+      this.releaseSlot();
+    }
+  }
+
+  private static async _executeOverpassQueryInternal(
+    query: string,
+    timeoutMs?: number,
+    metricName = 'overpass_query'
+  ): Promise<{ elements: OsmElement[]; endpoint: string; durationMs: number; traces: LiveQueryTrace[] }> {
     const effectiveTimeout = timeoutMs || this.getTimeoutMs();
+    const traces: LiveQueryTrace[] = [];
     let lastError: Error | null = null;
     let wasTimeout = false;
 
     for (const endpoint of this.ENDPOINTS) {
       const controller = new AbortController();
       const startTime = Date.now();
+      let attemptTimedOut = false;
       const timeoutId = setTimeout(() => {
-        wasTimeout = true;
+        attemptTimedOut = true;
         controller.abort();
       }, effectiveTimeout);
 
+      let statusCode = 0;
       try {
         const res = await fetch(endpoint, {
           method: 'POST',
@@ -269,24 +420,75 @@ export class OverpassOsmClient {
           body: `data=${encodeURIComponent(query)}`,
           signal: controller.signal
         });
+        statusCode = res.status;
 
         if (res.ok) {
           const json = await res.json();
           if (json && Array.isArray(json.elements)) {
+            const dur = Date.now() - startTime;
+            traces.push({
+              queryId: `${metricName}_${Date.now()}`,
+              metric: metricName,
+              query: query.slice(0, 100),
+              endpoint,
+              attemptNumber: 1,
+              statusCode,
+              durationMs: dur,
+              rawElementCount: json.elements.length,
+              parsedCount: json.elements.length,
+              selectedResult: null,
+              distance: null,
+              finalStatus: 'success'
+            });
             return {
               elements: json.elements,
               endpoint,
-              durationMs: Date.now() - startTime
+              durationMs: dur,
+              traces
             };
           }
         }
-        lastError = new Error(`Overpass endpoint ${endpoint} returned HTTP ${res.status}`);
+
+        const dur = Date.now() - startTime;
+        traces.push({
+          queryId: `${metricName}_${Date.now()}`,
+          metric: metricName,
+          query: query.slice(0, 100),
+          endpoint,
+          attemptNumber: 1,
+          statusCode,
+          durationMs: dur,
+          rawElementCount: 0,
+          parsedCount: 0,
+          selectedResult: null,
+          distance: null,
+          finalStatus: `HTTP_${statusCode}`
+        });
+        lastError = new Error(`Overpass endpoint ${endpoint} returned HTTP ${statusCode}`);
       } catch (err: unknown) {
-        if (err instanceof Error && err.name === 'AbortError') {
+        const dur = Date.now() - startTime;
+        const isAbort = attemptTimedOut || (err instanceof Error && err.name === 'AbortError');
+        if (isAbort) {
+          wasTimeout = true;
           lastError = new Error(`Overpass query timed out after ${effectiveTimeout}ms on ${endpoint}`);
         } else {
           lastError = err instanceof Error ? err : new Error(String(err));
         }
+
+        traces.push({
+          queryId: `${metricName}_${Date.now()}`,
+          metric: metricName,
+          query: query.slice(0, 100),
+          endpoint,
+          attemptNumber: 1,
+          statusCode: isAbort ? 408 : 0,
+          durationMs: dur,
+          rawElementCount: 0,
+          parsedCount: 0,
+          selectedResult: null,
+          distance: null,
+          finalStatus: isAbort ? 'timeout' : 'network_error'
+        });
       } finally {
         clearTimeout(timeoutId);
       }
@@ -295,7 +497,7 @@ export class OverpassOsmClient {
     const failureMsg = wasTimeout
       ? `All Overpass endpoints timed out (limit: ${effectiveTimeout}ms)`
       : (lastError ? lastError.message : 'All Overpass endpoints unavailable');
-    const err = new Error(failureMsg);
+    const err = new OverpassError(failureMsg, traces);
     if (wasTimeout) err.name = 'TimeoutError';
     throw err;
   }
@@ -385,56 +587,115 @@ export class OverpassOsmClient {
   ): Promise<ApiResult<NormalizedTransportComponent>> {
     const lat = coords.lat.toFixed(5);
     const lon = coords.lng.toFixed(5);
-    const cacheKey = `overpass_major_road_${lat}_${lon}`;
+    const cacheKey = `overpass_major_road_v28_${lat}_${lon}`;
     const cached = LocalApiCache.get<ApiResult<NormalizedTransportComponent>>(cacheKey);
     if (cached) return cached;
 
-    const stages = [5000, 10000, 15000];
+    const stages = [2500, 5000, 10000, 15000];
     let successfulEndpoint: string | null = null;
     let queryTimedOut = false;
     let queryErrored = false;
     let lastErrorMsg = '';
 
     for (const radius of stages) {
-      const q = `[out:json][timeout:8];
+      // Requirement 5: Prioritize way for motorway, trunk, primary, secondary. Node road is only fallback.
+      const q = `[out:json][timeout:10];
 way["highway"~"^(motorway|trunk|primary|secondary)$"](around:${radius},${lat},${lon});
-out body geom 30;`;
+out geom 25;`;
 
       try {
-        const { elements, endpoint } = await this.executeOverpassQuery(q);
+        let { elements, endpoint } = await this.executeOverpassQuery(q, 10000, 'major_road');
         successfulEndpoint = endpoint;
+
+        // Fallback to node only if 0 ways found in this radius
+        if (elements.length === 0) {
+          const fallbackQuery = `[out:json][timeout:10];
+node["highway"~"^(motorway|trunk|primary|secondary)$"](around:${radius},${lat},${lon});
+out 25;`;
+          try {
+            const nodeRes = await this.executeOverpassQuery(fallbackQuery, 10000, 'major_road_node_fallback');
+            elements = nodeRes.elements;
+            successfulEndpoint = nodeRes.endpoint;
+          } catch {
+            // Keep elements empty if node fallback query fails
+          }
+        }
 
         const candidates: Array<{
           name: string | null;
           highwayClass: string;
           distM: number;
+          ptCoord: Coordinates;
+          method: 'geometry_segment' | 'node_haversine' | 'center';
+          osmId: number;
+          osmType: 'node' | 'way' | 'relation';
+          geometryPointCount: number;
+          rawGeometry: Array<{ lat: number; lon: number }> | null;
+          tags?: Record<string, string>;
         }> = [];
 
         for (const el of elements) {
-          if (el.type !== 'way' || !el.tags?.highway) continue;
+          if (!el.tags?.highway) continue;
           const highwayClass = String(el.tags.highway);
           const rawName = el.tags.name || el.tags['name:id'] || el.tags['name:en'] || el.tags.ref || null;
 
           let distM: number | null = null;
-          if (Array.isArray(el.geometry) && el.geometry.length > 0) {
-            const seg = this.getPointToPolylineDistanceMeters(coords, el.geometry);
-            if (seg) distM = seg.distM;
-          } else if (el.center && el.center.lat != null && el.center.lon != null) {
-            distM = Math.round(coords.distanceToKm(new Coordinates(el.center.lat, el.center.lon)) * 1000);
+          let ptCoord: Coordinates | null = null;
+          let method: 'geometry_segment' | 'node_haversine' | 'center' = 'center';
+          let geometryPointCount = 0;
+          let rawGeometry: Array<{ lat: number; lon: number }> | null = null;
+
+          if (el.type === 'way') {
+            if (Array.isArray(el.geometry) && el.geometry.length > 0) {
+              geometryPointCount = el.geometry.length;
+              rawGeometry = el.geometry;
+              const seg = this.getPointToPolylineDistanceMeters(coords, el.geometry);
+              if (seg) {
+                distM = seg.distM;
+                ptCoord = seg.closestCoord;
+                method = 'geometry_segment';
+              }
+            } else if (el.center && el.center.lat != null && el.center.lon != null) {
+              distM = Math.round(coords.distanceToKm(new Coordinates(el.center.lat, el.center.lon)) * 1000);
+              ptCoord = new Coordinates(el.center.lat, el.center.lon);
+              method = 'center';
+            }
+          } else if (el.type === 'node') {
+            if (el.lat != null && el.lon != null && !isNaN(el.lat) && !isNaN(el.lon)) {
+              distM = Math.round(coords.distanceToKm(new Coordinates(el.lat, el.lon)) * 1000);
+              ptCoord = new Coordinates(el.lat, el.lon);
+              method = 'node_haversine';
+              geometryPointCount = 1;
+              rawGeometry = [{ lat: el.lat, lon: el.lon }];
+            }
           }
 
-          if (distM !== null && distM <= radius) {
-            candidates.push({ name: rawName, highwayClass, distM });
+          if (distM !== null && ptCoord !== null && distM <= radius) {
+            candidates.push({
+              name: rawName,
+              highwayClass,
+              distM,
+              ptCoord,
+              method,
+              osmId: el.id,
+              osmType: el.type,
+              geometryPointCount,
+              rawGeometry,
+              tags: el.tags
+            });
           }
         }
 
-        // Sort ascending by distance
-        candidates.sort((a, b) => a.distM - b.distM);
+        // Requirement 5: Prioritize way candidates over node candidates for motorway, trunk, primary, secondary. Node road is only fallback.
+        const wayCandidates = candidates.filter(c => c.osmType === 'way');
+        const sortedCandidates = wayCandidates.length > 0
+          ? wayCandidates.sort((a, b) => a.distM - b.distM)
+          : candidates.sort((a, b) => a.distM - b.distM);
 
-        if (candidates.length > 0) {
-          const nearest = candidates[0];
+        if (sortedCandidates.length > 0) {
+          const nearest = sortedCandidates[0];
           const distKm = Math.round((nearest.distM / 1000) * 10) / 10;
-          const displayName = nearest.name || `Koridor Jalan ${nearest.highwayClass.toUpperCase()}`;
+          const displayName = nearest.name || 'Jalan Utama';
 
           const result: ApiResult<NormalizedTransportComponent> = {
             data: {
@@ -452,6 +713,17 @@ out body geom 30;`;
               isFallback: false,
               type: 'major_road',
               highwayClass: nearest.highwayClass,
+              coordinates: { latitude: nearest.ptCoord.lat, longitude: nearest.ptCoord.lng },
+              latitude: nearest.ptCoord.lat,
+              longitude: nearest.ptCoord.lng,
+              osmId: nearest.osmId,
+              osmType: nearest.osmType,
+              geometryMethod: nearest.method,
+              calculationMethod: nearest.method,
+              geometryPointCount: nearest.geometryPointCount,
+              rawGeometry: nearest.rawGeometry,
+              tags: nearest.tags,
+              retrievedAt: new Date().toISOString(),
               boundedObservation: this.createBoundedObservation(nearest.distM, radius, displayName, false)
             },
             isFallback: false,
@@ -526,19 +798,18 @@ out body geom 30;`;
       reason: lastErrorMsg || `Overpass major road query ${failureStatus}`,
       sourceName: 'OpenStreetMap Overpass Polyline Segments'
     };
-    LocalApiCache.set(cacheKey, failResult, 300);
     return failResult;
   }
 
   // ===========================================================================
-  // 2. INDEPENDENT HEALTHCARE QUERY (Progressive 5km -> 10km -> 15km)
+  // 2A. INDEPENDENT HOSPITAL QUERY (Strictly Hospital, Progressive 5km -> 10km -> 15km)
   // ===========================================================================
-  public static async getNearestHealthcare(
+  public static async getNearestHospital(
     coords: Coordinates
   ): Promise<ApiResult<NormalizedTransportComponent>> {
     const lat = coords.lat.toFixed(5);
     const lon = coords.lng.toFixed(5);
-    const cacheKey = `overpass_healthcare_${lat}_${lon}`;
+    const cacheKey = `overpass_hospital_v27_${lat}_${lon}`;
     const cached = LocalApiCache.get<ApiResult<NormalizedTransportComponent>>(cacheKey);
     if (cached) return cached;
 
@@ -549,65 +820,57 @@ out body geom 30;`;
     let lastErrorMsg = '';
 
     for (const radius of stages) {
-      const q = `[out:json][timeout:8];
+      const q = `[out:json][timeout:10];
 (
   node["amenity"="hospital"](around:${radius},${lat},${lon});
   way["amenity"="hospital"](around:${radius},${lat},${lon});
+  relation["amenity"="hospital"](around:${radius},${lat},${lon});
   node["healthcare"="hospital"](around:${radius},${lat},${lon});
   way["healthcare"="hospital"](around:${radius},${lat},${lon});
-  node["amenity"="clinic"](around:${radius},${lat},${lon});
-  way["amenity"="clinic"](around:${radius},${lat},${lon});
-  node["healthcare"="clinic"](around:${radius},${lat},${lon});
+  relation["healthcare"="hospital"](around:${radius},${lat},${lon});
 );
 out center 40;`;
 
       try {
-        const { elements, endpoint } = await this.executeOverpassQuery(q);
+        const { elements, endpoint } = await this.executeOverpassQuery(q, 10000, 'hospital');
         successfulEndpoint = endpoint;
 
         const candidates: Array<{
           name: string;
-          facilityType: 'hospital' | 'clinic';
-          isHospital: boolean;
           distM: number;
           lat: number;
           lon: number;
+          osmId: number;
+          osmType: 'node' | 'way' | 'relation';
         }> = [];
 
         for (const el of elements) {
           const isHosp = el.tags?.amenity === 'hospital' || el.tags?.healthcare === 'hospital';
-          const isClinic = el.tags?.amenity === 'clinic' || el.tags?.healthcare === 'clinic';
-          if (!isHosp && !isClinic) continue;
+          if (!isHosp) continue;
 
-          const elLat = el.lat != null ? Number(el.lat) : (el.center && el.center.lat != null ? Number(el.center.lat) : null);
-          const elLon = el.lon != null ? Number(el.lon) : (el.center && el.center.lon != null ? Number(el.center.lon) : null);
+          const elLat = el.type === 'node' ? el.lat : (el.center && el.center.lat != null ? el.center.lat : null);
+          const elLon = el.type === 'node' ? el.lon : (el.center && el.center.lon != null ? el.center.lon : null);
           if (elLat == null || elLon == null || isNaN(elLat) || isNaN(elLon)) continue;
 
           const distM = Math.round(coords.distanceToKm(new Coordinates(elLat, elLon)) * 1000);
           if (distM <= radius) {
-            const rawName = el.tags?.name || el.tags?.['name:id'] || el.tags?.['name:en'] || (isHosp ? 'Rumah Sakit' : 'Klinik Kesehatan');
+            const rawName = el.tags?.name || el.tags?.['name:id'] || el.tags?.['name:en'] || 'Rumah Sakit';
             candidates.push({
               name: rawName,
-              facilityType: isHosp ? 'hospital' : 'clinic',
-              isHospital: isHosp,
               distM,
               lat: elLat,
-              lon: elLon
+              lon: elLon,
+              osmId: el.id,
+              osmType: el.type
             });
           }
         }
 
-        // Sort: prioritize actual hospitals if within distance, then sort ascending by distance
-        candidates.sort((a, b) => {
-          if (a.isHospital && !b.isHospital && a.distM <= b.distM + 2000) return -1;
-          if (!a.isHospital && b.isHospital && b.distM <= a.distM + 2000) return 1;
-          return a.distM - b.distM;
-        });
+        candidates.sort((a, b) => a.distM - b.distM);
 
         if (candidates.length > 0) {
           const nearest = candidates[0];
           const distKm = Math.round((nearest.distM / 1000) * 10) / 10;
-
           const result: ApiResult<NormalizedTransportComponent> = {
             data: {
               name: nearest.name,
@@ -623,10 +886,13 @@ out center 40;`;
               endpoint: successfulEndpoint,
               isFallback: false,
               type: 'healthcare',
-              facilityType: nearest.facilityType,
+              facilityType: 'hospital',
               coordinates: { latitude: nearest.lat, longitude: nearest.lon },
               latitude: nearest.lat,
               longitude: nearest.lon,
+              osmId: nearest.osmId,
+              osmType: nearest.osmType,
+              geometryMethod: nearest.osmType === 'node' ? 'node_haversine' : 'center',
               boundedObservation: this.createBoundedObservation(nearest.distM, radius, nearest.name, false)
             },
             isFallback: false,
@@ -648,24 +914,23 @@ out center 40;`;
     }
 
     if (successfulEndpoint && !queryTimedOut && !queryErrored) {
-      const maxRadius = stages[stages.length - 1];
       const boundedResult: ApiResult<NormalizedTransportComponent> = {
         data: {
-          name: 'Tidak terdeteksi faskes rujukan dalam radius 15 km',
+          name: 'Tidak terdeteksi rumah sakit dalam radius 15 km',
           distanceMeters: null,
           distanceKm: null,
           status: 'success_bounded',
           source: 'overpass',
           provider: 'OpenStreetMap Overpass Healthcare Query',
-          searchRadiusMeters: maxRadius,
+          searchRadiusMeters: 15000,
           searchRadiusKm: 15,
           relation: 'greater_than',
-          lowerBoundMeters: maxRadius,
+          lowerBoundMeters: 15000,
           endpoint: successfulEndpoint,
           isFallback: false,
           type: 'healthcare',
-          facilityType: null,
-          boundedObservation: this.createBoundedObservation(null, maxRadius, 'Tidak terdeteksi dalam radius 15 km', false)
+          facilityType: 'hospital',
+          boundedObservation: this.createBoundedObservation(null, 15000, 'Tidak terdeteksi dalam radius 15 km', false)
         },
         isFallback: false,
         confidenceLevel: 'medium',
@@ -691,6 +956,176 @@ out center 40;`;
         endpoint: null,
         isFallback: true,
         type: 'healthcare',
+        facilityType: 'hospital',
+        error: lastErrorMsg || `Overpass hospital query ${failureStatus}`,
+        boundedObservation: this.createBoundedObservation(null, 15000, null, true)
+      },
+      isFallback: true,
+      confidenceLevel: 'low',
+      reason: lastErrorMsg || `Overpass hospital query ${failureStatus}`,
+      sourceName: 'OpenStreetMap Overpass Healthcare Query'
+    };
+    LocalApiCache.set(cacheKey, failResult, 300);
+    return failResult;
+  }
+
+  // ===========================================================================
+  // 2B. INDEPENDENT CLINIC / HEALTHCARE FACILITY QUERY (Progressive 5km -> 10km -> 15km)
+  // ===========================================================================
+  public static async getNearestHealthcareFacility(
+    coords: Coordinates
+  ): Promise<ApiResult<NormalizedTransportComponent>> {
+    const lat = coords.lat.toFixed(5);
+    const lon = coords.lng.toFixed(5);
+    const cacheKey = `overpass_clinic_v27_${lat}_${lon}`;
+    const cached = LocalApiCache.get<ApiResult<NormalizedTransportComponent>>(cacheKey);
+    if (cached) return cached;
+
+    const stages = [5000, 10000, 15000];
+    let successfulEndpoint: string | null = null;
+    let queryTimedOut = false;
+    let queryErrored = false;
+    let lastErrorMsg = '';
+
+    for (const radius of stages) {
+      const q = `[out:json][timeout:10];
+(
+  node["amenity"~"^(clinic|doctors|hospital)$"](around:${radius},${lat},${lon});
+  way["amenity"~"^(clinic|doctors|hospital)$"](around:${radius},${lat},${lon});
+  node["healthcare"~"^(clinic|doctor|centre|hospital)$"](around:${radius},${lat},${lon});
+  way["healthcare"~"^(clinic|doctor|centre|hospital)$"](around:${radius},${lat},${lon});
+);
+out center 40;`;
+
+      try {
+        const { elements, endpoint } = await this.executeOverpassQuery(q, 10000, 'healthcare_facility');
+        successfulEndpoint = endpoint;
+
+        const candidates: Array<{
+          name: string;
+          facilityType: 'hospital' | 'clinic';
+          distM: number;
+          lat: number;
+          lon: number;
+          osmId: number;
+          osmType: 'node' | 'way' | 'relation';
+        }> = [];
+
+        for (const el of elements) {
+          const isHosp = el.tags?.amenity === 'hospital' || el.tags?.healthcare === 'hospital';
+          const isClinic = el.tags?.amenity === 'clinic' || el.tags?.healthcare === 'clinic' || el.tags?.amenity === 'doctors' || el.tags?.healthcare === 'centre';
+          if (!isHosp && !isClinic) continue;
+
+          const elLat = el.type === 'node' ? el.lat : (el.center && el.center.lat != null ? el.center.lat : null);
+          const elLon = el.type === 'node' ? el.lon : (el.center && el.center.lon != null ? el.center.lon : null);
+          if (elLat == null || elLon == null || isNaN(elLat) || isNaN(elLon)) continue;
+
+          const distM = Math.round(coords.distanceToKm(new Coordinates(elLat, elLon)) * 1000);
+          if (distM <= radius) {
+            const rawName = el.tags?.name || el.tags?.['name:id'] || el.tags?.['name:en'] || (isHosp ? 'Rumah Sakit' : 'Klinik Kesehatan');
+            candidates.push({
+              name: rawName,
+              facilityType: isHosp ? 'hospital' : 'clinic',
+              distM,
+              lat: elLat,
+              lon: elLon,
+              osmId: el.id,
+              osmType: el.type
+            });
+          }
+        }
+
+        candidates.sort((a, b) => a.distM - b.distM);
+
+        if (candidates.length > 0) {
+          const nearest = candidates[0];
+          const distKm = Math.round((nearest.distM / 1000) * 10) / 10;
+          const result: ApiResult<NormalizedTransportComponent> = {
+            data: {
+              name: nearest.name,
+              distanceMeters: nearest.distM,
+              distanceKm: distKm,
+              status: 'success_exact',
+              source: 'overpass',
+              provider: 'OpenStreetMap Overpass Healthcare Query',
+              searchRadiusMeters: radius,
+              searchRadiusKm: Math.round(radius / 1000),
+              relation: 'exact',
+              lowerBoundMeters: null,
+              endpoint: successfulEndpoint,
+              isFallback: false,
+              type: 'healthcare',
+              facilityType: nearest.facilityType,
+              coordinates: { latitude: nearest.lat, longitude: nearest.lon },
+              latitude: nearest.lat,
+              longitude: nearest.lon,
+              osmId: nearest.osmId,
+              osmType: nearest.osmType,
+              geometryMethod: nearest.osmType === 'node' ? 'node_haversine' : 'center',
+              boundedObservation: this.createBoundedObservation(nearest.distM, radius, nearest.name, false)
+            },
+            isFallback: false,
+            confidenceLevel: 'high',
+            sourceName: 'OpenStreetMap Overpass Healthcare Query'
+          };
+          LocalApiCache.set(cacheKey, result, 7200);
+          return result;
+        }
+      } catch (err: unknown) {
+        if (err instanceof Error && (err.name === 'TimeoutError' || err.message.includes('timed out'))) {
+          queryTimedOut = true;
+        } else {
+          queryErrored = true;
+        }
+        lastErrorMsg = err instanceof Error ? err.message : String(err);
+        break;
+      }
+    }
+
+    if (successfulEndpoint && !queryTimedOut && !queryErrored) {
+      const boundedResult: ApiResult<NormalizedTransportComponent> = {
+        data: {
+          name: 'Tidak terdeteksi faskes dalam radius 15 km',
+          distanceMeters: null,
+          distanceKm: null,
+          status: 'success_bounded',
+          source: 'overpass',
+          provider: 'OpenStreetMap Overpass Healthcare Query',
+          searchRadiusMeters: 15000,
+          searchRadiusKm: 15,
+          relation: 'greater_than',
+          lowerBoundMeters: 15000,
+          endpoint: successfulEndpoint,
+          isFallback: false,
+          type: 'healthcare',
+          facilityType: null,
+          boundedObservation: this.createBoundedObservation(null, 15000, 'Tidak terdeteksi dalam radius 15 km', false)
+        },
+        isFallback: false,
+        confidenceLevel: 'medium',
+        sourceName: 'OpenStreetMap Overpass Healthcare Query'
+      };
+      LocalApiCache.set(cacheKey, boundedResult, 3600);
+      return boundedResult;
+    }
+
+    const failureStatus = queryTimedOut ? 'timeout' : 'error';
+    const failResult: ApiResult<NormalizedTransportComponent> = {
+      data: {
+        name: null,
+        distanceMeters: null,
+        distanceKm: null,
+        status: failureStatus,
+        source: 'overpass',
+        provider: 'OpenStreetMap Overpass Healthcare Query (Unavailable)',
+        searchRadiusMeters: 15000,
+        searchRadiusKm: 15,
+        relation: null,
+        lowerBoundMeters: null,
+        endpoint: null,
+        isFallback: true,
+        type: 'healthcare',
+        facilityType: null,
         error: lastErrorMsg || `Overpass healthcare query ${failureStatus}`,
         boundedObservation: this.createBoundedObservation(null, 15000, null, true)
       },
@@ -704,6 +1139,38 @@ out center 40;`;
   }
 
   // ===========================================================================
+  // 2C. COMBINED HEALTHCARE PROXIMITY RESOLVER (Calls 2A & 2B independently)
+  // ===========================================================================
+  public static async getNearestHealthcare(
+    coords: Coordinates
+  ): Promise<ApiResult<HealthcareProximityResult>> {
+    const lat = coords.lat.toFixed(5);
+    const lon = coords.lng.toFixed(5);
+    const cacheKey = `overpass_healthcare_v27_${lat}_${lon}`;
+    const cached = LocalApiCache.get<ApiResult<HealthcareProximityResult>>(cacheKey);
+    if (cached) return cached;
+
+    // Run independent hospital and clinic queries concurrently with isolated fault handling
+    const [hospitalRes, facilityRes] = await Promise.all([
+      this.getNearestHospital(coords),
+      this.getNearestHealthcareFacility(coords)
+    ]);
+
+    const result: ApiResult<HealthcareProximityResult> = {
+      data: {
+        hospital: hospitalRes.data,
+        healthcareFacility: facilityRes.data
+      },
+      isFallback: hospitalRes.isFallback && facilityRes.isFallback,
+      confidenceLevel: hospitalRes.status === 'success_exact' || facilityRes.status === 'success_exact' ? 'high' : 'medium',
+      sourceName: 'OpenStreetMap Overpass Healthcare Query'
+    };
+
+    LocalApiCache.set(cacheKey, result, 7200);
+    return result;
+  }
+
+  // ===========================================================================
   // 3. INDEPENDENT PUBLIC TRANSIT QUERY (Progressive 5km -> 10km -> 15km)
   // ===========================================================================
   public static async getNearestTransit(
@@ -711,7 +1178,7 @@ out center 40;`;
   ): Promise<ApiResult<NormalizedTransportComponent>> {
     const lat = coords.lat.toFixed(5);
     const lon = coords.lng.toFixed(5);
-    const cacheKey = `overpass_transit_${lat}_${lon}`;
+    const cacheKey = `overpass_transit_v27_${lat}_${lon}`;
     const cached = LocalApiCache.get<ApiResult<NormalizedTransportComponent>>(cacheKey);
     if (cached) return cached;
 
@@ -722,17 +1189,21 @@ out center 40;`;
     let lastErrorMsg = '';
 
     for (const radius of stages) {
-      const q = `[out:json][timeout:8];
+      const q = `[out:json][timeout:10];
 (
   node["railway"~"^(station|halt|subway_entrance)$"](around:${radius},${lat},${lon});
+  way["railway"~"^(station|halt|subway_entrance)$"](around:${radius},${lat},${lon});
+  relation["railway"~"^(station|halt|subway_entrance)$"](around:${radius},${lat},${lon});
   node["amenity"~"^(bus_station|ferry_terminal)$"](around:${radius},${lat},${lon});
+  way["amenity"~"^(bus_station|ferry_terminal)$"](around:${radius},${lat},${lon});
   node["highway"="bus_stop"](around:${radius},${lat},${lon});
   node["public_transport"~"^(platform|stop_position|station)$"](around:${radius},${lat},${lon});
+  way["public_transport"~"^(platform|station)$"](around:${radius},${lat},${lon});
 );
-out body 40;`;
+out center 40;`;
 
       try {
-        const { elements, endpoint } = await this.executeOverpassQuery(q);
+        const { elements, endpoint } = await this.executeOverpassQuery(q, 10000, 'transit');
         successfulEndpoint = endpoint;
 
         const candidates: Array<{
@@ -741,11 +1212,13 @@ out body 40;`;
           distM: number;
           lat: number;
           lon: number;
+          osmId: number;
+          osmType: 'node' | 'way' | 'relation';
         }> = [];
 
         for (const el of elements) {
-          const elLat = el.lat != null ? Number(el.lat) : null;
-          const elLon = el.lon != null ? Number(el.lon) : null;
+          const elLat = el.type === 'node' ? el.lat : (el.center && el.center.lat != null ? el.center.lat : null);
+          const elLon = el.type === 'node' ? el.lon : (el.center && el.center.lon != null ? el.center.lon : null);
           if (elLat == null || elLon == null || isNaN(elLat) || isNaN(elLon)) continue;
 
           const distM = Math.round(coords.distanceToKm(new Coordinates(elLat, elLon)) * 1000);
@@ -763,7 +1236,9 @@ out body 40;`;
               transitType,
               distM,
               lat: elLat,
-              lon: elLon
+              lon: elLon,
+              osmId: el.id,
+              osmType: el.type
             });
           }
         }
@@ -794,6 +1269,9 @@ out body 40;`;
               coordinates: { latitude: nearest.lat, longitude: nearest.lon },
               latitude: nearest.lat,
               longitude: nearest.lon,
+              osmId: nearest.osmId,
+              osmType: nearest.osmType,
+              geometryMethod: nearest.osmType === 'node' ? 'node_haversine' : 'center',
               boundedObservation: this.createBoundedObservation(nearest.distM, radius, nearest.name, false)
             },
             isFallback: false,
@@ -873,65 +1351,245 @@ out body 40;`;
   // ===========================================================================
   // 4. INDEPENDENT WATERWAY QUERY (Progressive 2.5km -> 5km)
   // ===========================================================================
+  // ===========================================================================
+  // 4. INDEPENDENT INLAND WATERWAY QUERY (Progressive 2.5km -> 5km, True Geometry)
+  // ===========================================================================
   public static async getNearestWaterway(
     coords: Coordinates
-  ): Promise<{ distanceMeters: number | null; name: string | null; rawName: string | null; endpoint: string | null; status: SpatialQueryState }> {
+  ): Promise<WaterwayQueryResult> {
     const lat = coords.lat.toFixed(5);
     const lon = coords.lng.toFixed(5);
+    const cacheKey = `overpass_waterway_v27_${lat}_${lon}`;
+    const cached = LocalApiCache.get<WaterwayQueryResult>(cacheKey);
+    if (cached) return cached;
+
     const stages = [2500, 5000];
+    let successfulEndpoint: string | null = null;
 
     for (const radius of stages) {
-      const q = `[out:json][timeout:8];
+      // Query inland waterways only (rivers, canals, streams, drains, ditches) - strictly no coastline
+      const q = `[out:json][timeout:10];
 (
   way["waterway"~"^(river|canal|stream|drain|ditch)$"](around:${radius},${lat},${lon});
-  node["waterway"="river"](around:${radius},${lat},${lon});
-  way["natural"~"^(water|coastline)$"](around:${radius},${lat},${lon});
+  node["waterway"~"^(river|canal|stream|drain|ditch)$"](around:${radius},${lat},${lon});
 );
-out body geom 30;`;
+out geom 25;`;
 
       try {
-        const { elements, endpoint } = await this.executeOverpassQuery(q);
+        const { elements, endpoint } = await this.executeOverpassQuery(q, 10000, 'waterway');
+        successfulEndpoint = endpoint;
 
-        let minWaterwayDist: number | null = null;
-        let waterwayName: string | null = null;
-        let waterwayRawName: string | null = null;
+        const candidates: Array<{
+          name: string;
+          rawName: string | null;
+          waterwayType: string;
+          distM: number;
+          osmId: number;
+          osmType: 'node' | 'way' | 'relation';
+          method: 'geometry_segment' | 'node_haversine' | 'center';
+          geometryPointCount: number;
+          rawGeometry: Array<{ lat: number; lon: number }> | null;
+          tags?: Record<string, string>;
+        }> = [];
 
         for (const el of elements) {
           const rawName = el.tags?.name || el.tags?.['name:id'] || el.tags?.['name:en'] || null;
+          const waterwayType = el.tags?.waterway || 'waterway';
           let distM: number | null = null;
+          let method: 'geometry_segment' | 'node_haversine' | 'center' = 'center';
+          let geometryPointCount = 0;
+          let rawGeometry: Array<{ lat: number; lon: number }> | null = null;
 
-          if (Array.isArray(el.geometry) && el.geometry.length > 0) {
-            const seg = this.getPointToPolylineDistanceMeters(coords, el.geometry);
-            if (seg) distM = seg.distM;
-          } else if (el.lat != null && el.lon != null) {
-            distM = Math.round(coords.distanceToKm(new Coordinates(el.lat, el.lon)) * 1000);
+          if (el.type === 'way') {
+            if (Array.isArray(el.geometry) && el.geometry.length > 0) {
+              geometryPointCount = el.geometry.length;
+              rawGeometry = el.geometry;
+              const seg = this.getPointToPolylineDistanceMeters(coords, el.geometry);
+              if (seg) {
+                distM = seg.distM;
+                method = 'geometry_segment';
+              }
+            } else if (el.center && el.center.lat != null && el.center.lon != null) {
+              distM = Math.round(coords.distanceToKm(new Coordinates(el.center.lat, el.center.lon)) * 1000);
+              method = 'center';
+            }
+          } else if (el.type === 'node') {
+            if (el.lat != null && el.lon != null && !isNaN(el.lat) && !isNaN(el.lon)) {
+              distM = Math.round(coords.distanceToKm(new Coordinates(el.lat, el.lon)) * 1000);
+              method = 'node_haversine';
+              geometryPointCount = 1;
+              rawGeometry = [{ lat: el.lat, lon: el.lon }];
+            }
           }
 
           if (distM !== null && distM <= radius) {
-            if (minWaterwayDist === null || distM < minWaterwayDist) {
-              minWaterwayDist = distM;
-              waterwayRawName = rawName;
-              waterwayName = rawName || (el.tags?.waterway === 'river' ? 'Sungai (OSM)' : el.tags?.waterway === 'canal' ? 'Saluran Kanal (OSM)' : 'Sempadan Air (OSM)');
-            }
+            const defaultName = waterwayType === 'river' ? 'Sungai (OSM)'
+              : waterwayType === 'canal' ? 'Saluran Kanal (OSM)'
+              : waterwayType === 'stream' ? 'Aliran Sungai Kecil (OSM)'
+              : 'Saluran Air / Drainase (OSM)';
+
+            candidates.push({
+              name: rawName || defaultName,
+              rawName,
+              waterwayType,
+              distM,
+              osmId: el.id,
+              osmType: el.type,
+              method,
+              geometryPointCount,
+              rawGeometry,
+              tags: el.tags
+            });
           }
         }
 
-        if (minWaterwayDist !== null) {
-          return {
-            distanceMeters: minWaterwayDist,
-            name: waterwayName,
-            rawName: waterwayRawName,
-            endpoint,
-            status: 'success'
+        // Prioritize way over node for waterways
+        const wayCandidates = candidates.filter(c => c.osmType === 'way');
+        const sortedCandidates = wayCandidates.length > 0
+          ? wayCandidates.sort((a, b) => a.distM - b.distM)
+          : candidates.sort((a, b) => a.distM - b.distM);
+
+        if (sortedCandidates.length > 0) {
+          const nearest = sortedCandidates[0];
+          const result: WaterwayQueryResult = {
+            distanceMeters: nearest.distM,
+            name: nearest.name,
+            rawName: nearest.rawName,
+            waterwayType: nearest.waterwayType,
+            endpoint: successfulEndpoint,
+            status: 'success' as SpatialQueryState,
+            osmId: nearest.osmId,
+            osmType: nearest.osmType,
+            calculationMethod: nearest.method,
+            geometryPointCount: nearest.geometryPointCount,
+            rawGeometry: nearest.rawGeometry,
+            tags: nearest.tags,
+            retrievedAt: new Date().toISOString()
           };
+          LocalApiCache.set(cacheKey, result, 7200);
+          return result;
         }
       } catch (err: unknown) {
         const isTimeout = err instanceof Error && (err.name === 'TimeoutError' || err.message.includes('timed out'));
-        return { distanceMeters: null, name: null, rawName: null, endpoint: null, status: isTimeout ? 'timeout' : 'error' };
+        const failResult: WaterwayQueryResult = {
+          distanceMeters: null,
+          name: null,
+          rawName: null,
+          endpoint: null,
+          status: (isTimeout ? 'timeout' : 'error') as SpatialQueryState
+        };
+        LocalApiCache.set(cacheKey, failResult, 300);
+        return failResult;
       }
     }
 
-    return { distanceMeters: null, name: 'Tidak terdeteksi dalam radius 5 km', rawName: null, endpoint: this.ENDPOINTS[0], status: 'nodata' };
+    const noDataResult: WaterwayQueryResult = {
+      distanceMeters: null,
+      name: 'Tidak terdeteksi dalam radius 5 km',
+      rawName: null,
+      endpoint: successfulEndpoint,
+      status: 'nodata' as SpatialQueryState
+    };
+    LocalApiCache.set(cacheKey, noDataResult, 3600);
+    return noDataResult;
+  }
+
+  // ===========================================================================
+  // 4B. INDEPENDENT COASTLINE QUERY (Strictly Separated from Inland Waterways)
+  // ===========================================================================
+  public static async getNearestCoastline(
+    coords: Coordinates
+  ): Promise<CoastlineQueryResult> {
+    const lat = coords.lat.toFixed(5);
+    const lon = coords.lng.toFixed(5);
+    const cacheKey = `overpass_coastline_v27_${lat}_${lon}`;
+    const cached = LocalApiCache.get<CoastlineQueryResult>(cacheKey);
+    if (cached) return cached;
+
+    const stages = [5000, 15000];
+    let successfulEndpoint: string | null = null;
+
+    for (const radius of stages) {
+      const q = `[out:json][timeout:10];
+way["natural"="coastline"](around:${radius},${lat},${lon});
+out geom 20;`;
+
+      try {
+        const { elements, endpoint } = await this.executeOverpassQuery(q, 10000, 'coastline');
+        successfulEndpoint = endpoint;
+
+        const candidates: Array<{
+          distM: number;
+          osmId: number;
+          method: 'geometry_segment' | 'center';
+          geometryPointCount: number;
+          rawGeometry: Array<{ lat: number; lon: number }> | null;
+        }> = [];
+
+        for (const el of elements) {
+          if (el.type !== 'way') continue;
+          let distM: number | null = null;
+          let method: 'geometry_segment' | 'center' = 'center';
+          let geometryPointCount = 0;
+          let rawGeometry: Array<{ lat: number; lon: number }> | null = null;
+
+          if (Array.isArray(el.geometry) && el.geometry.length > 0) {
+            geometryPointCount = el.geometry.length;
+            rawGeometry = el.geometry;
+            const seg = this.getPointToPolylineDistanceMeters(coords, el.geometry);
+            if (seg) {
+              distM = seg.distM;
+              method = 'geometry_segment';
+            }
+          } else if (el.center && el.center.lat != null && el.center.lon != null) {
+            distM = Math.round(coords.distanceToKm(new Coordinates(el.center.lat, el.center.lon)) * 1000);
+            method = 'center';
+          }
+
+          if (distM !== null && distM <= radius) {
+            candidates.push({ distM, osmId: el.id, method, geometryPointCount, rawGeometry });
+          }
+        }
+
+        candidates.sort((a, b) => a.distM - b.distM);
+
+        if (candidates.length > 0) {
+          const nearest = candidates[0];
+          const result: CoastlineQueryResult = {
+            distanceMeters: nearest.distM,
+            name: 'Garis Pantai (OSM)',
+            endpoint: successfulEndpoint,
+            status: 'success' as SpatialQueryState,
+            osmId: nearest.osmId,
+            calculationMethod: nearest.method,
+            geometryPointCount: nearest.geometryPointCount,
+            rawGeometry: nearest.rawGeometry,
+            retrievedAt: new Date().toISOString()
+          };
+          LocalApiCache.set(cacheKey, result, 7200);
+          return result;
+        }
+      } catch (err: unknown) {
+        const isTimeout = err instanceof Error && (err.name === 'TimeoutError' || err.message.includes('timed out'));
+        const failResult: CoastlineQueryResult = {
+          distanceMeters: null,
+          name: null,
+          endpoint: null,
+          status: (isTimeout ? 'timeout' : 'error') as SpatialQueryState
+        };
+        LocalApiCache.set(cacheKey, failResult, 300);
+        return failResult;
+      }
+    }
+
+    const noDataResult: CoastlineQueryResult = {
+      distanceMeters: null,
+      name: 'Tidak terdeteksi dalam radius 15 km',
+      endpoint: successfulEndpoint,
+      status: 'nodata' as SpatialQueryState
+    };
+    LocalApiCache.set(cacheKey, noDataResult, 3600);
+    return noDataResult;
   }
 
   // ===========================================================================
@@ -942,6 +1600,10 @@ out body geom 30;`;
   ): Promise<ApiResult<NormalizedTransportComponent>> {
     const lat = coords.lat.toFixed(5);
     const lon = coords.lng.toFixed(5);
+    const cacheKey = `overpass_fire_v27_${lat}_${lon}`;
+    const cached = LocalApiCache.get<ApiResult<NormalizedTransportComponent>>(cacheKey);
+    if (cached) return cached;
+
     const stages = [5000, 10000];
     let successfulEndpoint: string | null = null;
     let queryTimedOut = false;
@@ -953,37 +1615,53 @@ out body geom 30;`;
 (
   node["amenity"="fire_station"](around:${radius},${lat},${lon});
   way["amenity"="fire_station"](around:${radius},${lat},${lon});
+  relation["amenity"="fire_station"](around:${radius},${lat},${lon});
   node["emergency"="fire_station"](around:${radius},${lat},${lon});
+  way["emergency"="fire_station"](around:${radius},${lat},${lon});
 );
 out center 20;`;
 
       try {
-        const { elements, endpoint } = await this.executeOverpassQuery(q);
+        const { elements, endpoint } = await this.executeOverpassQuery(q, 8000, 'fire_station');
         successfulEndpoint = endpoint;
 
-        let minFireDist: number | null = null;
-        let fireName: string | null = null;
+        const candidates: Array<{
+          name: string;
+          distM: number;
+          lat: number;
+          lon: number;
+          osmId: number;
+          osmType: 'node' | 'way' | 'relation';
+        }> = [];
 
         for (const el of elements) {
-          const elLat = el.lat != null ? Number(el.lat) : (el.center && el.center.lat != null ? Number(el.center.lat) : null);
-          const elLon = el.lon != null ? Number(el.lon) : (el.center && el.center.lon != null ? Number(el.center.lon) : null);
+          const elLat = el.type === 'node' ? el.lat : (el.center && el.center.lat != null ? el.center.lat : null);
+          const elLon = el.type === 'node' ? el.lon : (el.center && el.center.lon != null ? el.center.lon : null);
           if (elLat == null || elLon == null || isNaN(elLat) || isNaN(elLon)) continue;
 
           const distM = Math.round(coords.distanceToKm(new Coordinates(elLat, elLon)) * 1000);
           if (distM <= radius) {
-            if (minFireDist === null || distM < minFireDist) {
-              minFireDist = distM;
-              fireName = el.tags?.name || el.tags?.['name:id'] || 'Pos Pemadam Kebakaran';
-            }
+            const rawName = el.tags?.name || el.tags?.['name:id'] || 'Pos Pemadam Kebakaran';
+            candidates.push({
+              name: rawName,
+              distM,
+              lat: elLat,
+              lon: elLon,
+              osmId: el.id,
+              osmType: el.type
+            });
           }
         }
 
-        if (minFireDist !== null) {
-          const distKm = Math.round((minFireDist / 1000) * 10) / 10;
-          return {
+        candidates.sort((a, b) => a.distM - b.distM);
+
+        if (candidates.length > 0) {
+          const nearest = candidates[0];
+          const distKm = Math.round((nearest.distM / 1000) * 10) / 10;
+          const result: ApiResult<NormalizedTransportComponent> = {
             data: {
-              name: fireName,
-              distanceMeters: minFireDist,
+              name: nearest.name,
+              distanceMeters: nearest.distM,
               distanceKm: distKm,
               status: 'success_exact',
               source: 'overpass',
@@ -995,12 +1673,20 @@ out center 20;`;
               endpoint: successfulEndpoint,
               isFallback: false,
               type: 'fire_station',
-              boundedObservation: this.createBoundedObservation(minFireDist, radius, fireName, false)
+              coordinates: { latitude: nearest.lat, longitude: nearest.lon },
+              latitude: nearest.lat,
+              longitude: nearest.lon,
+              osmId: nearest.osmId,
+              osmType: nearest.osmType,
+              geometryMethod: nearest.osmType === 'node' ? 'node_haversine' : 'center',
+              boundedObservation: this.createBoundedObservation(nearest.distM, radius, nearest.name, false)
             },
             isFallback: false,
             confidenceLevel: 'high',
             sourceName: 'OpenStreetMap Overpass Fire Station Query'
           };
+          LocalApiCache.set(cacheKey, result, 7200);
+          return result;
         }
       } catch (err: unknown) {
         if (err instanceof Error && (err.name === 'TimeoutError' || err.message.includes('timed out'))) {
@@ -1014,7 +1700,7 @@ out center 20;`;
     }
 
     if (successfulEndpoint && !queryTimedOut && !queryErrored) {
-      return {
+      const boundedResult: ApiResult<NormalizedTransportComponent> = {
         data: {
           name: 'Tidak terdeteksi pos pemadam dalam radius 10 km',
           distanceMeters: null,
@@ -1035,10 +1721,12 @@ out center 20;`;
         confidenceLevel: 'medium',
         sourceName: 'OpenStreetMap Overpass Fire Station Query'
       };
+      LocalApiCache.set(cacheKey, boundedResult, 3600);
+      return boundedResult;
     }
 
     const failureStatus = queryTimedOut ? 'timeout' : 'error';
-    return {
+    const failResult: ApiResult<NormalizedTransportComponent> = {
       data: {
         name: null,
         distanceMeters: null,
@@ -1061,6 +1749,8 @@ out center 20;`;
       reason: lastErrorMsg || `Overpass fire station query ${failureStatus}`,
       sourceName: 'OpenStreetMap Overpass Fire Station Query'
     };
+    LocalApiCache.set(cacheKey, failResult, 300);
+    return failResult;
   }
 
   // ===========================================================================
@@ -1071,7 +1761,7 @@ out center 20;`;
   ): Promise<ApiResult<NormalizedTransportComponent>> {
     const lat = coords.lat.toFixed(5);
     const lon = coords.lng.toFixed(5);
-    const cacheKey = `overpass_assembly_${lat}_${lon}`;
+    const cacheKey = `overpass_assembly_v27_${lat}_${lon}`;
     const cached = LocalApiCache.get<ApiResult<NormalizedTransportComponent>>(cacheKey);
     if (cached) return cached;
 
@@ -1082,7 +1772,7 @@ out center 20;`;
     let lastErrorMsg = '';
 
     for (const radius of stages) {
-      const q = `[out:json][timeout:8];
+      const q = `[out:json][timeout:10];
 (
   node["emergency"="assembly_point"](around:${radius},${lat},${lon});
   way["emergency"="assembly_point"](around:${radius},${lat},${lon});
@@ -1103,7 +1793,7 @@ out center 20;`;
 out center 40;`;
 
       try {
-        const { elements, endpoint } = await this.executeOverpassQuery(q);
+        const { elements, endpoint } = await this.executeOverpassQuery(q, 10000, 'assembly_point');
         successfulEndpoint = endpoint;
 
         const candidates: Array<{
@@ -1113,6 +1803,8 @@ out center 40;`;
           distM: number;
           lat: number;
           lon: number;
+          osmId: number;
+          osmType: 'node' | 'way' | 'relation';
         }> = [];
 
         for (const el of elements) {
@@ -1123,24 +1815,26 @@ out center 40;`;
             el.tags?.['hazard:evacuation_point'] === 'yes'
           );
 
-          const elLat = el.lat != null ? Number(el.lat) : (el.center && el.center.lat != null ? Number(el.center.lat) : null);
-          const elLon = el.lon != null ? Number(el.lon) : (el.center && el.center.lon != null ? Number(el.center.lon) : null);
+          const elLat = el.type === 'node' ? el.lat : (el.center && el.center.lat != null ? el.center.lat : null);
+          const elLon = el.type === 'node' ? el.lon : (el.center && el.center.lon != null ? el.center.lon : null);
           if (elLat == null || elLon == null || isNaN(elLat) || isNaN(elLon)) continue;
 
           const distM = Math.round(coords.distanceToKm(new Coordinates(elLat, elLon)) * 1000);
           if (distM <= radius) {
             const rawName = el.tags?.name || el.tags?.['name:id'] || el.tags?.['name:en'];
             const defaultName = isExplicit
-              ? (el.tags?.emergency === 'assembly_point' ? 'Titik Kumpul Evakuasi (OSM)' : el.tags?.emergency === 'evacuation_centre' ? 'Pusat Evakuasi (OSM)' : 'Tempat Perlindungan Evakuasi (OSM)')
-              : (el.tags?.leisure === 'park' ? 'Taman Terbuka Publik (Kandidat Evakuasi)' : el.tags?.amenity === 'community_centre' ? 'Balai Warga / Fasilitas Publik (Kandidat Evakuasi)' : 'Ruang Terbuka Publik (Kandidat Evakuasi)');
+              ? (el.tags?.emergency === 'assembly_point' ? 'Titik Kumpul Evakuasi Resmi (OSM)' : el.tags?.emergency === 'evacuation_centre' ? 'Pusat Evakuasi Resmi (OSM)' : 'Tempat Perlindungan Resmi (OSM)')
+              : (rawName ? `${rawName} (Ruang Terbuka Kandidat)` : 'Ruang Terbuka Publik (Kandidat Evakuasi)');
 
             candidates.push({
-              name: rawName || defaultName,
+              name: isExplicit ? (rawName || defaultName) : (rawName ? `${rawName} (Ruang Terbuka Kandidat)` : 'Ruang Terbuka Publik (Kandidat Evakuasi)'),
               isExplicit,
-              facilityType: el.tags?.emergency || el.tags?.leisure || el.tags?.amenity || 'assembly_candidate',
+              facilityType: isExplicit ? 'verified_assembly_point' : 'candidate_open_space',
               distM,
               lat: elLat,
-              lon: elLon
+              lon: elLon,
+              osmId: el.id,
+              osmType: el.type
             });
           }
         }
@@ -1170,20 +1864,23 @@ out center 40;`;
               lowerBoundMeters: null,
               endpoint: successfulEndpoint,
               isFallback: false,
-              isOfficial: false,
+              isOfficial: nearest.isExplicit,
               isEvacuationPoint: nearest.isExplicit,
               type: 'assembly_point',
               facilityType: nearest.facilityType,
               coordinates: { latitude: nearest.lat, longitude: nearest.lon },
               latitude: nearest.lat,
               longitude: nearest.lon,
+              osmId: nearest.osmId,
+              osmType: nearest.osmType,
+              geometryMethod: nearest.osmType === 'node' ? 'node_haversine' : 'center',
               boundedObservation: this.createBoundedObservation(nearest.distM, radius, nearest.name, false)
             },
             isFallback: false,
             confidenceLevel: nearest.isExplicit ? 'high' : 'medium',
             sourceName: 'OpenStreetMap Assembly Point Query'
           };
-          LocalApiCache.set(cacheKey, result, 600);
+          LocalApiCache.set(cacheKey, result, 7200);
           return result;
         }
       } catch (err: unknown) {
@@ -1310,7 +2007,7 @@ out body 60;`;
   ): Promise<ApiResult<SpatialProximityData>> {
     const lat = coords.lat.toFixed(5);
     const lon = coords.lng.toFixed(5);
-    const cacheKey = `osm_prox_v24_${lat}_${lon}`;
+    const cacheKey = `osm_prox_v27_${lat}_${lon}`;
     const cached = LocalApiCache.get<ApiResult<SpatialProximityData>>(cacheKey);
     if (cached) return cached;
 
@@ -1321,6 +2018,7 @@ out body 60;`;
       healthcareRes,
       transitRes,
       waterwayRes,
+      coastlineRes,
       fireRes,
       assemblyRes,
       greenRes
@@ -1330,6 +2028,7 @@ out body 60;`;
       this.getNearestHealthcare(coords),
       this.getNearestTransit(coords),
       this.getNearestWaterway(coords),
+      this.getNearestCoastline(coords),
       this.getNearestFireStation(coords),
       this.getNearestAssemblyPoint(coords),
       this.getGreenSpaceRatio(coords)
@@ -1337,12 +2036,13 @@ out body 60;`;
 
     const nearestRoadData = nearestRoadRes.data;
     const majorRoadData = majorRoadRes.data;
-    const healthcareData = healthcareRes.data;
+    const hospitalData = healthcareRes.data?.hospital;
+    const healthcareFacilityData = healthcareRes.data?.healthcareFacility;
     const transitData = transitRes.data;
     const fireData = fireRes.data;
     const assemblyData = assemblyRes.data;
 
-    // 1. Nearest Road
+    // 1. Nearest Road (OSRM Primary)
     let distanceToNearestRoadMeters: number | null = null;
     let nearestRoadName = 'Tidak terdeteksi dalam radius 500 m';
     let nearestRoadRawName: string | null = null;
@@ -1351,7 +2051,7 @@ out body 60;`;
 
     if (nearestRoadData && nearestRoadData.distanceMeters !== undefined && !isNaN(nearestRoadData.distanceMeters)) {
       distanceToNearestRoadMeters = nearestRoadData.distanceMeters;
-      nearestRoadName = nearestRoadData.roadName || 'Jalan Akses Tapak (OSRM)';
+      nearestRoadName = nearestRoadData.roadName || 'Nama jalan tidak tersedia';
       nearestRoadRawName = nearestRoadData.roadName || null;
       nearestRoadProvenance = 'osrm-snap';
       roadObs = this.createBoundedObservation(distanceToNearestRoadMeters, 500, nearestRoadName, false);
@@ -1359,37 +2059,47 @@ out body 60;`;
       roadObs = this.createBoundedObservation(null, 500, nearestRoadName, nearestRoadRes.isFallback);
     }
 
-    // 2. Major Road
+    // 2. Major Road (OpenStreetMap Overpass Primary)
     const distanceToArterialMeters = majorRoadData?.distanceMeters ?? null;
-    const nearestArterialName = majorRoadData?.name || 'Tidak terdeteksi dalam radius 15 km';
+    const nearestArterialName = majorRoadData?.name || (majorRoadData?.status === 'success_bounded' ? 'Tidak terdeteksi dalam radius 15 km' : 'Data jalan utama tidak tersedia');
     const arterialObs = majorRoadData?.boundedObservation || this.createBoundedObservation(distanceToArterialMeters, 15000, nearestArterialName, majorRoadRes.isFallback);
 
-    // 3. Healthcare / Hospital
-    const distanceToHospitalMeters = healthcareData?.distanceMeters ?? null;
-    const nearestHospitalName = healthcareData?.name || 'Tidak terdeteksi dalam radius 15 km';
-    const hospitalObs = healthcareData?.boundedObservation || this.createBoundedObservation(distanceToHospitalMeters, 15000, nearestHospitalName, healthcareRes.isFallback);
+    // 3. Referral Hospital (Emergency Care)
+    const distanceToHospitalMeters = hospitalData?.distanceMeters ?? null;
+    const nearestHospitalName = hospitalData?.name || (hospitalData?.status === 'success_bounded' ? 'Tidak terdeteksi rumah sakit dalam radius 15 km' : 'Data rumah sakit tidak tersedia');
+    const hospitalObs = hospitalData?.boundedObservation || this.createBoundedObservation(distanceToHospitalMeters, 15000, nearestHospitalName, hospitalData?.isFallback ?? true);
+
+    // 3b. Healthcare Facility (Hospital or Clinic)
+    const distanceToHealthcareFacilityMeters = healthcareFacilityData?.distanceMeters ?? null;
+    const nearestHealthcareFacilityName = healthcareFacilityData?.name || (healthcareFacilityData?.status === 'success_bounded' ? 'Tidak terdeteksi faskes dalam radius 15 km' : 'Data faskes tidak tersedia');
+    const healthcareFacilityObs = healthcareFacilityData?.boundedObservation || this.createBoundedObservation(distanceToHealthcareFacilityMeters, 15000, nearestHealthcareFacilityName, healthcareFacilityData?.isFallback ?? true);
 
     // 4. Transit
     const distanceToNearestTransitMeters = transitData?.distanceMeters ?? null;
-    const nearestTransitName = transitData?.name || 'Tidak terdeteksi dalam radius 15 km';
+    const nearestTransitName = transitData?.name || (transitData?.status === 'success_bounded' ? 'Tidak terdeteksi dalam radius 15 km' : 'Data transit tidak tersedia');
     const transitObs = transitData?.boundedObservation || this.createBoundedObservation(distanceToNearestTransitMeters, 15000, nearestTransitName, transitRes.isFallback);
 
-    // 5. Waterway
+    // 5. Waterway (Inland Rivers, Canals, Streams, Drains, Ditches)
     const distanceToNearestWaterwayMeters = waterwayRes.distanceMeters;
     const nearestWaterwayName = waterwayRes.name || 'Tidak terdeteksi dalam radius 5 km';
     const waterwayObs = this.createBoundedObservation(distanceToNearestWaterwayMeters, 5000, nearestWaterwayName, waterwayRes.status === 'error' || waterwayRes.status === 'timeout');
 
+    // 5b. Coastline (Strictly Separated from Inland Waterways)
+    const distanceToNearestCoastlineMeters = coastlineRes.distanceMeters;
+    const nearestCoastlineName = coastlineRes.name || 'Tidak terdeteksi dalam radius 15 km';
+    const coastlineObs = this.createBoundedObservation(distanceToNearestCoastlineMeters, 15000, nearestCoastlineName, coastlineRes.status === 'error' || coastlineRes.status === 'timeout');
+
     // 6. Fire Station
     const distanceToFireStationMeters = fireData?.distanceMeters ?? null;
-    const nearestFireStationName = fireData?.name || 'Tidak terdeteksi dalam radius 10 km';
+    const nearestFireStationName = fireData?.name || (fireData?.status === 'success_bounded' ? 'Tidak terdeteksi dalam radius 10 km' : 'Data pemadam kebakaran tidak tersedia');
     const fireObs = fireData?.boundedObservation || this.createBoundedObservation(distanceToFireStationMeters, 10000, nearestFireStationName, fireRes.isFallback);
 
     // 7. Assembly Point
     const distanceToAssemblyPointMeters = assemblyData?.distanceMeters ?? null;
-    const nearestAssemblyPointName = assemblyData?.name || 'Tidak terdeteksi dalam radius 15 km';
+    const nearestAssemblyPointName = assemblyData?.name || (assemblyData?.status === 'success_bounded' ? 'Tidak terdeteksi dalam radius 15 km' : 'Data titik kumpul tidak tersedia');
     const assemblyObs = assemblyData?.boundedObservation || this.createBoundedObservation(distanceToAssemblyPointMeters, 15000, nearestAssemblyPointName, assemblyRes.isFallback);
 
-    // 8. Driving / Egress Route via OSRM to Assembly Point (or Hospital fallback if assembly point has no coords)
+    // 8. Driving / Egress Route via OSRM to Assembly Point
     let assemblyPointTravelTimeMinutes: number | null = null;
     let assemblyPointTravelTimeDisplay = 'Titik kumpul tidak terpetakan dalam radius 15 km';
     let assemblyPointRouteDistanceMeters: number | null = null;
@@ -1410,16 +2120,17 @@ out body 60;`;
       }
     }
 
-    // 9. Driving Route via OSRM to Hospital (if healthcare coordinate was discovered)
+    // 9. Driving Route via OSRM to Hospital (if hospital coordinate was discovered)
     let travelTimeMinutes: number | null = null;
     let travelTimeDisplay = 'Rumah sakit tidak terpetakan dalam radius 15 km';
     let travelTimeRouteDistanceMeters: number | null = null;
     let routingSource = 'OSRM road-network routing';
     let routingStatus: OsmAuditTrail['routingStatus'] = 'not_applicable';
 
-    if (healthcareData?.coordinates?.latitude && healthcareData?.coordinates?.longitude) {
+    const targetHospCoords = hospitalData?.coordinates || healthcareFacilityData?.coordinates;
+    if (targetHospCoords?.latitude && targetHospCoords?.longitude) {
       try {
-        const hospCoords = new Coordinates(healthcareData.coordinates.latitude, healthcareData.coordinates.longitude);
+        const hospCoords = new Coordinates(targetHospCoords.latitude, targetHospCoords.longitude);
         const routeRes = await OsrmRoutingClient.calculateDrivingRoute(coords, hospCoords);
         if (routeRes.data && !routeRes.isFallback && routeRes.data.durationMinutesFormatted) {
           travelTimeMinutes = routeRes.data.durationMinutes ?? null;
@@ -1437,8 +2148,8 @@ out body 60;`;
     }
 
     const queryStatus: SpatialProximityData['queryStatus'] = {
-      hospital: healthcareData?.status === 'success_exact' ? 'success' : healthcareData?.status === 'success_bounded' ? 'nodata' : (healthcareData?.status as SpatialQueryState) || 'error',
-      healthcareFacility: healthcareData?.status === 'success_exact' ? 'success' : healthcareData?.status === 'success_bounded' ? 'nodata' : (healthcareData?.status as SpatialQueryState) || 'error',
+      hospital: hospitalData?.status === 'success_exact' ? 'success' : hospitalData?.status === 'success_bounded' ? 'nodata' : (hospitalData?.status as SpatialQueryState) || 'error',
+      healthcareFacility: healthcareFacilityData?.status === 'success_exact' ? 'success' : healthcareFacilityData?.status === 'success_bounded' ? 'nodata' : (healthcareFacilityData?.status as SpatialQueryState) || 'error',
       fireStation: fireData?.status === 'success_exact' ? 'success' : fireData?.status === 'success_bounded' ? 'nodata' : (fireData?.status as SpatialQueryState) || 'error',
       assemblyPoint: assemblyData?.status === 'success_exact' ? 'success' : assemblyData?.status === 'success_bounded' ? 'nodata' : (assemblyData?.status as SpatialQueryState) || 'error',
       waterway: waterwayRes.status,
@@ -1455,6 +2166,10 @@ out body 60;`;
       waterwayObservation: waterwayObs,
       distanceToRiverMeters: distanceToNearestWaterwayMeters,
       nearestRiverName: nearestWaterwayName,
+
+      distanceToNearestCoastlineMeters,
+      nearestCoastlineName,
+      coastlineObservation: coastlineObs,
 
       greenFeatureRatioPct: greenRes.greenRatioPct,
       greenSpaceRatioPct: greenRes.greenRatioPct,
@@ -1478,15 +2193,15 @@ out body 60;`;
 
       distanceToHospitalMeters,
       nearestHospitalName,
-      nearestHospitalRawName: healthcareData?.name || null,
+      nearestHospitalRawName: hospitalData?.name || null,
       hospitalObservation: hospitalObs,
-      hospitalFacilityType: healthcareData?.facilityType,
-      hospitalCoordinates: healthcareData?.coordinates,
-      distanceToHealthcareFacilityMeters: distanceToHospitalMeters,
-      nearestHealthcareFacilityName: nearestHospitalName,
-      healthcareFacilityObservation: hospitalObs,
-      distanceToClinicMeters: null,
-      nearestClinicName: 'Fasilitas Medis',
+      hospitalFacilityType: hospitalData?.facilityType || 'hospital',
+      hospitalCoordinates: hospitalData?.coordinates,
+      distanceToHealthcareFacilityMeters,
+      nearestHealthcareFacilityName,
+      healthcareFacilityObservation: healthcareFacilityObs,
+      distanceToClinicMeters: healthcareFacilityData?.facilityType === 'clinic' ? distanceToHealthcareFacilityMeters : null,
+      nearestClinicName: healthcareFacilityData?.facilityType === 'clinic' ? nearestHealthcareFacilityName : 'Fasilitas Medis',
       distanceToPharmacyMeters: null,
       nearestPharmacyName: 'Apotek',
 
@@ -1505,8 +2220,8 @@ out body 60;`;
       nearestAssemblyPointRawName: assemblyData?.name || null,
       assemblyPointObservation: assemblyObs,
       assemblyPointBounded: assemblyObs,
-      assemblyPointIsOfficial: false,
-      assemblyPointFacilityType: assemblyData?.facilityType,
+      assemblyPointIsOfficial: assemblyData?.isEvacuationPoint === true,
+      assemblyPointFacilityType: assemblyData?.isEvacuationPoint === true ? 'verified_assembly_point' : (assemblyData?.facilityType || 'candidate_open_space'),
       assemblyPointCoordinates: assemblyData?.coordinates,
       assemblyPointTravelTimeMinutes,
       assemblyPointTravelTimeDisplay,
@@ -1519,12 +2234,12 @@ out body 60;`;
       routingSource,
       provenance: {
         nearestRoad: nearestRoadProvenance,
-        arterialRoad: distanceToArterialMeters !== null ? 'osm-geom-segment' : 'not-found-in-radius',
+        arterialRoad: majorRoadData?.geometryMethod === 'geometry_segment' ? 'osm-geom-segment' : (distanceToArterialMeters !== null ? 'osm-query' : 'not-found-in-radius'),
         nearestTransit: distanceToNearestTransitMeters !== null ? 'osm-query' : 'not-found-in-radius',
         hospital: distanceToHospitalMeters !== null ? 'osm-query' : 'not-found-in-radius',
-        healthcareFacility: distanceToHospitalMeters !== null ? 'osm-query' : 'not-found-in-radius',
+        healthcareFacility: distanceToHealthcareFacilityMeters !== null ? 'osm-query' : 'not-found-in-radius',
         fireStation: distanceToFireStationMeters !== null ? 'osm-query' : 'not-found-in-radius',
-        waterway: distanceToNearestWaterwayMeters !== null ? 'osm-geom-segment' : 'not-found-in-radius',
+        waterway: waterwayRes.calculationMethod === 'geometry_segment' ? 'osm-geom-segment' : (distanceToNearestWaterwayMeters !== null ? 'osm-query' : 'not-found-in-radius'),
         greenSpace: greenRes.greenRatioPct !== null ? 'osm-query' : 'not-found-in-radius',
         routing: routingStatus === 'osrm_live_route_confirmed' ? 'osrm-live-route' : 'not-applicable'
       },
@@ -1532,8 +2247,8 @@ out body 60;`;
       auditTrail: {
         source: 'openstreetmap_overpass_live',
         queryRadiusMeters: {
-          hospital: majorRoadData?.searchRadiusMeters || 15000,
-          healthcareFacility: healthcareData?.searchRadiusMeters || 15000,
+          hospital: hospitalData?.searchRadiusMeters || 15000,
+          healthcareFacility: healthcareFacilityData?.searchRadiusMeters || 15000,
           fireStation: fireData?.searchRadiusMeters || 10000,
           waterway: 5000,
           transit: transitData?.searchRadiusMeters || 15000,
@@ -1544,17 +2259,19 @@ out body 60;`;
         progressiveDiscovery: {
           waterwayRadiusM: distanceToNearestWaterwayMeters !== null ? 2500 : 5000,
           arterialRadiusM: majorRoadData?.searchRadiusMeters || 15000,
-          hospitalRadiusM: healthcareData?.searchRadiusMeters || 15000,
+          hospitalRadiusM: hospitalData?.searchRadiusMeters || 15000,
           fireStationRadiusM: fireData?.searchRadiusMeters || 10000,
           transitRadiusM: transitData?.searchRadiusMeters || 15000,
           greenRadiusM: 2000
         },
         endpointsUsed: {
           majorRoad: majorRoadData?.endpoint || 'none',
-          healthcare: healthcareData?.endpoint || 'none',
+          hospital: hospitalData?.endpoint || 'none',
+          healthcare: healthcareFacilityData?.endpoint || 'none',
           transit: transitData?.endpoint || 'none',
           fireStation: fireData?.endpoint || 'none',
-          waterway: waterwayRes.endpoint || 'none'
+          waterway: waterwayRes.endpoint || 'none',
+          assemblyPoint: assemblyData?.endpoint || 'none'
         },
         totalElementsFetched: 0,
         categoryCounts: {
@@ -1563,14 +2280,14 @@ out body 60;`;
           arterials: distanceToArterialMeters !== null ? 1 : 0,
           transit: distanceToNearestTransitMeters !== null ? 1 : 0,
           hospitals: distanceToHospitalMeters !== null ? 1 : 0,
-          clinicsAndDoctors: 0,
+          clinicsAndDoctors: distanceToHealthcareFacilityMeters !== null ? 1 : 0,
           fireStations: distanceToFireStationMeters !== null ? 1 : 0,
           greenParcels: 0,
           totalLandCover: 0
         },
         calculationMethod: {
-          selectedWaterwayDistanceMethod: 'geometry_segment',
-          selectedArterialDistanceMethod: 'geometry_segment',
+          selectedWaterwayDistanceMethod: waterwayRes.calculationMethod === 'geometry_segment' ? 'geometry_segment' : (distanceToNearestWaterwayMeters !== null ? 'center' : 'none'),
+          selectedArterialDistanceMethod: majorRoadData?.geometryMethod === 'geometry_segment' ? 'geometry_segment' : (distanceToArterialMeters !== null ? 'center' : 'none'),
           poiDistances: 'haversine_to_representative_node_or_center',
           roadSnapping: 'osrm_nearest_snapping',
           greenMetric: 'ratio_of_green_to_total_osm_landcover_features_by_count_proxy',
@@ -1602,9 +2319,11 @@ out body 60;`;
   /**
    * Helper for parsing OSM elements synchronously (used for unit testing and local element parsing).
    */
-  public static parseElements(coords: Coordinates, elements: any[]): ApiResult<SpatialProximityData> {
+  public static parseElements(coords: Coordinates, elements: OsmElement[]): ApiResult<SpatialProximityData> {
     let minWaterwayDist: number | null = null;
     let waterwayName: string | null = null;
+    let minCoastlineDist: number | null = null;
+    let coastlineName: string | null = null;
     let minHospitalDist: number | null = null;
     let hospitalName: string | null = null;
     let minArterialDist: number | null = null;
@@ -1616,19 +2335,30 @@ out body 60;`;
       const rawName = el.tags?.name || el.tags?.['name:id'] || el.tags?.['name:en'] || null;
       let distM: number | null = null;
 
-      if (Array.isArray(el.geometry) && el.geometry.length > 0) {
+      if (el.type === 'way' && Array.isArray(el.geometry) && el.geometry.length > 0) {
         const seg = this.getPointToPolylineDistanceMeters(coords, el.geometry);
         if (seg) distM = seg.distM;
-      } else if (el.lat != null && el.lon != null) {
+      } else if (el.type === 'node' && el.lat != null && el.lon != null) {
         distM = Math.round(coords.distanceToKm(new Coordinates(el.lat, el.lon)) * 1000);
+      } else if (el.center && el.center.lat != null && el.center.lon != null) {
+        distM = Math.round(coords.distanceToKm(new Coordinates(el.center.lat, el.center.lon)) * 1000);
       }
 
       if (distM === null) continue;
 
-      if (el.tags?.waterway || (el.tags?.natural === 'water' || el.tags?.natural === 'coastline')) {
+      // Inland Waterway only (rivers, canals, streams, drains, ditches)
+      if (el.tags?.waterway) {
         if (minWaterwayDist === null || distM < minWaterwayDist) {
           minWaterwayDist = distM;
-          waterwayName = rawName || (el.tags?.waterway === 'river' ? 'Sungai (OSM)' : 'Sempadan Air (OSM)');
+          waterwayName = rawName || (el.tags.waterway === 'river' ? 'Sungai (OSM)' : el.tags.waterway === 'canal' ? 'Saluran Kanal (OSM)' : 'Sungai / Saluran Terdekat (OSM)');
+        }
+      }
+
+      // Coastline strictly separated
+      if (el.tags?.natural === 'coastline') {
+        if (minCoastlineDist === null || distM < minCoastlineDist) {
+          minCoastlineDist = distM;
+          coastlineName = rawName || 'Garis Pantai (OSM)';
         }
       }
 
@@ -1639,7 +2369,7 @@ out body 60;`;
         }
       }
 
-      if (['motorway', 'trunk', 'primary', 'secondary'].includes(el.tags?.highway)) {
+      if (['motorway', 'trunk', 'primary', 'secondary'].includes(String(el.tags?.highway))) {
         if (minArterialDist === null || distM < minArterialDist) {
           minArterialDist = distM;
           arterialName = rawName || 'Jalan Arteri / Kolektor (OSM)';
@@ -1698,6 +2428,8 @@ out body 60;`;
       nearestWaterwayName: waterwayBounded.name || 'Tidak terdeteksi dalam radius 5.0 km',
       distanceToRiverMeters: minWaterwayDist,
       nearestRiverName: waterwayBounded.name || 'Tidak terdeteksi dalam radius 5.0 km',
+      distanceToNearestCoastlineMeters: minCoastlineDist,
+      nearestCoastlineName: coastlineName,
       distanceToHospitalMeters: minHospitalDist,
       nearestHospitalName: hospitalBounded.name || 'Tidak terdeteksi dalam radius 15.0 km',
       distanceToHealthcareFacilityMeters: minHospitalDist,

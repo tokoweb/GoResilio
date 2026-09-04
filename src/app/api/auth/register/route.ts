@@ -1,23 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MySQLUserRepository } from '../../../../infrastructure/database/repositories/MySQLUserRepository';
 import { JwtHelper } from '../../../../infrastructure/auth/jwt';
+import { RateLimiter } from '../../../../infrastructure/security/rateLimiter';
+import { InputValidator } from '../../../../infrastructure/security/inputValidator';
 
 export async function POST(req: NextRequest) {
+  // 1. Enforce rate limiting: 10 attempts per minute per IP
+  const rateLimitResponse = RateLimiter.enforce(req, 'auth_register', 10, 60000);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const body = await req.json();
-    const { email, password, fullName, role, organization, phoneNumber } = body;
+    const email = InputValidator.validateEmail(body.email);
+    const fullName = InputValidator.validateString(body.fullName, 'nama lengkap', 2, 100);
+    const password = InputValidator.validateString(body.password, 'kata sandi', 6, 100);
 
-    if (!email || !fullName) {
-      return NextResponse.json(
-        { success: false, error: 'Nama lengkap dan email wajib diisi.' },
-        { status: 400 }
-      );
+    // Prevent privilege escalation: public registration cannot assign Super Admin
+    let requestedRole = body.role || 'Home Buyer';
+    if (requestedRole === 'Super Admin (RDI)' || requestedRole === 'Consultant / Auditor') {
+      requestedRole = 'Home Buyer';
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
-
     // Check if user already exists
-    const existing = await MySQLUserRepository.findByEmail(normalizedEmail);
+    const existing = await MySQLUserRepository.findByEmail(email);
     if (existing) {
       return NextResponse.json(
         { success: false, error: 'Alamat email ini sudah terdaftar. Silakan gunakan menu Masuk.' },
@@ -25,16 +30,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Default to Free Tier for new users, except Super Admin
-    const defaultTier = role === 'Super Admin (RDI)' ? 'Platform Master Authority' : 'Free Tier (Skrining Dasar)';
+    const defaultTier = 'Free Tier (Skrining Dasar)';
 
     const newUser = await MySQLUserRepository.create({
-      email: normalizedEmail,
-      password: password || 'default123',
+      email,
+      password,
       fullName,
-      role: role || 'Home Buyer',
-      organization: organization || '-',
-      phoneNumber: phoneNumber || '-',
+      role: requestedRole,
+      organization: body.organization ? InputValidator.sanitizeText(String(body.organization)) : '-',
+      phoneNumber: body.phoneNumber ? InputValidator.sanitizeText(String(body.phoneNumber)) : '-',
       tierLevel: defaultTier
     });
 
@@ -50,13 +54,12 @@ export async function POST(req: NextRequest) {
     const response = NextResponse.json({
       success: true,
       message: 'Pendaftaran akun berhasil. Selamat datang di GoTangguh!',
-      token,
       user: newUser
     });
 
-    // Set secure cookie
+    // Set secure HttpOnly session cookie
     response.cookies.set('gotangguh_session_token', token, {
-      httpOnly: false, // Accessible to client context sync
+      httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
@@ -66,8 +69,8 @@ export async function POST(req: NextRequest) {
     return response;
   } catch (error: any) {
     return NextResponse.json(
-      { success: false, error: error.message || 'Gagal mendaftarkan pengguna baru.' },
-      { status: 500 }
+      { success: false, error: error.message || 'Gagal mendaftarkan akun baru.' },
+      { status: 400 }
     );
   }
 }

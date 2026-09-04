@@ -28,6 +28,7 @@ import { runPerformSiteAssessmentPipelineIntegrityTests } from './PerformSiteAss
 import { runThinkHazardBaliIntegrityTests } from './ThinkHazardBaliIntegrity.test';
 import { runSeismicCoverageAndSemanticsTests } from './SeismicCoverageAndSemantics.test';
 import { runHazardCardSimplificationTests } from './HazardCardSimplification.test';
+import { runPhase8_8Tests } from './Phase8_8_ZeroSyntheticData.test';
 
 export function runAllTests() {
   console.log('================================================================');
@@ -66,7 +67,8 @@ export function runAllTests() {
       { name: 'PerformSiteAssessmentPipelineIntegrity', pass: runPerformSiteAssessmentPipelineIntegrityTests() },
       { name: 'ThinkHazardBaliIntegrity', pass: runThinkHazardBaliIntegrityTests() },
       { name: 'SeismicCoverageAndSemantics', pass: runSeismicCoverageAndSemanticsTests() },
-      { name: 'HazardCardSimplification', pass: runHazardCardSimplificationTests() }
+      { name: 'HazardCardSimplification', pass: runHazardCardSimplificationTests() },
+      { name: 'Phase8_8_ZeroSyntheticData', pass: runPhase8_8Tests() }
     ];
 
     for (const r of results) {

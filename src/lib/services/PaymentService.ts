@@ -50,9 +50,9 @@ export class PaymentService {
         }
       ],
       customer_details: {
-        first_name: payload.customerName || 'Pelanggan GoTangguh',
-        email: payload.customerEmail || 'buyer@gotangguh.id',
-        phone: payload.customerPhone || '+628123456789'
+        first_name: payload.customerName,
+        email: payload.customerEmail,
+        phone: payload.customerPhone || undefined
       }
     };
 

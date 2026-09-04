@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { AuthGuard } from '../../../../infrastructure/auth/authGuard';
 import { getDbPool } from '../../../../infrastructure/database/connection/mysql.connection';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const authResult = await AuthGuard.requireRole(req, ['Super Admin (RDI)']);
+  if (authResult instanceof NextResponse) return authResult;
+
   try {
     const pool = getDbPool();
     const [rows]: any = await pool.query(
@@ -19,17 +23,17 @@ export async function GET() {
 
     return NextResponse.json({ success: true, config: null });
   } catch (error: any) {
-    // Graceful fallback when MySQL server is offline / uninitialized
     return NextResponse.json({ success: true, config: null });
   }
 }
 
 export async function POST(req: NextRequest) {
-  let body: any = null;
-  try {
-    body = await req.json();
-    const pool = getDbPool();
+  const authResult = await AuthGuard.requireRole(req, ['Super Admin (RDI)']);
+  if (authResult instanceof NextResponse) return authResult;
 
+  try {
+    const body = await req.json();
+    const pool = getDbPool();
     const configJson = JSON.stringify(body);
 
     await pool.query(
@@ -45,7 +49,6 @@ export async function POST(req: NextRequest) {
       config: body
     });
   } catch (error: any) {
-    console.error('[Admin Config POST Error]:', error);
     return NextResponse.json(
       {
         success: false,

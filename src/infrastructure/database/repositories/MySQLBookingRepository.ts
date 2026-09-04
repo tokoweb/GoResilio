@@ -31,6 +31,13 @@ export class MySQLBookingRepository {
   }
 
   static async create(booking: Partial<ConsultationBookingEntity>): Promise<string> {
+    if (!booking.clientName || !booking.clientName.trim()) {
+      throw new Error('Nama klien wajib disertakan untuk pendaftaran konsultasi.');
+    }
+    if (!booking.clientEmail || !booking.clientEmail.trim()) {
+      throw new Error('Email klien wajib disertakan untuk pendaftaran konsultasi.');
+    }
+
     const id = booking.id || `bk_${Date.now()}`;
     const voucherCode = booking.voucherCode || `BK-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
     const assignedExpert = booking.assignedExpert || 'Tim Peneliti RDI & BGP Consultant';
@@ -45,10 +52,10 @@ export class MySQLBookingRepository {
         [
           id,
           voucherCode,
-          booking.clientName || 'Calon Klien',
-          booking.clientEmail || 'client@gotangguh.id',
-          booking.clientPhone || '+6281200000000',
-          booking.targetLocation || 'Lokasi Belum Ditentukan',
+          booking.clientName.trim(),
+          booking.clientEmail.trim(),
+          booking.clientPhone ?? null,
+          booking.targetLocation ?? null,
           booking.packageType || 'Konsultasi Lite / Basic',
           assignedExpert,
           booking.scheduledDate || 'Segera Dikonfirmasi',
@@ -58,8 +65,8 @@ export class MySQLBookingRepository {
       );
       return id;
     } catch (error) {
-      console.warn('[MySQLBookingRepository] Insert fallback:', error);
-      return id;
+      console.error('[MySQLBookingRepository] Save error:', error);
+      throw new Error(`Gagal menyimpan pendaftaran konsultasi ke basis data: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

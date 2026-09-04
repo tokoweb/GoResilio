@@ -18,7 +18,7 @@ import './styles/app.css';
 import './styles/print_report.css';
 
 const MainLayout: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { currentView } = useAssessment();
 
   return (
@@ -71,6 +71,11 @@ const MainLayout: React.FC = () => {
 
       {/* Footer */}
       <footer className="app-footer">
+        <p style={{ maxWidth: '840px', margin: '0 auto 8px', fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>
+          {language === 'en'
+            ? 'Disclaimer: This analysis serves as an initial screening indicator based on public spatial data and does not replace technical due diligence, soil investigation, or professional structural audit.'
+            : 'Disclaimer: Analisis ini merupakan indikator penapisan awal berbasis data spasial publik dan tidak menggantikan uji tuntas teknis, penyelidikan tanah, atau audit struktural profesional.'}
+        </p>
         <p>{t.footer.copyright}</p>
       </footer>
     </div>

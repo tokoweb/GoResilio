@@ -12,11 +12,24 @@ export const OverallGauge: React.FC = () => {
   const cardRef = useRef<HTMLDivElement | null>(null);
 
   const rawOverall = assessment?.overallScore;
+  const isOverallNull = rawOverall === null || rawOverall === undefined;
   const overallScore = typeof rawOverall === 'number' && !isNaN(rawOverall) ? rawOverall : 0;
   const overallLevel = assessment?.overallLevel || 'medium';
 
   // GSAP Counter Animation & SVG Stroke Dashoffset
   useEffect(() => {
+    if (isOverallNull) {
+      setDisplayScore(0);
+      if (polygonRef.current) {
+        gsap.to(polygonRef.current, {
+          strokeDashoffset: 520,
+          duration: 0.8,
+          ease: 'power2.out'
+        });
+      }
+      return;
+    }
+
     const obj = { val: displayScore };
     gsap.to(obj, {
       val: overallScore,
@@ -36,7 +49,7 @@ export const OverallGauge: React.FC = () => {
         ease: 'power2.out'
       });
     }
-  }, [overallScore]);
+  }, [overallScore, isOverallNull]);
 
   // Entrance animation
   useEffect(() => {
@@ -126,17 +139,19 @@ export const OverallGauge: React.FC = () => {
     );
   }
 
-  const color =
-    overallLevel === 'extreme'
-      ? '#dc2626'
-      : overallLevel === 'high'
-      ? '#ea580c'
-      : overallLevel === 'medium'
-      ? '#d97706'
-      : '#15803d';
+  const color = isOverallNull
+    ? '#94a3b8'
+    : overallLevel === 'extreme'
+    ? '#dc2626'
+    : overallLevel === 'high'
+    ? '#ea580c'
+    : overallLevel === 'medium'
+    ? '#d97706'
+    : '#15803d';
 
-  const label =
-    language === 'id'
+  const label = isOverallNull
+    ? (language === 'id' ? 'Belum dapat dinilai' : 'Insufficient Data')
+    : language === 'id'
       ? overallLevel === 'extreme'
         ? 'Risiko Ekstrem'
         : overallLevel === 'high'
@@ -152,10 +167,15 @@ export const OverallGauge: React.FC = () => {
       ? 'Moderate Risk'
       : 'Low Risk';
 
-  const floodVal = typeof assessment.flood?.score === 'number' ? assessment.flood.score : 0;
-  const quakeVal = typeof assessment.quake?.score === 'number' ? assessment.quake.score : 0;
-  const heatVal = typeof assessment.heat?.score === 'number' ? assessment.heat.score : 0;
-  const transportVal = typeof assessment.transport?.score === 'number' ? assessment.transport.score : 0;
+  const hasFloodScore = typeof assessment.flood?.score === 'number';
+  const hasQuakeScore = typeof assessment.quake?.score === 'number';
+  const hasHeatScore = typeof assessment.heat?.score === 'number';
+  const hasTransportScore = typeof assessment.transport?.score === 'number';
+
+  const floodVal = hasFloodScore ? assessment.flood.score! : 0;
+  const quakeVal = hasQuakeScore ? assessment.quake.score! : 0;
+  const heatVal = hasHeatScore ? assessment.heat.score! : 0;
+  const transportVal = hasTransportScore ? assessment.transport.score! : 0;
 
   return (
     <div className={`gt-cadastral-seal-card ${isLoading ? 'is-loading-shimmer' : ''}`} ref={cardRef}>
@@ -188,28 +208,43 @@ export const OverallGauge: React.FC = () => {
           />
 
           {/* Active Animated Score Hexagon */}
-          <polygon
-            ref={polygonRef}
-            points="100,14 178,56 178,144 100,186 22,144 22,56"
-            fill="transparent"
-            stroke="url(#gtCadastralSealGrad)"
-            strokeWidth="8"
-            strokeLinejoin="round"
-            strokeDasharray={520}
-            strokeDashoffset={520}
-            strokeLinecap="round"
-          />
+          {!isOverallNull && (
+            <polygon
+              ref={polygonRef}
+              points="100,14 178,56 178,144 100,186 22,144 22,56"
+              fill="transparent"
+              stroke="url(#gtCadastralSealGrad)"
+              strokeWidth="8"
+              strokeLinejoin="round"
+              strokeDasharray={520}
+              strokeDashoffset={520}
+              strokeLinecap="round"
+            />
+          )}
         </svg>
 
         {/* Center Numbers */}
         <div className="gt-seal-dial-center">
-          <span className="gt-seal-score-number" style={{ color }}>
-            {displayScore}
-          </span>
-          <span className="gt-seal-scale-denominator">/100</span>
-          <span className="gt-seal-tier-label" style={{ color }}>
-            {label}
-          </span>
+          {isOverallNull ? (
+            <>
+              <span className="gt-seal-score-number" style={{ color: '#64748b', fontSize: '1.05rem', lineHeight: 1.3, maxWidth: '140px' }}>
+                {language === 'id' ? 'Belum dapat dinilai' : 'Insufficient Data'}
+              </span>
+              <span className="gt-seal-tier-label" style={{ color: '#94a3b8', marginTop: '4px', fontSize: '0.78rem' }}>
+                {language === 'id' ? 'Data tidak mencukupi' : 'No Evaluated Score'}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="gt-seal-score-number" style={{ color }}>
+                {displayScore}
+              </span>
+              <span className="gt-seal-scale-denominator">/100</span>
+              <span className="gt-seal-tier-label" style={{ color }}>
+                {label}
+              </span>
+            </>
+          )}
         </div>
       </div>
 
@@ -217,52 +252,85 @@ export const OverallGauge: React.FC = () => {
       <div className="gt-seal-spectrum-list">
         <div className="gt-spectrum-row">
           <div className="gt-spectrum-info">
-            <span className="gt-spectrum-name">{language === 'id' ? 'Banjir Fluvial & Rob' : 'Flood Inundation'}</span>
-            <span className={`gt-spectrum-val gt-level-${assessment.flood.level}`}>{floodVal}/100</span>
-          </div>
-          <div className="gt-spectrum-track">
-            <div className="gt-spectrum-bar" style={{ width: `${floodVal}%`, backgroundColor: assessment.flood.level === 'extreme' ? '#dc2626' : assessment.flood.level === 'high' ? '#ea580c' : assessment.flood.level === 'medium' ? '#d97706' : '#15803d' }} />
-          </div>
-        </div>
-
-        <div className="gt-spectrum-row">
-          <div className="gt-spectrum-info">
-            <span className="gt-spectrum-name">{language === 'id' ? 'Seismik & Sesar Aktif' : 'Seismic & Fault'}</span>
-            <span className={`gt-spectrum-val gt-level-${assessment.quake.level}`}>{quakeVal}/100</span>
-          </div>
-          <div className="gt-spectrum-track">
-            <div className="gt-spectrum-bar" style={{ width: `${quakeVal}%`, backgroundColor: assessment.quake.level === 'extreme' ? '#dc2626' : assessment.quake.level === 'high' ? '#ea580c' : assessment.quake.level === 'medium' ? '#d97706' : '#15803d' }} />
-          </div>
-        </div>
-
-        <div className="gt-spectrum-row">
-          <div className="gt-spectrum-info">
-            <span className="gt-spectrum-name">{language === 'id' ? 'Heat Stress & Iklim' : 'Heat Stress'}</span>
-            <span className={`gt-spectrum-val gt-level-${assessment.heat.level}`}>{heatVal}/100</span>
-          </div>
-          <div className="gt-spectrum-track">
-            <div className="gt-spectrum-bar" style={{ width: `${heatVal}%`, backgroundColor: assessment.heat.level === 'extreme' ? '#dc2626' : assessment.heat.level === 'high' ? '#ea580c' : assessment.heat.level === 'medium' ? '#d97706' : '#15803d' }} />
-          </div>
-        </div>
-
-        <div className="gt-spectrum-row">
-          <div className="gt-spectrum-info">
-            <span className="gt-spectrum-name">{language === 'id' ? 'Aksesibilitas & Evakuasi' : 'Site Connectivity'}</span>
-            <span className={`gt-spectrum-val gt-level-${assessment.transport.level === 'good' ? 'low' : assessment.transport.level === 'moderate' ? 'medium' : 'high'}`}>{transportVal}/100</span>
+            <span className="gt-spectrum-name">{language === 'id' ? 'Banjir & Genangan' : 'Flood & Inundation'}</span>
+            <span className={`gt-spectrum-val gt-level-${assessment.flood.level}`}>
+              {hasFloodScore ? `${floodVal}/100` : (language === 'id' ? 'Belum dapat dinilai' : 'No Data')}
+            </span>
           </div>
           <div className="gt-spectrum-track">
             <div
               className="gt-spectrum-bar"
               style={{
-                width: `${transportVal}%`,
-                backgroundColor:
-                  assessment.transport.level === 'critical'
-                    ? '#dc2626'
-                    : assessment.transport.level === 'isolated'
-                    ? '#ea580c'
-                    : assessment.transport.level === 'moderate'
-                    ? '#d97706'
-                    : '#15803d'
+                width: hasFloodScore ? `${floodVal}%` : '0%',
+                backgroundColor: hasFloodScore
+                  ? (assessment.flood.level === 'extreme' ? '#dc2626' : assessment.flood.level === 'high' ? '#ea580c' : assessment.flood.level === 'medium' ? '#d97706' : '#15803d')
+                  : '#cbd5e1'
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="gt-spectrum-row">
+          <div className="gt-spectrum-info">
+            <span className="gt-spectrum-name">{language === 'id' ? 'Gempa & Sesar' : 'Seismic & Fault'}</span>
+            <span className={`gt-spectrum-val gt-level-${assessment.quake.level}`}>
+              {hasQuakeScore ? `${quakeVal}/100` : (language === 'id' ? 'Belum dapat dinilai' : 'No Data')}
+            </span>
+          </div>
+          <div className="gt-spectrum-track">
+            <div
+              className="gt-spectrum-bar"
+              style={{
+                width: hasQuakeScore ? `${quakeVal}%` : '0%',
+                backgroundColor: hasQuakeScore
+                  ? (assessment.quake.level === 'extreme' ? '#dc2626' : assessment.quake.level === 'high' ? '#ea580c' : assessment.quake.level === 'medium' ? '#d97706' : '#15803d')
+                  : '#cbd5e1'
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="gt-spectrum-row">
+          <div className="gt-spectrum-info">
+            <span className="gt-spectrum-name">{language === 'id' ? 'Panas & Iklim' : 'Heat & Climate'}</span>
+            <span className={`gt-spectrum-val gt-level-${assessment.heat.level}`}>
+              {hasHeatScore ? `${heatVal}/100` : (language === 'id' ? 'Belum dapat dinilai' : 'No Data')}
+            </span>
+          </div>
+          <div className="gt-spectrum-track">
+            <div
+              className="gt-spectrum-bar"
+              style={{
+                width: hasHeatScore ? `${heatVal}%` : '0%',
+                backgroundColor: hasHeatScore
+                  ? (assessment.heat.level === 'extreme' ? '#dc2626' : assessment.heat.level === 'high' ? '#ea580c' : assessment.heat.level === 'medium' ? '#d97706' : '#15803d')
+                  : '#cbd5e1'
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="gt-spectrum-row">
+          <div className="gt-spectrum-info">
+            <span className="gt-spectrum-name">{language === 'id' ? 'Transportasi & Akses' : 'Transport & Access'}</span>
+            <span className={`gt-spectrum-val gt-level-${assessment.transport.level === 'good' ? 'low' : assessment.transport.level === 'moderate' ? 'medium' : 'high'}`}>
+              {hasTransportScore ? `${transportVal}/100` : (language === 'id' ? 'Belum dapat dinilai' : 'No Data')}
+            </span>
+          </div>
+          <div className="gt-spectrum-track">
+            <div
+              className="gt-spectrum-bar"
+              style={{
+                width: hasTransportScore ? `${transportVal}%` : '0%',
+                backgroundColor: hasTransportScore
+                  ? (assessment.transport.level === 'critical'
+                      ? '#dc2626'
+                      : assessment.transport.level === 'isolated'
+                      ? '#ea580c'
+                      : assessment.transport.level === 'moderate'
+                      ? '#d97706'
+                      : '#15803d')
+                  : '#cbd5e1'
               }}
             />
           </div>

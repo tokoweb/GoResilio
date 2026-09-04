@@ -1,10 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDbPool } from '../../../../infrastructure/database/connection/mysql.connection';
+import { AuthGuard } from '../../../../infrastructure/auth/authGuard';
+
+// Canonical Server-Side Pricing Catalog (Client cannot manipulate transaction price)
+const SERVER_PRICING_CATALOG: Record<string, { price: number; planName: string; tierLevel: string }> = {
+  'instant_1': { price: 35000, planName: 'Laporan Instan (1 Properti)', tierLevel: 'Tier 2 Pro (Instant Rp 35rb)' },
+  'bundle_3': { price: 85000, planName: 'Bundling (Bandingkan 3 Properti)', tierLevel: 'Tier 2 Pro (3 Laporan PDF)' },
+  'consultation_expert': { price: 350000, planName: 'Konsultasi Ahli & Verifikasi Lapangan', tierLevel: 'Tier 3 Expert Advisory' },
+  'tier-1': { price: 35000, planName: 'Laporan Instan (1 Properti)', tierLevel: 'Tier 2 Pro (Instant Rp 35rb)' },
+  'tier-2': { price: 85000, planName: 'Bundling (Bandingkan 3 Properti)', tierLevel: 'Tier 2 Pro (3 Laporan PDF)' },
+  'tier-3': { price: 350000, planName: 'Konsultasi Ahli & Verifikasi Lapangan', tierLevel: 'Tier 3 Expert Advisory' }
+};
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, tierLevel, planName, price, fullName, phone } = body;
+    const { email, tierLevel, planName, fullName, phone } = body;
 
     const serverKey = process.env.MIDTRANS_SERVER_KEY;
     if (!serverKey) {
@@ -14,15 +25,52 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const isProduction = process.env.MIDTRANS_IS_PRODUCTION === 'true';
-    const grossAmount = Number(price) || 35000;
-    const orderId = `GT-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-    const userEmail = email || 'buyer.demo@gotangguh.id';
-    const targetTier = tierLevel || 'Tier 2 Pro (Instant Rp 35rb)';
-    const customerName = fullName || 'Pelanggan GoTangguh';
-    const customerPhone = phone || '+628123456789';
+    // Resolve Price Strictly From Server Pricing Catalog (Ignore Client-Supplied Price)
+    const rawKey = (tierLevel || planName || 'instant_1').toLowerCase().replace(/\s+/g, '_');
+    let packageInfo = SERVER_PRICING_CATALOG[rawKey];
+    if (!packageInfo) {
+      if (rawKey.includes('3') || rawKey.includes('bundl')) {
+        packageInfo = SERVER_PRICING_CATALOG['bundle_3'];
+      } else if (rawKey.includes('ahli') || rawKey.includes('konsultasi') || rawKey.includes('expert')) {
+        packageInfo = SERVER_PRICING_CATALOG['consultation_expert'];
+      } else {
+        packageInfo = SERVER_PRICING_CATALOG['instant_1'];
+      }
+    }
 
-    // Official Midtrans Snap API Endpoint
+    const grossAmount = packageInfo.price;
+    const targetTier = packageInfo.tierLevel;
+    const resolvedPlanName = packageInfo.planName;
+    const orderId = `GT-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
+    // Verify Real User Identity (No Synthetic Identities)
+    let userEmail = (email || '').trim();
+    let customerName = (fullName || '').trim();
+    const customerPhone = (phone || '').trim();
+
+    if (!userEmail || !customerName) {
+      const auth = await AuthGuard.authenticateRequest(req);
+      if (auth.user) {
+        userEmail = userEmail || auth.user.email;
+        customerName = customerName || auth.user.fullName;
+      }
+    }
+
+    if (!userEmail || !userEmail.includes('@')) {
+      return NextResponse.json(
+        { success: false, error: 'Alamat email valid pembeli wajib disertakan untuk transaksi.' },
+        { status: 400 }
+      );
+    }
+
+    if (!customerName || customerName.length < 2) {
+      return NextResponse.json(
+        { success: false, error: 'Nama lengkap pembeli wajib disertakan untuk transaksi.' },
+        { status: 400 }
+      );
+    }
+
+    const isProduction = process.env.MIDTRANS_IS_PRODUCTION === 'true';
     const midtransUrl = isProduction
       ? 'https://app.midtrans.com/snap/v1/transactions'
       : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
@@ -39,13 +87,13 @@ export async function POST(req: NextRequest) {
           id: 'GT-DOSSIER-PRO',
           price: grossAmount,
           quantity: 1,
-          name: (planName || 'GoTangguh Tier 2 Pro (3 Laporan PDF)').substring(0, 50)
+          name: resolvedPlanName.substring(0, 50)
         }
       ],
       customer_details: {
         first_name: customerName,
         email: userEmail,
-        phone: customerPhone
+        phone: customerPhone || undefined
       },
       enabled_payments: [
         'gopay',
@@ -95,7 +143,7 @@ export async function POST(req: NextRequest) {
     const snapToken = data.token;
     const redirectUrl = data.redirect_url || `https://app.sandbox.midtrans.com/snap/v2/vtweb/${snapToken}`;
 
-    // 2. Record Pending Transaction in MySQL Database
+    // 2. Record Pending Transaction in MySQL Database (Fail-fast on DB error)
     try {
       const pool = getDbPool();
       await pool.query(
@@ -107,7 +155,7 @@ export async function POST(req: NextRequest) {
           `tx_${Date.now()}`,
           orderId,
           userEmail,
-          planName || 'GoTangguh Tier 2 Pro (3 Laporan PDF)',
+          resolvedPlanName,
           targetTier,
           grossAmount,
           snapToken,
@@ -115,7 +163,14 @@ export async function POST(req: NextRequest) {
         ]
       );
     } catch (dbErr) {
-      console.warn('[Midtrans DB Record Warning]:', dbErr);
+      console.error('[Midtrans DB Record Error]:', dbErr);
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Gagal mencatat transaksi pembayaran ke basis data: ${dbErr instanceof Error ? dbErr.message : String(dbErr)}`
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({

@@ -18,7 +18,8 @@ export type FeatureCategory =
   | 'air_quality'
   | 'exposure'
   | 'wildfire'
-  | 'environmental';
+  | 'environmental'
+  | 'topography';
 
 export interface SpatialFeatureRecord {
   /** Canonical unique identifier for the feature (e.g., 'soil.clay_pct', 'air_quality.pm25', 'exposure.population_1km', 'fire.active_hotspots_7d') */

@@ -1325,27 +1325,27 @@ export const AdminManagementConsole: React.FC = () => {
                     <span>{isEn ? 'Based on RDI Disaster Resilience Standards' : 'Berdasarkan Standar Ketahanan Bencana RDI'}</span>
                   </div>
                   <div className="gt-risk-track-bar">
-                    <div className="gt-risk-track-seg" style={{ width: `${dashboardForm.lowRisk?.maxScore ?? 35}%`, background: '#10b981' }} />
-                    <div className="gt-risk-track-seg" style={{ width: `${(dashboardForm.mediumRisk?.maxScore ?? 70) - (dashboardForm.lowRisk?.maxScore ?? 35)}%`, background: '#f59e0b' }} />
-                    <div className="gt-risk-track-seg" style={{ width: `${(dashboardForm.highRisk?.maxScore ?? 85) - (dashboardForm.mediumRisk?.maxScore ?? 70)}%`, background: '#ef4444' }} />
-                    <div className="gt-risk-track-seg" style={{ width: `${100 - (dashboardForm.highRisk?.maxScore ?? 85)}%`, background: '#dc2626' }} />
+                    <div className="gt-risk-track-seg" style={{ width: `${dashboardForm.lowRisk?.maxScore ?? 30}%`, background: '#10b981' }} />
+                    <div className="gt-risk-track-seg" style={{ width: `${(dashboardForm.mediumRisk?.maxScore ?? 60) - (dashboardForm.lowRisk?.maxScore ?? 30)}%`, background: '#f59e0b' }} />
+                    <div className="gt-risk-track-seg" style={{ width: `${(dashboardForm.highRisk?.maxScore ?? 80) - (dashboardForm.mediumRisk?.maxScore ?? 60)}%`, background: '#ef4444' }} />
+                    <div className="gt-risk-track-seg" style={{ width: `${100 - (dashboardForm.highRisk?.maxScore ?? 80)}%`, background: '#dc2626' }} />
                   </div>
                   <div className="gt-risk-legend-row">
                     <div className="gt-risk-legend-item">
                       <span className="gt-risk-legend-dot" style={{ background: '#10b981' }} />
-                      <span>{isEn ? 'Low:' : 'Aman:'} 0 – {dashboardForm.lowRisk?.maxScore ?? 35}</span>
+                      <span>{isEn ? 'Low:' : 'Aman:'} 0 – {dashboardForm.lowRisk?.maxScore ?? 30}</span>
                     </div>
                     <div className="gt-risk-legend-item">
                       <span className="gt-risk-legend-dot" style={{ background: '#f59e0b' }} />
-                      <span>{isEn ? 'Moderate:' : 'Sedang:'} {(dashboardForm.lowRisk?.maxScore ?? 35) + 1} – {dashboardForm.mediumRisk?.maxScore ?? 70}</span>
+                      <span>{isEn ? 'Moderate:' : 'Sedang:'} {(dashboardForm.lowRisk?.maxScore ?? 30) + 1} – {dashboardForm.mediumRisk?.maxScore ?? 60}</span>
                     </div>
                     <div className="gt-risk-legend-item">
                       <span className="gt-risk-legend-dot" style={{ background: '#ef4444' }} />
-                      <span>{isEn ? 'High:' : 'Bahaya:'} {(dashboardForm.mediumRisk?.maxScore ?? 70) + 1} – {dashboardForm.highRisk?.maxScore ?? 85}</span>
+                      <span>{isEn ? 'High:' : 'Bahaya:'} {(dashboardForm.mediumRisk?.maxScore ?? 60) + 1} – {dashboardForm.highRisk?.maxScore ?? 80}</span>
                     </div>
                     <div className="gt-risk-legend-item">
                       <span className="gt-risk-legend-dot" style={{ background: '#dc2626' }} />
-                      <span>{isEn ? 'Extreme:' : 'Ekstrem:'} &gt; {dashboardForm.highRisk?.maxScore ?? 85} – 100</span>
+                      <span>{isEn ? 'Extreme:' : 'Ekstrem:'} &gt; {dashboardForm.highRisk?.maxScore ?? 80} – 100</span>
                     </div>
                   </div>
                 </div>
@@ -1370,14 +1370,14 @@ export const AdminManagementConsole: React.FC = () => {
                               <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981' }} />
                               {dashboardForm.lowRisk?.labelId ?? 'Aman / Rendah'}
                             </span>
-                            <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Skor 0 s/d {dashboardForm.lowRisk?.maxScore ?? 35}</span>
+                            <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Skor 0 s/d {dashboardForm.lowRisk?.maxScore ?? 30}</span>
                           </div>
                         </td>
                         <td>
                           <input
                             type="number"
                             className="gt-calm-input"
-                            value={dashboardForm.lowRisk?.maxScore ?? 35}
+                            value={dashboardForm.lowRisk?.maxScore ?? 30}
                             onChange={(e) =>
                               setDashboardForm({
                                 ...dashboardForm,
@@ -1422,14 +1422,14 @@ export const AdminManagementConsole: React.FC = () => {
                               <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#f59e0b' }} />
                               {dashboardForm.mediumRisk?.labelId ?? 'Sedang / Waspada'}
                             </span>
-                            <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Skor {(dashboardForm.lowRisk?.maxScore ?? 35) + 1} s/d {dashboardForm.mediumRisk?.maxScore ?? 70}</span>
+                            <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Skor {(dashboardForm.lowRisk?.maxScore ?? 30) + 1} s/d {dashboardForm.mediumRisk?.maxScore ?? 60}</span>
                           </div>
                         </td>
                         <td>
                           <input
                             type="number"
                             className="gt-calm-input"
-                            value={dashboardForm.mediumRisk?.maxScore ?? 70}
+                            value={dashboardForm.mediumRisk?.maxScore ?? 60}
                             onChange={(e) =>
                               setDashboardForm({
                                 ...dashboardForm,
@@ -1474,14 +1474,14 @@ export const AdminManagementConsole: React.FC = () => {
                               <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#ef4444' }} />
                               {dashboardForm.highRisk?.labelId ?? 'Tinggi / Bahaya'}
                             </span>
-                            <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Skor {(dashboardForm.mediumRisk?.maxScore ?? 70) + 1} s/d {dashboardForm.highRisk?.maxScore ?? 85}</span>
+                            <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Skor {(dashboardForm.mediumRisk?.maxScore ?? 60) + 1} s/d {dashboardForm.highRisk?.maxScore ?? 80}</span>
                           </div>
                         </td>
                         <td>
                           <input
                             type="number"
                             className="gt-calm-input"
-                            value={dashboardForm.highRisk?.maxScore ?? 85}
+                            value={dashboardForm.highRisk?.maxScore ?? 80}
                             onChange={(e) =>
                               setDashboardForm({
                                 ...dashboardForm,
@@ -1526,7 +1526,7 @@ export const AdminManagementConsole: React.FC = () => {
                               <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#dc2626' }} />
                               {dashboardForm.extremeRisk?.labelId ?? 'Ekstrem / Kritis'}
                             </span>
-                            <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Skor &gt; {dashboardForm.highRisk?.maxScore ?? 85} s/d 100</span>
+                            <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Skor &gt; {dashboardForm.highRisk?.maxScore ?? 80} s/d 100</span>
                           </div>
                         </td>
                         <td>
@@ -1631,13 +1631,13 @@ export const AdminManagementConsole: React.FC = () => {
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
                         <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '6px 8px' }}>
-                          <strong style={{ color: '#166534' }}>{isEn ? 'Safe (0–35):' : 'Aman (0–35):'}</strong> {isEn ? 'Elevation > 15m ASL, river distance > 1,000m, rainfall < 60mm/24h. Flood-free, gravity drainage.' : 'Elevasi > 15m dpl, jarak sungai > 1.000m, hujan < 60mm/24h. Bebas banjir, drainase gravitasi lancar.'}
+                          <strong style={{ color: '#166534' }}>{isEn ? 'Low (0–30):' : 'Rendah (0–30):'}</strong> {isEn ? 'Elevation > 15m ASL, river distance > 1,000m, rainfall < 60mm/24h. Low overflow hazard, gravity drainage.' : 'Elevasi > 15m dpl, jarak sungai > 1.000m, hujan < 60mm/24h. Potensi genangan luapan relatif rendah, drainase lancar.'}
                         </div>
                         <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', padding: '6px 8px' }}>
-                          <strong style={{ color: '#92400e' }}>{isEn ? 'Moderate (36–70):' : 'Sedang (36–70):'}</strong> {isEn ? 'Elevation 6–15m ASL, river distance 300–1,000m, rainfall 60–120mm. Brief 0.2–0.5m ponding.' : 'Elevasi 6–15m dpl, jarak sungai 300–1.000m, hujan 60–120mm. Genangan 0.2–0.5m singkat. Butuh biopori.'}
+                          <strong style={{ color: '#92400e' }}>{isEn ? 'Moderate (31–60):' : 'Sedang (31–60):'}</strong> {isEn ? 'Elevation 6–15m ASL, river distance 300–1,000m, rainfall 60–120mm. Brief 0.2–0.5m ponding.' : 'Elevasi 6–15m dpl, jarak sungai 300–1.000m, hujan 60–120mm. Potensi genangan lokal singkat. Disarankan biopori.'}
                         </div>
                         <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '6px 8px' }}>
-                          <strong style={{ color: '#991b1b' }}>{isEn ? 'Critical (71–100):' : 'Kritis (71–100):'}</strong> {isEn ? 'Elevation < 5m ASL, river distance < 200m, rainfall > 150mm. Mandatory +60cm slab elevation.' : 'Elevasi < 5m dpl (DAS cekungan), jarak sungai < 200m, hujan > 150mm. Wajib peil lantai +60cm & katup anti-balik.'}
+                          <strong style={{ color: '#991b1b' }}>{isEn ? 'Critical (61–100):' : 'Tinggi / Kritis (61–100):'}</strong> {isEn ? 'Elevation < 5m ASL (Depression), river distance < 200m, rainfall > 150mm. Mandatory +60cm slab elevation.' : 'Elevasi < 5m dpl (Indikasi cekungan/DAS), jarak sungai < 200m, hujan lebat. Disarankan peninggian peil lantai & katup anti-balik.'}
                         </div>
                       </div>
                     </div>
@@ -1721,13 +1721,13 @@ export const AdminManagementConsole: React.FC = () => {
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
                         <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '6px 8px' }}>
-                          <strong style={{ color: '#166534' }}>{isEn ? 'Safe (0–35):' : 'Aman (0–35):'}</strong> {isEn ? 'Fault distance > 30km, PGA < 0.15g. Standard reinforced framing.' : 'Jarak sesar > 30km, PGA < 0.15g. Standar struktur kolom praktis sederhana aman.'}
+                          <strong style={{ color: '#166534' }}>{isEn ? 'Low (0–30):' : 'Rendah (0–30):'}</strong> {isEn ? 'Fault distance > 30km, PGA < 0.10g. Standard reinforced framing.' : 'Jarak sesar > 30km, PGA < 0.10g. Standar struktur kolom praktis sederhana.'}
                         </div>
                         <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', padding: '6px 8px' }}>
-                          <strong style={{ color: '#92400e' }}>{isEn ? 'Moderate (36–70):' : 'Sedang (36–70):'}</strong> {isEn ? 'Fault distance 10–30km, PGA 0.15–0.35g. Mandatory column ties dia. 8mm pitch 100mm.' : 'Jarak sesar 10–30km, PGA 0.15–0.35g. Wajib sengkang kolom min. dia. 8mm jarak 100mm.'}
+                          <strong style={{ color: '#92400e' }}>{isEn ? 'Moderate (31–60):' : 'Sedang (31–60):'}</strong> {isEn ? 'Fault distance 10–30km, PGA 0.10–0.25g. Mandatory column ties dia. 8mm pitch 100mm.' : 'Jarak sesar 10–30km, PGA 0.10–0.25g. Wajib sengkang kolom min. dia. 8mm jarak 100mm.'}
                         </div>
                         <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '6px 8px' }}>
-                          <strong style={{ color: '#991b1b' }}>{isEn ? 'Critical (71–100):' : 'Kritis (71–100):'}</strong> {isEn ? 'Fault distance < 10km (Red Zone), PGA > 0.35g. Mandatory SRPMK SNI 1726 & CPT bore test.' : 'Jarak sesar < 10km (Zona Merah), PGA > 0.35g. Wajib struktur SRPMK SNI 1726:2019 & uji sondir CPT.'}
+                          <strong style={{ color: '#991b1b' }}>{isEn ? 'High / Critical (61–100):' : 'Tinggi / Kritis (61–100):'}</strong> {isEn ? 'Fault distance < 10km, PGA > 0.25g. Mandatory ductile frame SNI 1726 & CPT soil investigation.' : 'Jarak sesar < 10km, PGA > 0.25g. Wajib struktur daktil SNI 1726:2019 & uji sondir CPT.'}
                         </div>
                       </div>
                     </div>
@@ -1820,13 +1820,13 @@ export const AdminManagementConsole: React.FC = () => {
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
                         <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '6px 8px' }}>
-                          <strong style={{ color: '#166534' }}>{isEn ? 'Safe (0–35):' : 'Aman (0–35):'}</strong> {isEn ? 'Daily temp < 31°C, green cover > 40%. Naturally cool microclimate.' : 'Suhu harian < 31°C, tutupan hijau (KDH) > 40%. Iklim mikro sejuk alami.'}
+                          <strong style={{ color: '#166534' }}>{isEn ? 'Low (0–30):' : 'Rendah (0–30):'}</strong> {isEn ? 'Daily temp < 31°C, green cover > 40%. Naturally cool microclimate.' : 'Suhu harian < 31°C, tutupan hijau (KDH) > 40%. Iklim mikro sejuk alami.'}
                         </div>
                         <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', padding: '6px 8px' }}>
-                          <strong style={{ color: '#92400e' }}>{isEn ? 'Moderate (36–70):' : 'Sedang (36–70):'}</strong> {isEn ? 'Daily temp 31–34°C, green cover 20–40%. Adequate cross-ventilation.' : 'Suhu 31–34°C, tutupan hijau 20–40%. Ventilasi silang memadai.'}
+                          <strong style={{ color: '#92400e' }}>{isEn ? 'Moderate (31–60):' : 'Sedang (31–60):'}</strong> {isEn ? 'Daily temp 31–34°C, green cover 20–40%. Adequate cross-ventilation.' : 'Suhu 31–34°C, tutupan hijau 20–40%. Ventilasi silang memadai.'}
                         </div>
                         <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '6px 8px' }}>
-                          <strong style={{ color: '#991b1b' }}>{isEn ? 'Critical (71–100):' : 'Kritis (71–100):'}</strong> {isEn ? 'Daily temp > 35°C, asphalt cover > 85%. Roof insulation & shade mandatory.' : 'Suhu > 35°C, tutupan aspal > 85%. Kanopi panas tinggi. Wajib insulasi atap & KDH.'}
+                          <strong style={{ color: '#991b1b' }}>{isEn ? 'High / Critical (61–100):' : 'Tinggi / Kritis (61–100):'}</strong> {isEn ? 'Daily temp > 34°C, asphalt cover > 80%. Roof insulation & shade recommended.' : 'Suhu > 34°C, tutupan aspal tinggi. Disarankan insulasi atap & penambahan vegetasi.'}
                         </div>
                       </div>
                     </div>

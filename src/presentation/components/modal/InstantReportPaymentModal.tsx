@@ -1,26 +1,22 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAssessment } from '../../context/AssessmentContext';
 import {
   X,
   ShieldCheck,
-  FileCheck2,
   CheckCircle2,
-  Lock,
-  ArrowRight,
-  Sparkles,
-  ExternalLink,
-  RotateCcw,
-  Check,
-  AlertCircle,
-  CreditCard,
   Building,
-  QrCode
+  MessageSquare,
+  Send,
+  MapPin,
+  Sparkles,
+  PhoneCall,
+  FileCheck2,
+  Clock
 } from 'lucide-react';
-
-import { normalizeUserTier, UserTier, isPaidUser } from '../../../domain/types/UserTier';
 
 interface InstantReportPaymentModalProps {
   isOpen: boolean;
@@ -28,18 +24,7 @@ interface InstantReportPaymentModalProps {
   onPaymentSuccess: () => void;
 }
 
-declare global {
-  interface Window {
-    snap?: {
-      pay: (token: string, callbacks: {
-        onSuccess?: (result: any) => void;
-        onPending?: (result: any) => void;
-        onError?: (result: any) => void;
-        onClose?: () => void;
-      }) => void;
-    };
-  }
-}
+const ADMIN_WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_ADMIN_WHATSAPP || '6281199887766';
 
 export const InstantReportPaymentModal: React.FC<InstantReportPaymentModalProps> = ({
   isOpen,
@@ -47,785 +32,408 @@ export const InstantReportPaymentModal: React.FC<InstantReportPaymentModalProps>
   onPaymentSuccess
 }) => {
   const { language } = useLanguage();
-  const { currentUser, accountEmail, setCurrentUser, assessment, selectedPaymentPlan, activeAccountRole, setIsReportModalOpen } = useAssessment();
-
+  const { currentUser, assessment, selectedPaymentPlan } = useAssessment();
   const isEn = language === 'en';
 
-  const userTier = normalizeUserTier(currentUser?.tierLevel);
-  const isPaid = isPaidUser(currentUser?.tierLevel, activeAccountRole);
-  const isInstantOwned = userTier === UserTier.INSTANT_PRO || userTier === UserTier.BUNDLING_PRO || userTier === UserTier.ENTERPRISE || userTier === UserTier.ADMIN;
-  const isBundlingOwned = userTier === UserTier.BUNDLING_PRO || userTier === UserTier.ENTERPRISE || userTier === UserTier.ADMIN;
-
-  // Modal view states: 'plan_select' -> 'redirect_ready' -> 'payment_success'
-  const [modalState, setModalState] = useState<'plan_select' | 'redirect_ready' | 'payment_success'>('plan_select');
-  const [selectedSubPlan, setSelectedSubPlan] = useState<'instant' | 'bundling'>('instant');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState<boolean>(false);
 
   useEffect(() => {
-    if (isInstantOwned && !isBundlingOwned) {
-      setSelectedSubPlan('bundling');
-    } else if (selectedPaymentPlan) {
-      setSelectedSubPlan(selectedPaymentPlan);
-    }
-  }, [selectedPaymentPlan, isOpen, isInstantOwned, isBundlingOwned]);
-  const [snapData, setSnapData] = useState<{
-    orderId: string;
-    token: string;
-    redirectUrl: string;
-    grossAmount: number;
-  } | null>(null);
-
-  // Load official Midtrans Snap JS dynamically
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || '';
-    const isProduction = process.env.MIDTRANS_IS_PRODUCTION === 'true';
-    const snapScriptUrl = process.env.NEXT_PUBLIC_MIDTRANS_SNAP_URL || (isProduction
-      ? 'https://app.midtrans.com/snap/snap.js'
-      : 'https://app.sandbox.midtrans.com/snap/snap.js');
-
-    let script = document.getElementById('midtrans-snap-script') as HTMLScriptElement;
-    if (!script) {
-      script = document.createElement('script');
-      script.id = 'midtrans-snap-script';
-      script.src = snapScriptUrl;
-      script.setAttribute('data-client-key', clientKey);
-      script.async = true;
-      document.body.appendChild(script);
-    }
+    setIsMounted(true);
   }, []);
+
+  const [selectedPlan, setSelectedPlan] = useState<'instant' | 'bundling' | 'consultation'>(
+    selectedPaymentPlan === 'bundling' ? 'bundling' : 'instant'
+  );
+  const [clientName, setClientName] = useState(currentUser?.fullName || '');
+  const [clientContact, setClientContact] = useState(currentUser?.phoneNumber || currentUser?.email || '');
+  const [clientNotes, setClientNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const currentPrice = selectedSubPlan === 'bundling' ? 85000 : 35000;
-  const currentPlanName = selectedSubPlan === 'bundling'
-    ? (isEn ? 'GoTangguh Bundling 1 (3 Properties Side-by-Side)' : 'GoTangguh Bundling 1 (3 Properti Komparasi)')
-    : (isEn ? 'GoTangguh Instant (1 Property PDF)' : 'GoTangguh Instant (1 Properti PDF)');
-  const currentTierLevel = selectedSubPlan === 'bundling'
-    ? 'Tier 2 Pro (Bundling 3 Properti)'
-    : 'Tier 2 Pro (Instant 1 Properti)';
+  const planTitles = {
+    instant: isEn ? 'Instant Report (1 Property)' : 'Laporan Instan (1 Properti)',
+    bundling: isEn ? 'Bundling (Compare 3 Properties)' : 'Bundling (Bandingkan 3 Properti)',
+    consultation: isEn ? 'Expert Consultation & Field Verification' : 'Konsultasi Ahli & Verifikasi Lapangan'
+  };
 
-  // 1. Request real Midtrans Snap Token & Open Snap Popup
-  const handleProceedToMidtrans = async () => {
-    setIsProcessing(true);
+  const planDescriptions = {
+    instant: isEn
+      ? 'Official comprehensive 10-14 page risk PDF report for 1 property site.'
+      : 'Laporan resmi format PDF (±10–14 halaman) mencakup profil 3 hazard, peta evakuasi, dan mitigasi risiko.',
+    bundling: isEn
+      ? 'Side-by-side comparison dossier for 3 candidate properties before purchase.'
+      : 'Laporan komparasi risiko side-by-side 3 properti untuk memilih alternatif lokasi teraman.',
+    consultation: isEn
+      ? 'Direct review by Disaster Risk Specialists and on-site survey by Architects and Structural Engineers.'
+      : 'Review mendalam oleh tim ahli kebumian serta verifikasi lapangan langsung oleh Arsitek dan Ahli Struktur.'
+  };
+
+  const propertyAddress = assessment?.location?.formattedAddress || 'Lokasi Titik Marker Terpilih';
+  const coordsStr = assessment?.location?.latitude && assessment?.location?.longitude
+    ? `${assessment.location.latitude.toFixed(5)}, ${assessment.location.longitude.toFixed(5)}`
+    : 'Koordinat Tapak';
+
+  const handleSendInquiry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clientName.trim() || !clientContact.trim()) {
+      setErrorMessage(isEn ? 'Please fill in your name and WhatsApp/contact.' : 'Nama pemesan dan nomor WhatsApp wajib diisi.');
+      return;
+    }
+
+    setIsSubmitting(true);
     setErrorMessage(null);
 
-    try {
-      const email = currentUser?.email || accountEmail || 'buyer.demo@gotangguh.id';
-      const fullName = currentUser?.fullName || (isEn ? 'GoTangguh Customer' : 'Pelanggan GoTangguh');
-      const phone = currentUser?.phoneNumber || '+628123456789';
+    const targetPackageTitle = planTitles[selectedPlan];
+    const voucherCode = `REQ-${Date.now().toString(36).toUpperCase()}`;
 
-      const res = await fetch('/api/payment/midtrans', {
+    try {
+      // 1. Log order inquiry to backend database
+      await fetch('/api/booking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email,
-          fullName,
-          phone,
-          price: currentPrice,
-          planName: currentPlanName,
-          tierLevel: currentTierLevel
+          voucherCode,
+          clientName: clientName.trim(),
+          clientEmail: clientContact.includes('@') ? clientContact.trim() : (currentUser?.email || 'customer@gotangguh.id'),
+          clientPhone: clientContact.trim(),
+          targetLocation: `${propertyAddress} (${coordsStr})`,
+          packageType: targetPackageTitle,
+          notes: clientNotes.trim()
         })
+      }).catch(() => {
+        // Continue even if local DB is offline
       });
 
-      const data = await res.json();
+      // 2. Generate pre-filled WhatsApp message
+      const waMessage =
+        `Halo Tim Admin GoTangguh / BGP Consultant,\n\n` +
+        `Saya ingin memesan layanan asesmen properti:\n` +
+        `• Paket: ${targetPackageTitle}\n` +
+        `• Alamat Properti: ${propertyAddress}\n` +
+        `• Koordinat: ${coordsStr}\n` +
+        `• Nama Pemesan: ${clientName.trim()}\n` +
+        `• Kontak / WA: ${clientContact.trim()}\n` +
+        (clientNotes.trim() ? `• Catatan: ${clientNotes.trim()}\n` : '') +
+        `• Kode Referensi: ${voucherCode}\n\n` +
+        `Mohon informasi aktivasi dan penerbitan dokumen resmi. Terima kasih.`;
 
-      if (!res.ok || !data.success || !data.token) {
-        throw new Error(data.error || (isEn ? 'Failed to connect to Midtrans gateway.' : 'Gagal menghubungi gateway Midtrans.'));
-      }
+      const waUrl = `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${encodeURIComponent(waMessage)}`;
 
-      setSnapData({
-        orderId: data.orderId,
-        token: data.token,
-        redirectUrl: data.redirect_url,
-        grossAmount: data.grossAmount || currentPrice
-      });
+      // 3. Open WhatsApp in new tab
+      window.open(waUrl, '_blank', 'noopener,noreferrer');
 
-      // If Midtrans Snap JS is loaded, trigger official Snap Popup
-      if (window.snap && typeof window.snap.pay === 'function') {
-        window.snap.pay(data.token, {
-          onSuccess: async (result: any) => {
-            console.log('[Midtrans Snap Success callback]:', result);
-            await handleVerifySettlement(result.order_id || data.orderId, result.payment_type || 'midtrans_snap');
-          },
-          onPending: (result: any) => {
-            console.log('[Midtrans Snap Pending callback]:', result);
-            setIsProcessing(false);
-            setModalState('redirect_ready');
-            setErrorMessage(
-              isEn
-                ? 'Payment is pending. Please complete your transaction in your m-banking/e-wallet, then click "Check Payment Status".'
-                : 'Pembayaran sedang menunggu (Pending). Silakan selesaikan pembayaran di m-banking/e-wallet Anda, lalu klik tombol "Cek Status Pembayaran".'
-            );
-          },
-          onError: (err: any) => {
-            console.error('[Midtrans Snap Error]:', err);
-            setIsProcessing(false);
-            setErrorMessage(isEn ? 'Payment failed or was canceled on Midtrans.' : 'Pembayaran dibatalkan atau gagal pada gateway Midtrans.');
-          },
-          onClose: () => {
-            setIsProcessing(false);
-            setModalState('redirect_ready');
-          }
-        });
-      } else {
-        // Fallback: If snap.js popup was blocked by browser, provide direct Midtrans redirect link
-        setModalState('redirect_ready');
-        setIsProcessing(false);
-      }
+      setIsSuccess(true);
+      onPaymentSuccess();
     } catch (err: any) {
-      console.error('[Midtrans Initiate Error]:', err);
-      setIsProcessing(false);
-      setErrorMessage(err.message || (isEn ? 'An error occurred while initiating payment.' : 'Terjadi kendala saat menghubungkan ke Midtrans.'));
+      setErrorMessage(err.message || 'Gagal mengirim permohonan. Silakan coba lagi.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // 2. Query Real Midtrans Status API and Only Upgrade if Officially SETTLED
-  const handleVerifySettlement = async (orderIdToVerify: string, paymentType?: string) => {
-    setIsProcessing(true);
-    setErrorMessage(null);
+  if (!isMounted || !isOpen || typeof document === 'undefined') return null;
 
-    try {
-      const res = await fetch(`/api/payment/status?order_id=${encodeURIComponent(orderIdToVerify)}`);
-      const data = await res.json();
+  return createPortal(
+    <div className="gt-modal-overlay" style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(15, 23, 42, 0.75)',
+      backdropFilter: 'blur(6px)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 999999,
+      padding: '16px'
+    }}>
+      <div className="gt-modal-card" style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '16px',
+        maxWidth: '560px',
+        width: '100%',
+        maxHeight: '90vh',
+        overflowY: 'auto',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        border: '1px solid #e2e8f0'
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: '20px 24px',
+          borderBottom: '1px solid #f1f5f9',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          backgroundColor: '#0f172a',
+          color: '#ffffff',
+          borderRadius: '16px 16px 0 0'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              backgroundColor: '#1e293b',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#38bdf8'
+            }}>
+              <ShieldCheck size={20} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#ffffff' }}>
+                {isEn ? 'Order Report & Direct Consultation' : 'Pemesanan Laporan & Konsultasi Ahli'}
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8' }}>
+                {isEn ? 'Official service backed by BGP Consultant & RDI' : 'Layanan resmi didukung BGP Consultant & RDI'}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#94a3b8',
+              cursor: 'pointer',
+              padding: '4px',
+              borderRadius: '6px'
+            }}
+          >
+            <X size={20} />
+          </button>
+        </div>
 
-      if (data.success && data.isPaid === true) {
-        if (data.user) {
-          setCurrentUser(data.user);
-        } else if (currentUser) {
-          setCurrentUser({
-            ...currentUser,
-            tierLevel: currentTierLevel
-          });
-        }
-
-        setModalState('payment_success');
-        setTimeout(() => {
-          setIsProcessing(false);
-          onPaymentSuccess();
-        }, 1600);
-      } else {
-        // Payment is NOT settled yet on Midtrans
-        setIsProcessing(false);
-        setErrorMessage(
-          data.message ||
-          (isEn
-            ? 'Payment has not been completed on Midtrans server yet (Status: PENDING/UNPAID). Please complete your transfer, then re-check.'
-            : 'Pembayaran belum terdeteksi LUNAS di server Midtrans (Status: PENDING/BELUM BAYAR). Silakan selesaikan transfer/pembayaran Anda terlebih dahulu, lalu klik cek status kembali.')
-        );
-      }
-    } catch (err: any) {
-      console.error('[Settlement Check Error]:', err);
-      setIsProcessing(false);
-      setErrorMessage(isEn ? 'Failed to verify payment status with Midtrans.' : 'Gagal memverifikasi status pembayaran dengan server Midtrans.');
-    }
-  };
-
-  return (
-    <div className="report-modal-overlay" onClick={onClose}>
-      <div
-        className="gt-login-modal-card"
-        style={{ maxWidth: '520px', padding: '24px' }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Close Button */}
-        <button
-          type="button"
-          className="gt-login-modal-close"
-          onClick={onClose}
-          aria-label={isEn ? 'Close' : 'Tutup'}
-        >
-          <X size={18} />
-        </button>
-
-        {/* =========================================================================
-           VIEW 3: PAYMENT SUCCESS CONFIRMATION
-           ========================================================================= */}
-        {modalState === 'payment_success' ? (
-          <div style={{ textAlign: 'center', padding: '24px 10px' }}>
-            <div
-              style={{
+        {/* Content Body */}
+        <div style={{ padding: '24px' }}>
+          {isSuccess ? (
+            <div style={{ textAlign: 'center', padding: '24px 0' }}>
+              <div style={{
                 width: '64px',
                 height: '64px',
                 borderRadius: '50%',
-                background: '#dcfce7',
+                backgroundColor: '#dcfce7',
                 color: '#16a34a',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                margin: '0 auto 16px auto',
-                boxShadow: '0 10px 25px -5px rgba(22, 163, 74, 0.3)'
-              }}
-            >
-              <Check size={36} />
-            </div>
-            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              {isEn ? 'MIDTRANS REAL GATEWAY SETTLEMENT VERIFIED' : 'TRANSAKSI MIDTRANS TERVERIFIKASI'}
-            </span>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: '4px 0 8px 0' }}>
-              {isEn ? 'Payment Successful!' : 'Pembayaran Berhasil!'}
-            </h3>
-            <p style={{ fontSize: '0.84rem', color: '#64748b', marginBottom: '16px', lineHeight: 1.5 }}>
-              {isEn
-                ? 'Your payment has been successfully verified. Opening your comprehensive due diligence report...'
-                : 'Pembayaran Anda telah berhasil diverifikasi. Membuka dokumen dossier resmi...'}
-            </p>
-
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px', textAlign: 'left', fontSize: '0.76rem', color: '#475569', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <span>Order ID:</span>
-                <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{snapData?.orderId || 'MT-MIDTRANS-2026'}</strong>
+                margin: '0 auto 16px'
+              }}>
+                <CheckCircle2 size={36} />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <span>{isEn ? 'Amount Paid:' : 'Total Pembayaran:'}</span>
-                <strong style={{ color: '#c2410c' }}>Rp {(snapData?.grossAmount || currentPrice).toLocaleString('id-ID')}</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Status Gateway:</span>
-                <strong style={{ color: '#16a34a', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <CheckCircle2 size={13} /> SETTLEMENT (LUNAS)
-                </strong>
-              </div>
-            </div>
-          </div>
-        ) : modalState === 'redirect_ready' && snapData ? (
-          /* =========================================================================
-             VIEW 2: REAL MIDTRANS SNAP REDIRECT / REOPEN POPUP
-             ========================================================================= */
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#0052cc', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.9rem' }}>
-                M
-              </div>
-              <div>
-                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#0052cc', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  MIDTRANS PAYMENT GATEWAY
-                </span>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                  {isEn ? 'Continue on Midtrans Portal' : 'Lanjutkan di Portal Midtrans'}
-                </h3>
-              </div>
-            </div>
-
-            <p style={{ fontSize: '0.82rem', color: '#64748b', lineHeight: 1.5, marginBottom: '14px' }}>
-              {isEn
-                ? 'If the Midtrans Snap modal was closed or blocked by your browser, you can reopen it or open the official hosted Midtrans page in a new tab.'
-                : 'Jika jendela pop-up Midtrans tertutup atau diblokir browser, Anda dapat membukanya kembali atau menuju portal pembayaran resmi Midtrans.'}
-            </p>
-
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px', fontSize: '0.78rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <span style={{ color: '#64748b' }}>Order ID:</span>
-                <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{snapData.orderId}</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>Total Tagihan:</span>
-                <strong style={{ color: '#c2410c', fontSize: '0.95rem' }}>Rp {(snapData.grossAmount || currentPrice).toLocaleString('id-ID')}</strong>
-              </div>
-            </div>
-
-            {/* Real-Time Status / Error Banner */}
-            {errorMessage && (
-              <div
+              <h4 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
+                {isEn ? 'Inquiry Sent Successfully!' : 'Permohonan Berhasil Terkirim!'}
+              </h4>
+              <p style={{ fontSize: '0.92rem', color: '#64748b', lineHeight: 1.6, marginBottom: '24px' }}>
+                {isEn
+                  ? 'WhatsApp chat with our admin team has been initiated. Our specialists will assist you with official dossier issuance.'
+                  : 'Pesan WhatsApp telah terkirim ke Admin GoTangguh. Tim ahli kami akan segera memverifikasi detail lokasi dan menerbitkan dokumen laporan resmi Anda.'}
+              </p>
+              <button
+                type="button"
+                onClick={onClose}
                 style={{
-                  background: '#fffbeb',
-                  border: '1px solid #fde68a',
-                  borderRadius: '8px',
-                  padding: '10px 12px',
-                  marginBottom: '14px',
-                  fontSize: '0.76rem',
-                  color: '#92400e',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '8px',
-                  lineHeight: 1.4
-                }}
-              >
-                <AlertCircle size={15} style={{ flexShrink: 0, marginTop: '2px', color: '#d97706' }} />
-                <span>{errorMessage}</span>
-              </div>
-            )}
-
-            {/* Action 1: Reopen Snap Modal */}
-            <button
-              type="button"
-              onClick={() => {
-                if (window.snap && snapData?.token) {
-                  window.snap.pay(snapData.token, {
-                    onSuccess: (result: any) => handleVerifySettlement(result.order_id || snapData.orderId),
-                    onPending: (result: any) => {
-                      setIsProcessing(false);
-                      setErrorMessage(
-                        isEn
-                          ? 'Payment is pending. Please complete your payment, then click "Check Payment Status".'
-                          : 'Pembayaran masih pending. Silakan selesaikan pembayaran, lalu klik "Cek Status Pembayaran".'
-                      );
-                    },
-                    onError: () => {
-                      setIsProcessing(false);
-                      setErrorMessage(isEn ? 'Payment failed or was canceled on Midtrans.' : 'Pembayaran gagal atau dibatalkan pada Midtrans.');
-                    },
-                    onClose: () => setIsProcessing(false)
-                  });
-                }
-              }}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                borderRadius: '8px',
-                border: 'none',
-                background: 'linear-gradient(135deg, #c2410c, #ea580c)',
-                color: '#ffffff',
-                fontSize: '0.84rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                marginBottom: '10px',
-                boxShadow: '0 4px 14px rgba(194, 65, 12, 0.3)'
-              }}
-            >
-              <CreditCard size={15} />
-              <span>{isEn ? 'Reopen Midtrans Snap Dialog' : 'Buka Kembali Dialog Midtrans Snap'}</span>
-            </button>
-
-            {/* Action 2: Open Direct Midtrans Hosted URL */}
-            <a
-              href={snapData.redirectUrl}
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                width: '100%',
-                padding: '11px 16px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                background: '#ffffff',
-                color: '#0f172a',
-                fontSize: '0.82rem',
-                fontWeight: 700,
-                textDecoration: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                marginBottom: '10px',
-                boxSizing: 'border-box'
-              }}
-            >
-              <ExternalLink size={14} />
-              <span>{isEn ? 'Open Midtrans Hosted Page (New Tab)' : 'Buka Halaman Resmi Midtrans (Tab Baru)'}</span>
-            </a>
-
-            {/* Action 3: Check / Confirm Real-Time Status */}
-            <button
-              type="button"
-              onClick={() => handleVerifySettlement(snapData.orderId)}
-              disabled={isProcessing}
-              style={{
-                width: '100%',
-                padding: '10px',
-                borderRadius: '8px',
-                border: '1px solid #86efac',
-                background: '#f0fdf4',
-                color: '#166534',
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px'
-              }}
-            >
-              <CheckCircle2 size={14} style={{ color: '#16a34a' }} />
-              <span>{isProcessing ? (isEn ? 'Verifying with Midtrans Server...' : 'Memverifikasi ke Server Midtrans...') : (isEn ? 'Check Payment Status (Real-Time)' : 'Cek Status Pembayaran (Real-Time)')}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setModalState('plan_select')}
-              style={{ width: '100%', padding: '8px', marginTop: '10px', background: 'none', border: 'none', color: '#64748b', fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
-            >
-              <RotateCcw size={12} />
-              <span>{isEn ? 'Back to plan details' : 'Kembali ke ringkasan paket'}</span>
-            </button>
-          </div>
-        ) : (
-          /* =========================================================================
-             VIEW 1: PLAN BENEFIT OVERVIEW & PROCEED WITH REAL MIDTRANS
-             ========================================================================= */
-          <div>
-            {/* Header Badge */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-              <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: 'linear-gradient(135deg, #c2410c, #ea580c)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <FileCheck2 size={18} />
-              </div>
-              <div>
-                <span style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#c2410c' }}>
-                  {isEn ? 'REAL MIDTRANS PAYMENT GATEWAY' : 'UPGRADE LAPORAN RESMI MIDTRANS'}
-                </span>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                  {isEn ? 'GoTangguh Multi-Hazard Dossier' : 'Paket Laporan Komprehensif Multi-Hazard'}
-                </h3>
-              </div>
-            </div>
-
-            <p style={{ fontSize: '0.82rem', color: '#64748b', lineHeight: 1.5, marginBottom: '14px' }}>
-              {isEn
-                ? 'Upgrade to Tier 2 Pro via official Midtrans payment gateway to access the full multi-hazard due diligence report and structural mitigation prescriptions.'
-                : 'Buka kunci dokumen lengkap berstandar perbankan dan preskripsi mitigasi struktural SNI 1726:2019 melalui gateway pembayaran resmi Midtrans.'}
-            </p>
-
-            {/* Target Location Banner */}
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px', marginBottom: '14px', fontSize: '0.78rem' }}>
-              <strong style={{ color: '#0f172a', display: 'block', marginBottom: '2px' }}>
-                {isEn ? 'Target Site Location:' : 'Lokasi Tapak Properti Terpilih:'}
-              </strong>
-              <span style={{ color: '#475569' }}>
-                {assessment?.location?.formattedAddress || (isEn ? 'Selected Plot Location' : 'Tapak Terpilih')}
-              </span>
-            </div>
-
-            {/* Sub-Package Selection Pills */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
-              {/* Option 1: Instant (1 Properti) */}
-              <div
-                onClick={() => setSelectedSubPlan('instant')}
-                style={{
-                  border: `2px solid ${
-                    selectedSubPlan === 'instant'
-                      ? isInstantOwned ? '#10b981' : '#c2410c'
-                      : isInstantOwned ? '#bbf7d0' : '#e2e8f0'
-                  }`,
-                  background: selectedSubPlan === 'instant'
-                    ? isInstantOwned ? '#f0fdf4' : '#fff7ed'
-                    : isInstantOwned ? '#fafffd' : '#ffffff',
+                  padding: '12px 28px',
+                  backgroundColor: '#0f172a',
+                  color: '#ffffff',
                   borderRadius: '10px',
-                  padding: '10px 12px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  position: 'relative'
+                  border: 'none',
+                  fontWeight: 600,
+                  fontSize: '0.95rem',
+                  cursor: 'pointer'
                 }}
               >
-                {isInstantOwned && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '-9px',
-                      right: '10px',
-                      background: '#10b981',
-                      color: '#ffffff',
-                      fontSize: '0.62rem',
-                      fontWeight: 800,
-                      padding: '2px 7px',
-                      borderRadius: '9999px',
-                      boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '3px'
-                    }}
-                  >
-                    <Check size={10} />
-                    <span>{isEn ? 'Already Owned' : 'Sudah Dibeli'}</span>
-                  </div>
-                )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.74rem', fontWeight: 800, color: selectedSubPlan === 'instant' ? (isInstantOwned ? '#047857' : '#c2410c') : '#334155' }}>
-                    {isEn ? 'Instant (1 Property)' : 'Instant (1 Properti)'}
-                  </span>
-                  {selectedSubPlan === 'instant' && (
-                    <CheckCircle2 size={14} style={{ color: isInstantOwned ? '#10b981' : '#c2410c' }} />
-                  )}
-                </div>
-                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: '4px 0 2px' }}>
-                  Rp 35.000
-                </div>
-                <span style={{ fontSize: '0.68rem', color: isInstantOwned ? '#059669' : '#64748b', fontWeight: isInstantOwned ? 700 : 400 }}>
-                  {isInstantOwned
-                    ? (isEn ? '✓ Active Plan' : '✓ Paket Aktif Anda')
-                    : (isEn ? '1 Location · ±10 Pages' : '1 Lokasi · ±10 Halaman')}
-                </span>
-              </div>
-
-              {/* Option 2: Bundling 1 (3 Properti) */}
-              <div
-                onClick={() => setSelectedSubPlan('bundling')}
-                style={{
-                  border: `2px solid ${
-                    selectedSubPlan === 'bundling'
-                      ? isBundlingOwned ? '#10b981' : '#c2410c'
-                      : isBundlingOwned ? '#bbf7d0' : '#e2e8f0'
-                  }`,
-                  background: selectedSubPlan === 'bundling'
-                    ? isBundlingOwned ? '#f0fdf4' : '#fff7ed'
-                    : isBundlingOwned ? '#fafffd' : '#ffffff',
-                  borderRadius: '10px',
-                  padding: '10px 12px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  position: 'relative'
-                }}
-              >
-                {isBundlingOwned ? (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '-9px',
-                      right: '10px',
-                      background: '#10b981',
-                      color: '#ffffff',
-                      fontSize: '0.62rem',
-                      fontWeight: 800,
-                      padding: '2px 7px',
-                      borderRadius: '9999px',
-                      boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '3px'
-                    }}
-                  >
-                    <Check size={10} />
-                    <span>{isEn ? 'Already Owned' : 'Sudah Dibeli'}</span>
-                  </div>
-                ) : isInstantOwned ? (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '-9px',
-                      right: '10px',
-                      background: '#ea580c',
-                      color: '#ffffff',
-                      fontSize: '0.62rem',
-                      fontWeight: 800,
-                      padding: '2px 7px',
-                      borderRadius: '9999px',
-                      boxShadow: '0 2px 6px rgba(234, 88, 12, 0.3)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '3px'
-                    }}
-                  >
-                    <Sparkles size={10} />
-                    <span>{isEn ? 'Upgrade Plan' : 'Opsi Upgrade'}</span>
-                  </div>
-                ) : null}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.74rem', fontWeight: 800, color: selectedSubPlan === 'bundling' ? (isBundlingOwned ? '#047857' : '#c2410c') : '#334155' }}>
-                    {isEn ? 'Bundling 1 (3 Properties)' : 'Bundling 1 (3 Properti)'}
-                  </span>
-                  {selectedSubPlan === 'bundling' && (
-                    <CheckCircle2 size={14} style={{ color: isBundlingOwned ? '#10b981' : '#c2410c' }} />
-                  )}
-                </div>
-                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: '4px 0 2px' }}>
-                  Rp 85.000
-                </div>
-                <span style={{ fontSize: '0.68rem', color: isBundlingOwned ? '#059669' : '#64748b', fontWeight: isBundlingOwned ? 700 : 400 }}>
-                  {isBundlingOwned
-                    ? (isEn ? '✓ Active Plan' : '✓ Paket Aktif Anda')
-                    : (isEn ? '3 Locations · Side-by-Side' : '1–3 Lokasi · Komparasi')}
-                </span>
-              </div>
+                {isEn ? 'Close Window' : 'Selesai & Tutup'}
+              </button>
             </div>
-
-            {/* Price & Benefits Box */}
-            {selectedSubPlan === 'instant' && isInstantOwned ? (
-              <div style={{ background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', border: '1.5px solid #86efac', borderRadius: '10px', padding: '12px 14px', marginBottom: '14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <div>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#166534', textTransform: 'uppercase' }}>
-                      {isEn ? 'Selected Package' : 'Paket Terpilih'}
-                    </span>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#15803d' }}>
-                      {isEn ? 'Instant 1 Property (Rp 35,000)' : 'Instant 1 Properti (Rp 35.000)'}
+          ) : (
+            <form onSubmit={handleSendInquiry}>
+              {/* Package Selector */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '8px' }}>
+                  {isEn ? 'Select Service Package' : 'Pilihan Paket Layanan'}
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
+                  {(['instant', 'bundling', 'consultation'] as const).map((pkg) => (
+                    <div
+                      key={pkg}
+                      onClick={() => setSelectedPlan(pkg)}
+                      style={{
+                        padding: '14px 16px',
+                        borderRadius: '12px',
+                        border: selectedPlan === pkg ? '2px solid #0284c7' : '1px solid #e2e8f0',
+                        backgroundColor: selectedPlan === pkg ? '#f0f9ff' : '#ffffff',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.95rem', color: selectedPlan === pkg ? '#0369a1' : '#0f172a' }}>
+                            {planTitles[pkg]}
+                          </span>
+                        </div>
+                        {selectedPlan === pkg && <CheckCircle2 size={18} color="#0284c7" />}
+                      </div>
+                      <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b', lineHeight: 1.4 }}>
+                        {planDescriptions[pkg]}
+                      </p>
                     </div>
-                  </div>
-                  <span style={{ background: '#16a34a', color: '#ffffff', padding: '4px 9px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <CheckCircle2 size={12} />
-                    {isEn ? 'Already Owned' : 'Sudah Anda Miliki'}
-                  </span>
+                  ))}
                 </div>
-                <p style={{ fontSize: '0.76rem', color: '#14532d', lineHeight: 1.45, margin: 0 }}>
-                  {isEn
-                    ? 'You already have active Pro access for this instant report. You can open the PDF dossier directly or select Bundling 1 (Rp 85,000) to unlock 3-property comparative analysis.'
-                    : 'Akun Anda sudah memiliki akses Pro aktif untuk paket Instant ini. Anda tidak perlu membayar lagi, silakan langsung buka dokumen PDF atau pilih paket Bundling 1 (Rp 85.000) untuk upgrade ke fitur komparasi 3 properti.'}
-                </p>
               </div>
-            ) : selectedSubPlan === 'bundling' && isBundlingOwned ? (
-              <div style={{ background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', border: '1.5px solid #86efac', borderRadius: '10px', padding: '12px 14px', marginBottom: '14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <div>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#166534', textTransform: 'uppercase' }}>
-                      {isEn ? 'Selected Package' : 'Paket Terpilih'}
-                    </span>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#15803d' }}>
-                      {isEn ? 'Bundling 1 - 3 Properties (Rp 85,000)' : 'Bundling 1 - 3 Properti (Rp 85.000)'}
-                    </div>
-                  </div>
-                  <span style={{ background: '#16a34a', color: '#ffffff', padding: '4px 9px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <CheckCircle2 size={12} />
-                    {isEn ? 'Already Owned' : 'Sudah Anda Miliki'}
-                  </span>
-                </div>
-                <p style={{ fontSize: '0.76rem', color: '#14532d', lineHeight: 1.45, margin: 0 }}>
-                  {isEn
-                    ? 'You have full Bundling 3-property access active on your account.'
-                    : 'Akun Anda sudah memiliki akses penuh paket Bundling 1 (3 Properti Komparasi).'}
-                </p>
-              </div>
-            ) : (
-              <div style={{ background: 'linear-gradient(135deg, #fff7ed, #ffedd5)', border: '1px solid #fed7aa', borderRadius: '10px', padding: '12px 14px', marginBottom: '14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <div>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9a3412', textTransform: 'uppercase' }}>
-                      {isInstantOwned && selectedSubPlan === 'bundling' ? (isEn ? 'Upgrade Package' : 'Upgrade Paket') : (isEn ? 'Selected Package' : 'Paket Terpilih')}
-                    </span>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#c2410c' }}>
-                      {selectedSubPlan === 'bundling' ? (isEn ? 'Rp 85,000 (Bundling 3 Properties)' : 'Rp 85.000 (Bundling 3 Properti)') : (isEn ? 'Rp 35,000 (Instant 1 Property)' : 'Rp 35.000 (Instant 1 Properti)')}
-                    </div>
-                  </div>
-                  <span style={{ background: '#c2410c', color: '#ffffff', padding: '3px 8px', borderRadius: '6px', fontSize: '0.68rem', fontWeight: 800 }}>
-                    {selectedSubPlan === 'bundling' ? (isEn ? '3 Reports Quota' : 'Kuota 3 Laporan PDF') : (isEn ? '1 Report Quota' : 'Kuota 1 Laporan PDF')}
-                  </span>
-                </div>
 
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '5px', fontSize: '0.74rem', color: '#431407' }}>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={13} style={{ color: '#ea580c', flexShrink: 0 }} />
-                    <span>{isEn ? 'Baseline 3-Hazard Profile (Flood, Heat, Quake)' : 'Profil Risiko Dasar 3 Hazard (Banjir, Cuaca Panas, Gempa)'}</span>
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={13} style={{ color: '#ea580c', flexShrink: 0 }} />
-                    <span>{selectedSubPlan === 'bundling' ? (isEn ? 'Side-by-side comparative risk evaluation for buyers' : 'Laporan komparasi side-by-side untuk evaluasi 3 kandidat rumah') : (isEn ? 'Official automated PDF report (±10 pages) + General Recommendations' : 'Laporan PDF otomatis (±10 halaman) + Rekomendasi Umum')}</span>
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={13} style={{ color: '#ea580c', flexShrink: 0 }} />
-                    <span>{isEn ? 'Verified Multi-Agency Data Feeds (BNPB, USGS, Open-Meteo, OSM)' : 'Data Terverifikasi Resmi (BNPB inaRISK, USGS, Open-Meteo, OSM)'}</span>
-                  </li>
-                </ul>
+              {/* Property Target Summary */}
+              <div style={{
+                padding: '14px 16px',
+                borderRadius: '12px',
+                backgroundColor: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                marginBottom: '20px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                  <MapPin size={18} color="#0284c7" style={{ marginTop: '2px', flexShrink: 0 }} />
+                  <div>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      {isEn ? 'Target Site Location' : 'Lokasi Tapak Terpilih'}
+                    </span>
+                    <p style={{ margin: '2px 0 0', fontSize: '0.88rem', fontWeight: 600, color: '#0f172a' }}>
+                      {propertyAddress}
+                    </p>
+                    <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                      Koordinat: {coordsStr}
+                    </span>
+                  </div>
+                </div>
               </div>
-            )}
 
-            {/* Midtrans Channel Support Badge */}
-            <div style={{ marginBottom: '14px' }}>
-              <div
-                style={{
-                  padding: '10px 12px',
+              {/* Client Info Inputs */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                    {isEn ? 'Full Name' : 'Nama Lengkap'} *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={clientName}
+                    onChange={(e) => setClientName(e.target.value)}
+                    placeholder="Contoh: Budi Santoso"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.9rem',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                    {isEn ? 'WhatsApp Number' : 'Nomor WhatsApp / Kontak'} *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={clientContact}
+                    onChange={(e) => setClientContact(e.target.value)}
+                    placeholder="0812xxxxxxx"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.9rem',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Notes Input */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                  {isEn ? 'Special Notes / Questions (Optional)' : 'Catatan Khusus / Pertanyaan (Opsional)'}
+                </label>
+                <textarea
+                  rows={2}
+                  value={clientNotes}
+                  onChange={(e) => setClientNotes(e.target.value)}
+                  placeholder={isEn ? 'e.g. Need flood depth analysis or construction verification' : 'Misal: Mohon cek elevasi lantai bebas banjir dan penguatan struktur kolom.'}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.9rem',
+                    outline: 'none',
+                    resize: 'none'
+                  }}
+                />
+              </div>
+
+              {errorMessage && (
+                <div style={{
+                  padding: '10px 14px',
                   borderRadius: '8px',
-                  border: '1.5px solid #e2e8f0',
-                  background: '#f8fafc',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#0052cc', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.76rem' }}>
-                    M
-                  </div>
-                  <div>
-                    <strong style={{ fontSize: '0.78rem', color: '#0f172a', display: 'block' }}>
-                      Midtrans Snap Payment Gateway
-                    </strong>
-                    <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                      {isEn ? 'QRIS · GoPay · Bank Transfer · Credit Card' : 'QRIS · GoPay · BCA · Mandiri · BNI · BRI · Kartu Kredit'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Error Banner */}
-            {errorMessage && (
-              <div
-                style={{
-                  background: '#fef2f2',
+                  backgroundColor: '#fef2f2',
                   border: '1px solid #fecaca',
-                  borderRadius: '8px',
-                  padding: '10px 12px',
-                  marginBottom: '14px',
-                  fontSize: '0.76rem',
-                  color: '#991b1b',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}
-              >
-                <AlertCircle size={15} style={{ flexShrink: 0, color: '#dc2626' }} />
-                <span>{errorMessage}</span>
-              </div>
-            )}
+                  color: '#b91c1c',
+                  fontSize: '0.85rem',
+                  marginBottom: '16px'
+                }}>
+                  {errorMessage}
+                </div>
+              )}
 
-            {/* Action / Proceed Button */}
-            {(selectedSubPlan === 'instant' && isInstantOwned) || (selectedSubPlan === 'bundling' && isBundlingOwned) ? (
+              {/* Submit CTA */}
               <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  setIsReportModalOpen(true);
-                }}
+                type="submit"
+                disabled={isSubmitting}
                 style={{
                   width: '100%',
-                  padding: '12px 18px',
+                  padding: '14px 20px',
                   borderRadius: '10px',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  backgroundColor: '#16a34a',
                   color: '#ffffff',
-                  fontSize: '0.86rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
+                  border: 'none',
+                  fontSize: '0.98rem',
+                  fontWeight: 700,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '8px',
-                  boxShadow: '0 8px 24px -4px rgba(16, 185, 129, 0.4)'
+                  gap: '10px',
+                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 4px 14px rgba(22, 163, 74, 0.3)',
+                  transition: 'background 0.2s'
                 }}
               >
-                <CheckCircle2 size={16} />
-                <span>{isEn ? '✓ Plan Already Active — Open PDF Report' : '✓ Paket Sudah Aktif — Buka Laporan PDF'}</span>
-                <ArrowRight size={15} />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleProceedToMidtrans}
-                disabled={isProcessing}
-                style={{
-                  width: '100%',
-                  padding: '12px 18px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #c2410c, #ea580c)',
-                  color: '#ffffff',
-                  fontSize: '0.86rem',
-                  fontWeight: 800,
-                  cursor: isProcessing ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  boxShadow: '0 8px 24px -4px rgba(194, 65, 12, 0.4)',
-                  opacity: isProcessing ? 0.7 : 1,
-                  transition: 'all 0.2s'
-                }}
-              >
-                <Lock size={15} />
+                <MessageSquare size={20} />
                 <span>
-                  {isProcessing
-                    ? (isEn ? 'Connecting to Midtrans API...' : 'Menghubungkan ke Midtrans API...')
-                    : (selectedSubPlan === 'bundling' && isInstantOwned
-                        ? (isEn ? 'Pay Rp 85,000 Upgrade with Midtrans' : 'Bayar Upgrade Rp 85.000 dengan Midtrans')
-                        : (isEn ? `Pay ${selectedSubPlan === 'bundling' ? 'Rp 85,000' : 'Rp 35,000'} with Midtrans` : `Bayar ${selectedSubPlan === 'bundling' ? 'Rp 85.000' : 'Rp 35.000'} dengan Midtrans`))}
+                  {isSubmitting
+                    ? (isEn ? 'Connecting...' : 'Menghubungkan...')
+                    : (isEn ? 'Chat WhatsApp Admin to Order' : 'Pesan & Hubungi WhatsApp Admin')}
                 </span>
-                <ArrowRight size={15} />
               </button>
-            )}
-          </div>
-        )}
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '12px' }}>
+                <Clock size={13} color="#64748b" />
+                <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                  {isEn ? 'Response time: <15 mins during business hours' : 'Respons cepat: <15 menit pada jam kerja'}
+                </span>
+              </div>
+            </form>
+          )}
+        </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

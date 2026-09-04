@@ -55,8 +55,8 @@ export class PerformSiteAssessmentUseCase {
       address = await NominatimClient.reverseGeocode(coords);
     }
 
-    // Dynamic country discovery from real geocoding
-    const country = input.country || adminLoc?.country || (adminLoc?.countryCode === 'PH' ? 'Philippines' : 'Indonesia');
+    // Dynamic country discovery from real geocoding (no silent fallback to Indonesia)
+    const country = input.country || adminLoc?.country || (adminLoc?.countryCode === 'PH' ? 'Philippines' : adminLoc?.countryCode === 'ID' ? 'Indonesia' : 'Unknown');
 
     // Safe wrapper guaranteeing partial provider failure never rejects unrelated providers
     const safeExec = async <T>(
@@ -73,10 +73,13 @@ export class PerformSiteAssessmentUseCase {
           isFallback: true,
           confidenceLevel: 'low',
           reason: errorMsg,
-          sourceName: fallbackSourceName
+          sourceName: fallbackSourceName,
+          status: 'error'
         };
       }
     };
+
+    const isMapboxEnabled = process.env.MAPBOX_ENABLED !== 'false' && Boolean(process.env.MAPBOX_ACCESS_TOKEN);
 
     // 2. Parallel Ingestion from 100% Real Live External APIs with isolated fault handling
     const [
@@ -98,21 +101,32 @@ export class PerformSiteAssessmentUseCase {
         ? safeExec(() => BmkgEarthquakeClient.fetchLatestEarthquakes(coords), 'BMKG Indonesia', 'BMKG real-time feed unreachable')
         : Promise.resolve<ApiResult<BmkgSeismicSummary>>({
             data: null,
-            isFallback: true,
-            confidenceLevel: 'low',
+            isFallback: false,
+            confidenceLevel: 'high',
             reason: 'BMKG feed is only applicable within Indonesia',
-            sourceName: 'BMKG Indonesia'
+            sourceName: 'BMKG Indonesia',
+            status: 'not_applicable'
           }),
-      safeExec(() => MapboxSpatialClient.fetchProximitySummary(coords), 'Mapbox Spatial POI Discovery', 'Mapbox Search API unreachable'),
+      isMapboxEnabled
+        ? safeExec(() => MapboxSpatialClient.fetchProximitySummary(coords), 'Mapbox Spatial POI Discovery', 'Mapbox Search API unreachable')
+        : Promise.resolve<ApiResult<any>>({
+            data: null,
+            isFallback: false,
+            confidenceLevel: 'low',
+            reason: 'Mapbox spatial query disabled by configuration (MAPBOX_ENABLED=false or missing token)',
+            sourceName: 'Mapbox Spatial POI Discovery',
+            status: 'not_applicable'
+          }),
       safeExec(() => OverpassOsmClient.fetchProximityMetrics(coords), 'OpenStreetMap Overpass API', 'OSM Overpass query failed'),
       country === 'Indonesia'
         ? safeExec(() => InaRiskBnpbClient.fetchSiteHazards(coords), 'BNPB inaRISK GIS Server', 'BNPB inaRISK server unreachable')
         : Promise.resolve<ApiResult<InaRiskAssessmentData>>({
             data: null,
-            isFallback: true,
-            confidenceLevel: 'low',
+            isFallback: false,
+            confidenceLevel: 'high',
             reason: 'InaRISK is only applicable within Indonesia',
-            sourceName: 'BNPB inaRISK GIS Server'
+            sourceName: 'BNPB inaRISK GIS Server',
+            status: 'not_applicable'
           }),
       safeExec(() => ThinkHazardClient.fetchSiteReport(coords), 'World Bank / GFDRR ThinkHazard!', 'ThinkHazard API unreachable'),
       safeExec(() => SoilGridsClient.fetchSoilMetrics(coords), 'ISRIC SoilGrids 2.0', 'SoilGrids API unreachable'),
@@ -170,15 +184,20 @@ export class PerformSiteAssessmentUseCase {
       localReliefType: meteo?.localReliefType ?? null,
       flowAccumulationPotential: meteo?.flowAccumulationPotential ?? null,
       max24hRainfallMm: meteo?.maxDailyPrecipitationMm ?? meteo?.max24hRainfallMm ?? null,
-      rainfallPeriod: '2020-01-01 to 2024-12-31 (ERA5)',
-      rainfallDataSource: 'Open-Meteo ERA5-Seamless',
+      rainfallPeriod: meteo?.audit?.historicalPrecipitation?.period ?? '2020-01-01 to 2024-12-31 (ERA5)',
+      rainfallDataSource: meteo?.audit?.historicalPrecipitation?.provider === 'NASA POWER' ? 'NASA POWER (MERRA-2)' : 'Open-Meteo ERA5-Seamless',
+      historicalPeriod: meteo?.audit?.historicalTemperature?.period ?? (meteoRes.isFallback ? '2023 (Calendar Year)' : '2020-01-01 to 2024-12-31'),
+      historicalDataSource: meteo?.audit?.historicalTemperature?.provider === 'NASA POWER' ? 'NASA POWER (MERRA-2)' : 'ERA5-Seamless (Open-Meteo)',
+      coordinates: coords,
+      latitude: coords.lat,
+      longitude: coords.lng,
       floodDepthMeters: null,
       historicalFloodEventsCount: null,
       historicalFloodPeriod: null,
       nearestDrainageChannel: null,
       distanceToDrainageMeters: null,
       distanceToRiverMeters: osm?.distanceToNearestWaterwayMeters ?? osm?.distanceToRiverMeters ?? null,
-      nearestRiverName: osm?.nearestWaterwayName ?? osm?.nearestRiverName ?? 'Data sempadan air tidak teridentifikasi',
+      nearestRiverName: osm?.nearestWaterwayName ?? osm?.nearestRiverName ?? 'Data sungai / saluran air tidak teridentifikasi',
       waterwayBounded: osm?.waterwayObservation,
       historicalQuakesCount150km: seismic?.quakesCount150km ?? null,
       historicalQuakesCount100km: seismic?.quakesCount100km ?? null,

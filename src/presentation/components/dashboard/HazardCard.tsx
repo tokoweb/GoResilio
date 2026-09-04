@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAssessment } from '../../context/AssessmentContext';
 import {
@@ -20,6 +21,11 @@ export const HazardCard: React.FC = () => {
   const { assessment, isLoading } = useAssessment();
   const [activeTab, setActiveTab] = useState<HazardCategory>('flood');
   const [showTechnicalModal, setShowTechnicalModal] = useState<boolean>(false);
+  const [isMounted, setIsMounted] = useState<boolean>(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const isEn = language === 'en';
 
@@ -84,6 +90,20 @@ export const HazardCard: React.FC = () => {
     }
   };
 
+  // Transport coverage badge mapping (PHASE 8.11.1 Requirement 21)
+  const getTransportCoverageBadge = (observed = 0) => {
+    if (observed >= 4) {
+      return { label: isEn ? 'Data Complete' : 'DATA LENGKAP', cls: 'gt-badge-pass' };
+    }
+    if (observed === 3) {
+      return { label: isEn ? 'Data Mostly Available' : 'DATA SEBAGIAN BESAR TERSEDIA', cls: 'gt-badge-pass' };
+    }
+    if (observed >= 1) {
+      return { label: isEn ? 'Partial Data' : 'DATA PARSIAL', cls: 'gt-badge-warning' };
+    }
+    return { label: isEn ? 'No Data' : 'DATA BELUM TERSEDIA', cls: 'gt-badge-neutral' };
+  };
+
   const getReliabilityBadge = (
     rel: string,
     obs?: number,
@@ -127,68 +147,169 @@ export const HazardCard: React.FC = () => {
     }
   };
 
+  const resolveSourceBadge = (item: ReportMetric) => {
+    const isAssessmentStatus = item.type === 'assessment_status' || item.dataType === 'status' || item.status === 'status';
+    if (isAssessmentStatus) {
+      return {
+        label: isEn ? 'Status' : 'Status',
+        bg: '#f1f5f9',
+        color: '#475569',
+        border: '#cbd5e1'
+      };
+    }
+    if (item.status === 'timeout') {
+      return {
+        label: isEn ? 'Timeout' : 'Waktu Habis',
+        bg: '#fffbeb',
+        color: '#b45309',
+        border: '#fde68a'
+      };
+    }
+    if (item.status === 'error') {
+      return {
+        label: isEn ? 'Error' : 'Gagal',
+        bg: '#fef2f2',
+        color: '#b91c1c',
+        border: '#fecaca'
+      };
+    }
+    if (item.status === 'bounded' || item.relation === 'greater_than' || item.spatialState === 'AVAILABLE_BOUNDED' || item.spatialState === 'NODATA_SEARCH_SUCCESS') {
+      return {
+        label: isEn ? 'Bounded' : 'Batas Spasial',
+        bg: '#f8fafc',
+        color: '#0369a1',
+        border: '#bae6fd'
+      };
+    }
+
+    const src = (item.source || '').toLowerCase();
+    const id = (item.id || '').toLowerCase();
+
+    // 1. Weather / Climate Reanalysis
+    if (src.includes('era5') || src.includes('open-meteo') || src.includes('reanalysis') || src.includes('cams')) {
+      return {
+        label: isEn ? 'Model / Reanalysis' : 'Model / Reanalisis',
+        bg: '#eff6ff',
+        color: '#1d4ed8',
+        border: '#bfdbfe'
+      };
+    }
+
+    // 2. Elevation / Topography DEM
+    if (src.includes('dem') || src.includes('copernicus') || id.includes('elevation') || id.includes('slope') || id.includes('relief') || id.includes('terrain')) {
+      return {
+        label: isEn ? 'Elevation Model' : 'Model Elevasi',
+        bg: '#eff6ff',
+        color: '#1d4ed8',
+        border: '#bfdbfe'
+      };
+    }
+
+    // 3. Hazard Model / PGA / CMIP6
+    if (src.includes('pga') || src.includes('cmip6') || src.includes('penapisan') || item.type === 'model' || item.dataType === 'model') {
+      return {
+        label: isEn ? 'Model' : 'Model',
+        bg: '#eff6ff',
+        color: '#1d4ed8',
+        border: '#bfdbfe'
+      };
+    }
+
+    // 4. Regional baseline / ThinkHazard / BNPB
+    if (src.includes('thinkhazard') || src.includes('world bank') || src.includes('inarisk') || src.includes('regional')) {
+      return {
+        label: isEn ? 'Regional' : 'Regional',
+        bg: '#f5f3ff',
+        color: '#6d28d9',
+        border: '#ddd6fe'
+      };
+    }
+
+    // 5. OpenStreetMap
+    if (src.includes('osm') || src.includes('openstreetmap')) {
+      return {
+        label: isEn ? 'Map Data' : 'Data Peta',
+        bg: '#f0fdf4',
+        color: '#15803d',
+        border: '#bbf7d0'
+      };
+    }
+
+    // 6. Seismic Catalog
+    if (src.includes('usgs') || src.includes('bmkg') || src.includes('katalog') || src.includes('emsc')) {
+      return {
+        label: isEn ? 'Recorded Quake History' : 'Riwayat Gempa Tercatat',
+        bg: '#f8fafc',
+        color: '#334155',
+        border: '#cbd5e1'
+      };
+    }
+
+    // 7. Derived / Calculated
+    if (item.type === 'derived' || item.dataType === 'derived') {
+      return {
+        label: isEn ? 'Calculated' : 'Hasil Perhitungan',
+        bg: '#f0f9ff',
+        color: '#0369a1',
+        border: '#bae6fd'
+      };
+    }
+
+    // 8. Direct Field Measurement (Strictly in-situ only)
+    if ((item.type as string) === 'measured' || (item.dataType as string) === 'measured' || src.includes('sensor') || src.includes('field') || src.includes('in-situ')) {
+      return {
+        label: isEn ? 'Measured' : 'Data Lapangan',
+        bg: '#ecfdf5',
+        color: '#047857',
+        border: '#a7f3d0'
+      };
+    }
+
+    return {
+      label: isEn ? 'Source' : 'Sumber Data',
+      bg: '#f8fafc',
+      color: '#475569',
+      border: '#cbd5e1'
+    };
+  };
+
   const renderSurveyGrid = (metrics: ReportMetric[]) => {
     return (
       <div className="gt-survey-matrix-grid">
         {metrics.map((item) => {
           const isAssessmentStatus = item.type === 'assessment_status' || item.dataType === 'status' || item.status === 'status';
           const isModelDerived = item.type === 'model' || item.type === 'derived' || item.dataType === 'model' || item.dataType === 'derived';
-          const isBounded = item.status === 'bounded' || item.relation === 'greater_than' || item.spatialState === 'AVAILABLE_BOUNDED' || item.spatialState === 'NODATA_SEARCH_SUCCESS';
           const isTimeout = item.status === 'timeout';
           const isError = item.status === 'error';
+          const isNotApplicable = item.status === 'not_applicable';
 
           return (
             <div
               key={item.id}
               className={`gt-survey-cell ${isAssessmentStatus ? 'gt-cell-status-mode' : isModelDerived ? 'gt-cell-model-mode' : 'gt-cell-source-mode'}`}
             >
-              <div className="gt-cell-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px' }}>
+              <div className="gt-cell-header-row" style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '6px' }}>
                 <span className="gt-cell-label">{isEn ? item.labelEn : item.labelId}</span>
-                {isAssessmentStatus && (
-                  <span style={{ fontSize: '0.62rem', fontWeight: 600, padding: '1px 5px', borderRadius: '4px', background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' }}>
-                    {isEn ? 'Status' : 'status'}
-                  </span>
-                )}
-                {isModelDerived && (
-                  <span style={{ fontSize: '0.62rem', fontWeight: 600, padding: '1px 5px', borderRadius: '4px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
-                    {item.type === 'derived' ? (isEn ? 'Calculated' : 'hasil perhitungan') : (isEn ? 'Model' : 'hasil permodelan')}
-                  </span>
-                )}
-                {isBounded && !isAssessmentStatus && !isModelDerived && (
-                  <span style={{ fontSize: '0.62rem', fontWeight: 600, padding: '1px 5px', borderRadius: '4px', background: '#f8fafc', color: '#0369a1', border: '1px solid #bae6fd' }}>
-                    {isEn ? 'Bounded' : 'batas'}
-                  </span>
-                )}
-                {isTimeout && (
-                  <span style={{ fontSize: '0.62rem', fontWeight: 600, padding: '1px 5px', borderRadius: '4px', background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a' }}>
-                    {isEn ? 'Timeout' : 'waktu habis'}
-                  </span>
-                )}
-                {isError && !isTimeout && (
-                  <span style={{ fontSize: '0.62rem', fontWeight: 600, padding: '1px 5px', borderRadius: '4px', background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>
-                    {isEn ? 'Error' : 'gagal'}
-                  </span>
-                )}
-                {!isAssessmentStatus && !isModelDerived && !isBounded && !isTimeout && !isError && (
-                  <span style={{ fontSize: '0.62rem', fontWeight: 600, padding: '1px 5px', borderRadius: '4px', background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0' }}>
-                    {isEn ? 'Observed' : 'hasil pengamatan'}
-                  </span>
-                )}
               </div>
               <div className="gt-cell-metric">
-                {item.value !== null ? (
+                {item.value !== null && item.value !== undefined ? (
                   <>
                     {item.value} {item.unit && <span className="gt-cell-unit">{item.unit}</span>}
                   </>
                 ) : (
                   <span style={{ fontSize: '13px', color: isError || isTimeout ? '#b91c1c' : 'var(--text-muted)' }}>
-                    {isTimeout ? (isEn ? 'Request Timed Out' : 'Waktu Habis (Timeout)') : isError ? (isEn ? 'Provider Unavailable' : 'Layanan Tidak Merespon') : (isEn ? 'Data belum tersedia' : 'Data belum tersedia')}
+                    {isTimeout
+                      ? (isEn ? 'Service did not respond' : 'Layanan tidak merespons')
+                      : isError
+                      ? (isEn ? 'Data could not be obtained' : 'Data tidak dapat diperoleh')
+                      : isNotApplicable
+                      ? (isEn ? 'Not applicable for this site' : 'Tidak berlaku untuk lokasi ini')
+                      : (isEn ? 'Data unavailable' : 'Data belum tersedia')}
                   </span>
                 )}
               </div>
               <span className="gt-cell-source" title={item.sourceTitle || item.source}>
                 {item.source}
-                {item.spatialResolution && <span style={{ opacity: 0.7, marginLeft: '4px' }}>({item.spatialResolution})</span>}
               </span>
             </div>
           );
@@ -274,9 +395,20 @@ export const HazardCard: React.FC = () => {
               <Navigation size={15} className="gt-tab-glyph" />
               <span className="gt-tab-name">{t.dashboard.cards.transportTitle}</span>
             </div>
-            <span className={`gt-tab-rating-tag ${getGradeBadge(transport.level).cls}`}>
-              {getGradeBadge(transport.level).label}
-            </span>
+            {(() => {
+              const transportObserved = transport.observedComponents ?? (
+                (transport.distanceToNearestRoadMeters !== null ? 1 : 0) +
+                (transport.distanceToArterialMeters !== null || (transport.arterialBounded && transport.arterialBounded.state === 'AVAILABLE_BOUNDED') ? 1 : 0) +
+                (transport.distanceToHospitalMeters !== null || (transport.hospitalBounded && transport.hospitalBounded.state === 'AVAILABLE_BOUNDED') ? 1 : 0) +
+                (transport.distanceToTransitHubMeters !== null || (transport.transitBounded && transport.transitBounded.state === 'AVAILABLE_BOUNDED') ? 1 : 0)
+              );
+              const badge = getTransportCoverageBadge(transportObserved);
+              return (
+                <span className={`gt-tab-rating-tag ${badge.cls}`}>
+                  {badge.label}
+                </span>
+              );
+            })()}
           </div>
         </button>
       </div>
@@ -309,7 +441,7 @@ export const HazardCard: React.FC = () => {
                   }}
                 >
                   <Layers size={14} />
-                  <span>{isEn ? `View Technical Details & Methodology (${allTechnicalMetrics.length} Parameters)` : `Lihat Detail Teknis & Metodologi (${allTechnicalMetrics.length} Parameter)`}</span>
+                  <span>{isEn ? `View Data & Methodology Details (${allTechnicalMetrics.length} Parameters)` : `Lihat Detail Data & Metodologi (${allTechnicalMetrics.length} Parameter)`}</span>
                 </button>
               </div>
             </div>
@@ -375,7 +507,7 @@ export const HazardCard: React.FC = () => {
                   }}
                 >
                   <Layers size={14} />
-                  <span>{isEn ? `View Technical Details & Methodology (${allTechnicalMetrics.length} Parameters)` : `Lihat Detail Teknis & Metodologi (${allTechnicalMetrics.length} Parameter)`}</span>
+                  <span>{isEn ? `View Data & Methodology Details (${allTechnicalMetrics.length} Parameters)` : `Lihat Detail Data & Metodologi (${allTechnicalMetrics.length} Parameter)`}</span>
                 </button>
               </div>
             </div>
@@ -441,7 +573,7 @@ export const HazardCard: React.FC = () => {
                   }}
                 >
                   <Layers size={14} />
-                  <span>{isEn ? `View Technical Details & Methodology (${allTechnicalMetrics.length} Parameters)` : `Lihat Detail Teknis & Metodologi (${allTechnicalMetrics.length} Parameter)`}</span>
+                  <span>{isEn ? `View Data & Methodology Details (${allTechnicalMetrics.length} Parameters)` : `Lihat Detail Data & Metodologi (${allTechnicalMetrics.length} Parameter)`}</span>
                 </button>
               </div>
             </div>
@@ -507,7 +639,7 @@ export const HazardCard: React.FC = () => {
                   }}
                 >
                   <Layers size={14} />
-                  <span>{isEn ? `View Technical Details & Methodology (${allTechnicalMetrics.length} Parameters)` : `Lihat Detail Teknis & Metodologi (${allTechnicalMetrics.length} Parameter)`}</span>
+                  <span>{isEn ? `View Data & Methodology Details (${allTechnicalMetrics.length} Parameters)` : `Lihat Detail Data & Metodologi (${allTechnicalMetrics.length} Parameter)`}</span>
                 </button>
               </div>
             </div>
@@ -553,7 +685,7 @@ export const HazardCard: React.FC = () => {
       </div>
 
       {/* TECHNICAL DETAILS & DATA LINEAGE MODAL */}
-      {showTechnicalModal && (
+      {isMounted && showTechnicalModal && typeof document !== 'undefined' && createPortal(
         <div
           className="gt-modal-backdrop"
           style={{
@@ -564,7 +696,7 @@ export const HazardCard: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 9999,
+            zIndex: 999999,
             padding: '20px'
           }}
           onClick={() => setShowTechnicalModal(false)}
@@ -650,8 +782,26 @@ export const HazardCard: React.FC = () => {
               ))}
             </div>
 
+            {/* Glossary Box (Requirement 20) */}
+            <div style={{ marginTop: '16px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                <Layers size={15} style={{ color: '#0284c7' }} />
+                <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>
+                  {isEn ? 'Key Technical Terminology Glossary' : 'Glosarium Istilah Teknis Utama'}
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px 14px', fontSize: '0.76rem', color: '#475569', lineHeight: 1.45 }}>
+                <div><strong>dpl / MSL:</strong> {isEn ? 'Meters above Mean Sea Level, vertical site elevation.' : 'Meter di atas permukaan laut, elevasi vertikal tapak.'}</div>
+                <div><strong>PGA:</strong> {isEn ? 'Peak Ground Acceleration (g), maximum seismic ground shaking.' : 'Percepatan tanah puncak (g), intensitas guncangan gempa.'}</div>
+                <div><strong>DAS:</strong> {isEn ? 'River Watershed / Drainage Basin catchment boundary.' : 'Daerah Aliran Sungai, batas tangkapan air limpasan hujan.'}</div>
+                <div><strong>KDH:</strong> {isEn ? 'Green Space Ratio (%), permeable vegetative canopy.' : 'Koefisien Dasar Hijau (%), persentase area terbuka bervegetasi.'}</div>
+                <div><strong>Urban Heat Island:</strong> {isEn ? 'Thermal phenomenon where built structures trap heat.' : 'Fenomena termal area terbangun menyerap dan memerangkap panas.'}</div>
+                <div><strong>Buffer:</strong> {isEn ? 'Radial spatial search radius for environmental screening.' : 'Radius jarak penapisan geospasial radial dari tapak properti.'}</div>
+              </div>
+            </div>
+
             {/* Modal Footer */}
-            <div style={{ marginTop: '20px', paddingTop: '14px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ marginTop: '18px', paddingTop: '14px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
                 {isEn ? 'Data processed through GoTangguh Open-Source Multi-Hazard Pipeline.' : 'Diproses melalui Pipeline Multi-Hazard Open-Source GoTangguh.'}
               </span>
@@ -673,7 +823,8 @@ export const HazardCard: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

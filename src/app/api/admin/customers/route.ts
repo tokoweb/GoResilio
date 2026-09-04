@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { AuthGuard } from '../../../../infrastructure/auth/authGuard';
 import { MySQLUserRepository } from '../../../../infrastructure/database/repositories/MySQLUserRepository';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const authResult = await AuthGuard.requireRole(req, ['Super Admin (RDI)']);
+  if (authResult instanceof NextResponse) return authResult;
+
   try {
     const users = await MySQLUserRepository.getAll();
     return NextResponse.json({ success: true, count: users.length, data: users });
@@ -14,6 +18,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const authResult = await AuthGuard.requireRole(req, ['Super Admin (RDI)']);
+  if (authResult instanceof NextResponse) return authResult;
+
   try {
     const body = await req.json();
     const newUser = await MySQLUserRepository.create(body);
@@ -27,6 +34,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  const authResult = await AuthGuard.requireRole(req, ['Super Admin (RDI)']);
+  if (authResult instanceof NextResponse) return authResult;
+
   try {
     const body = await req.json();
     const { id, ...data } = body;
@@ -44,6 +54,9 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const authResult = await AuthGuard.requireRole(req, ['Super Admin (RDI)']);
+  if (authResult instanceof NextResponse) return authResult;
+
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');

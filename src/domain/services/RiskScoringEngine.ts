@@ -18,7 +18,10 @@ import type {
   AirQualityData,
   WorldPopData,
   NasaFirmsData,
-  BoundedSpatialDistance
+  BoundedSpatialDistance,
+  EarthquakeScoreLedger,
+  FloodScoreLedger,
+  ScoreLedgerAdjustment
 } from '../types/hazard.types';
 import { Coordinates } from '../value_objects/Coordinates.vo';
 import { RiskScore } from '../value_objects/RiskScore.vo';
@@ -45,7 +48,7 @@ export interface RawPhysicalInputs {
   imperviousSurfaceRatioPct?: number | null;
   nearestDrainageChannel?: string | null;
   distanceToDrainageMeters?: number | null;
-  distanceToRiverMeters: number | null;
+  distanceToRiverMeters?: number | null;
   nearestRiverName?: string | null;
   waterwayBounded?: BoundedSpatialDistance;
   nearestFaultName?: string | null;
@@ -55,8 +58,15 @@ export interface RawPhysicalInputs {
   historicalQuakesCount150km: number | null;    // USGS/EMSC 10-year M>=4.0 events within 150 km
   historicalQuakesCount100km: number | null;    // Distinct geodesic 100 km count (never duplicated from 150 km)
   maxHistoricalMag: number | null;              // Peak magnitude recorded in historical catalog
+  recentM5PlusWithin350kmCount?: number | null;
+  recentMaxMagnitude?: number | null;
   avgMaxTempC: number | null;
   historicalPeakTempC: number | null;
+  historicalPeriod?: string | null;
+  historicalDataSource?: string | null;
+  coordinates?: Coordinates | { lat: number; lng: number } | { latitude: number; longitude: number } | null;
+  latitude?: number | null;
+  longitude?: number | null;
   forecastPeakTempC?: number | null;
   forecastMeanMaxTempC?: number | null;
   projectedTempRise2050C: number | null;
@@ -100,6 +110,11 @@ export interface RawPhysicalInputs {
   wildfireHazardIndex?: number | null;
   tsunamiHazardIndex?: number | null;
   riverDischargeM3s?: number | null;
+  buildingFloors?: number | null;
+  constructionYear?: number | null;
+  foundationType?: string | null;
+  structuralSystem?: string | null;
+  estimatedPropertyValueIdr?: number | null;
   soil?: SoilGridsData | null;
   airQuality?: AirQualityData | null;
   populationExposure?: WorldPopData | null;
@@ -145,49 +160,70 @@ export class RiskScoringEngine {
     let finalPersona: UserPersona;
     let safeInputs: RawPhysicalInputs;
 
-    if (
-      coordsOrInputs &&
-      ('elevationMeters' in coordsOrInputs ||
-        'max24hRainfallMm' in coordsOrInputs ||
-        'avgMaxTempC' in coordsOrInputs ||
-        'forecastPeakTempC' in coordsOrInputs ||
-        'historicalQuakesCount150km' in coordsOrInputs ||
-        !('lat' in coordsOrInputs))
-    ) {
-      safeInputs = coordsOrInputs as RawPhysicalInputs;
-      coords = new Coordinates(-6.2088, 106.8456);
-      address = 'Site Assessment';
-      country = typeof addressOrCountry === 'string' ? addressOrCountry : 'Indonesia';
-      finalPropType = (typeof countryOrPropType === 'string' && ['Residential', 'Commercial', 'Industrial', 'Infrastructure'].includes(countryOrPropType) ? countryOrPropType as PropertyType : 'Residential');
-      finalPersona = (propType as unknown as UserPersona) || 'Home Buyer';
+    if (coordsOrInputs instanceof Coordinates) {
+      coords = coordsOrInputs;
+    } else if (coordsOrInputs && typeof (coordsOrInputs as any).latitude === 'number' && typeof (coordsOrInputs as any).longitude === 'number') {
+      coords = new Coordinates((coordsOrInputs as any).latitude, (coordsOrInputs as any).longitude);
+    } else if (coordsOrInputs && typeof (coordsOrInputs as any).lat === 'number' && typeof (coordsOrInputs as any).lng === 'number') {
+      coords = new Coordinates((coordsOrInputs as any).lat, (coordsOrInputs as any).lng);
+    } else if (coordsOrInputs && (coordsOrInputs as any).coordinates instanceof Coordinates) {
+      coords = (coordsOrInputs as any).coordinates;
+    } else if (coordsOrInputs && (coordsOrInputs as any).coordinates && typeof (coordsOrInputs as any).coordinates.lat === 'number' && typeof (coordsOrInputs as any).coordinates.lng === 'number') {
+      coords = new Coordinates((coordsOrInputs as any).coordinates.lat, (coordsOrInputs as any).coordinates.lng);
     } else {
-      coords = (coordsOrInputs as Coordinates) || new Coordinates(-6.2088, 106.8456);
-      address = addressOrCountry || 'Site Assessment';
-      country = typeof countryOrPropType === 'string' ? countryOrPropType : 'Indonesia';
-      finalPropType = (propType as PropertyType) || 'Residential';
-      finalPersona = (persona as UserPersona) || 'Home Buyer';
+      throw new Error('Valid geographic coordinates are required for site assessment: coordinates are required and must be valid numbers.');
+    }
+
+    if (!coords || typeof coords.lat !== 'number' || typeof coords.lng !== 'number' || isNaN(coords.lat) || isNaN(coords.lng) || coords.lat < -90 || coords.lat > 90 || coords.lng < -180 || coords.lng > 180) {
+      throw new Error('Valid geographic coordinates are required for site assessment: latitude must be between -90 and 90, longitude between -180 and 180.');
+    }
+
+    const isPhysicalInputOnly = Boolean(
+      coordsOrInputs &&
+      ('elevationMeters' in coordsOrInputs || 'max24hRainfallMm' in coordsOrInputs)
+    );
+
+    if (isPhysicalInputOnly) {
+      safeInputs = coordsOrInputs as RawPhysicalInputs;
+      address = addressOrCountry || 'Lokasi Tapak Asesmen';
+      country = typeof addressOrCountry === 'string' && addressOrCountry.trim() ? addressOrCountry.trim() : (typeof countryOrPropType === 'string' && countryOrPropType.trim() ? countryOrPropType.trim() : 'Unknown');
+      finalPropType = (typeof countryOrPropType === 'string' && ['Residential', 'Commercial', 'Industrial', 'Infrastructure'].includes(countryOrPropType) ? countryOrPropType as PropertyType : (propType as PropertyType) || (null as any));
+      finalPersona = (propType as unknown as UserPersona) || (persona as UserPersona) || (null as any);
+    } else {
+      address = addressOrCountry || 'Lokasi Tapak Asesmen';
+      country = (typeof countryOrPropType === 'string' && countryOrPropType.trim() ? countryOrPropType.trim() : '') || 'Unknown';
+      finalPropType = (propType as PropertyType) || (null as any);
+      finalPersona = (persona as UserPersona) || (null as any);
       safeInputs = inputsParam || ({} as RawPhysicalInputs);
     }
 
-    const latAbs = Math.abs(coords?.lat ?? 0).toFixed(2).replace('.', '');
-    const lngAbs = Math.abs(coords?.lng ?? 0).toFixed(2).replace('.', '');
+    const latAbs = Math.abs(coords.lat).toFixed(2).replace('.', '');
+    const lngAbs = Math.abs(coords.lng).toFixed(2).replace('.', '');
     const refCode = `GT-${latAbs}-${lngAbs}`;
 
     // =========================================================================
-    // 1. Data Completeness Calculation
+    // 1. Data Completeness Calculation (Evidence Applicability)
     // =========================================================================
-    let fallbackCount = 0;
-    const totalSources = 6;
-    if (safeInputs.isFallbackFlags?.openMeteoFallback) fallbackCount++;
-    if (safeInputs.isFallbackFlags?.usgsFallback) fallbackCount++;
-    if (safeInputs.isFallbackFlags?.bmkgFallback && country === 'Indonesia') fallbackCount++;
-    if (safeInputs.isFallbackFlags?.osmFallback) fallbackCount++;
-    if (safeInputs.isFallbackFlags?.inariskFallback && country === 'Indonesia') fallbackCount++;
-    if (safeInputs.isFallbackFlags?.thinkHazardFallback) fallbackCount++;
+    const isIndonesia = country.toLowerCase() === 'indonesia';
+    const applicableProviders: Array<{ name: string; isFallback: boolean }> = [
+      { name: 'Open-Meteo', isFallback: Boolean(safeInputs.isFallbackFlags?.openMeteoFallback) },
+      { name: 'USGS', isFallback: Boolean(safeInputs.isFallbackFlags?.usgsFallback) },
+      { name: 'OSM', isFallback: Boolean(safeInputs.isFallbackFlags?.osmFallback) },
+      { name: 'ThinkHazard', isFallback: Boolean(safeInputs.isFallbackFlags?.thinkHazardFallback) },
+    ];
 
-    const inputs = safeInputs;
-    const dataCompletenessScorePct = Math.round(((totalSources - fallbackCount) / totalSources) * 100);
+    if (isIndonesia) {
+      applicableProviders.push({ name: 'BMKG', isFallback: Boolean(safeInputs.isFallbackFlags?.bmkgFallback) });
+      applicableProviders.push({ name: 'inaRISK', isFallback: Boolean(safeInputs.isFallbackFlags?.inariskFallback) });
+    }
+
+    const totalApplicable = applicableProviders.length;
+    const successfulApplicable = applicableProviders.filter(p => !p.isFallback).length;
+    const dataCompletenessScorePct = totalApplicable > 0
+      ? Math.round((successfulApplicable / totalApplicable) * 100)
+      : 0;
     const confidenceScorePct = dataCompletenessScorePct; // Backward-compatible alias
+    const inputs = safeInputs;
 
     // =========================================================================
     // 2. GoTangguh Flood Risk Model (0-100 or null)
@@ -291,7 +327,7 @@ export class RiskScoringEngine {
       }
 
       // Waterway proximity physical adjustment (OSM Waterways)
-      if (inputs.distanceToRiverMeters !== null && inputs.distanceToRiverMeters >= 0 && inputs.distanceToRiverMeters <= floodCfg.maxActiveRiverRadiusMeters) {
+      if (inputs.distanceToRiverMeters !== null && inputs.distanceToRiverMeters !== undefined && inputs.distanceToRiverMeters >= 0 && inputs.distanceToRiverMeters <= floodCfg.maxActiveRiverRadiusMeters) {
         for (const adj of floodCfg.riverDistanceAdjustments) {
           if (inputs.distanceToRiverMeters < adj.maxDistanceMeters) {
             floodScoreRaw += adj.scoreDelta;
@@ -362,7 +398,7 @@ export class RiskScoringEngine {
 
     const elevTextId = inputs.elevationMeters !== null ? `${Math.round(inputs.elevationMeters)}m dpl` : 'data elevasi tidak tersedia';
     const elevTextEn = inputs.elevationMeters !== null ? `${Math.round(inputs.elevationMeters)}m MSL` : 'elevation data unavailable';
-    const hasRiver = inputs.distanceToRiverMeters !== null && inputs.distanceToRiverMeters >= 0 && inputs.distanceToRiverMeters <= 2500;
+    const hasRiver = inputs.distanceToRiverMeters !== null && inputs.distanceToRiverMeters !== undefined && inputs.distanceToRiverMeters >= 0 && inputs.distanceToRiverMeters <= 2500;
     const isWaterwayBounded = Boolean(inputs.waterwayBounded && (inputs.waterwayBounded.state === 'AVAILABLE_BOUNDED' || inputs.waterwayBounded.state === 'NODATA_SEARCH_SUCCESS'));
 
     const riverTextId = hasRiver
@@ -399,26 +435,50 @@ export class RiskScoringEngine {
 
     const slopeDescId = inputs.slopeDegrees !== null ? `, kemiringan lereng ${inputs.slopeDegrees}° (${inputs.slopeClassification || 'topografi DEM'})` : '';
     const slopeDescEn = inputs.slopeDegrees !== null ? `, terrain slope ${inputs.slopeDegrees}° (${inputs.slopeClassification || 'DEM topography'})` : '';
-    const reliefDescId = inputs.localReliefMeters !== null ? `, relief ${inputs.localReliefMeters > 0 ? `+${inputs.localReliefMeters}` : inputs.localReliefMeters}m (${inputs.localReliefType || 'topografi'})` : '';
-    const reliefDescEn = inputs.localReliefMeters !== null ? `, relief ${inputs.localReliefMeters > 0 ? `+${inputs.localReliefMeters}` : inputs.localReliefMeters}m (${inputs.localReliefType || 'topography'})` : '';
+    const reliefDescId = inputs.localReliefMeters !== null && inputs.localReliefMeters !== undefined ? `, relief ${inputs.localReliefMeters > 0 ? `+${inputs.localReliefMeters}` : inputs.localReliefMeters}m (${inputs.localReliefType || 'topografi'})` : '';
+    const reliefDescEn = inputs.localReliefMeters !== null && inputs.localReliefMeters !== undefined ? `, relief ${inputs.localReliefMeters > 0 ? `+${inputs.localReliefMeters}` : inputs.localReliefMeters}m (${inputs.localReliefType || 'topography'})` : '';
     const drainDescId = inputs.nearestDrainageChannel ? `, saluran drainase terdekat ${inputs.nearestDrainageChannel} (${inputs.distanceToDrainageMeters}m)` : '';
     const drainDescEn = inputs.nearestDrainageChannel ? `, nearest drainage channel ${inputs.nearestDrainageChannel} (${inputs.distanceToDrainageMeters}m)` : '';
 
+    const isLowElevation = inputs.elevationMeters !== null && inputs.elevationMeters < 5;
+    const isHighElevation = inputs.elevationMeters !== null && inputs.elevationMeters >= 15;
+    const isNegativeRelief = (inputs.localReliefMeters !== null && inputs.localReliefMeters < -1) ||
+      (inputs.localReliefType ? (inputs.localReliefType.toLowerCase().includes('cekungan') || inputs.localReliefType.toLowerCase().includes('depression')) : false);
+    const isNearRiver = hasRiver && (inputs.distanceToRiverMeters !== null && inputs.distanceToRiverMeters <= 500);
+    const isFarRiver = !hasRiver || (inputs.distanceToRiverMeters !== null && inputs.distanceToRiverMeters > 1000);
+
+    let floodGeomorphicSynthesisId = '';
+    let floodGeomorphicSynthesisEn = '';
+
+    if (isNegativeRelief) {
+      floodGeomorphicSynthesisId = 'Indikasi cekungan lokal; air hujan dapat berkumpul bila drainase sekitar kurang optimal.';
+      floodGeomorphicSynthesisEn = 'Indication of localized depression; rainwater may accumulate if surrounding drainage is sub-optimal.';
+    } else if (isLowElevation && isNearRiver) {
+      floodGeomorphicSynthesisId = 'Lokasi berada di dataran rendah dekat aliran sungai; potensi genangan saat hujan lebat atau luapan air.';
+      floodGeomorphicSynthesisEn = 'Site is located in a low-lying plain near a river channel; potential inundation during torrential rain or river overflow.';
+    } else if (isHighElevation && isFarRiver) {
+      floodGeomorphicSynthesisId = 'Lokasi berada di dataran lebih tinggi; risiko banjir luapan relatif rendah.';
+      floodGeomorphicSynthesisEn = 'Site is situated on higher ground; river overflow risk is relatively low.';
+    } else {
+      floodGeomorphicSynthesisId = `Elevasi tapak ${elevTextId}${slopeDescId}${reliefDescId}, ${riverTextId}.`;
+      floodGeomorphicSynthesisEn = `Site elevation ${elevTextEn}${slopeDescEn}${reliefDescEn}, ${riverTextEn}.`;
+    }
+
     const floodCauseId = !hasFloodData || floodScore === null
       ? 'Data parameter banjir tidak cukup untuk melakukan penilaian risiko.'
-      : floodScore > 65
-      ? `${floodSourceLabelId} pada elevasi ${elevTextId}${slopeDescId}${reliefDescId}, ${riverTextId}, dengan ${rainTextId}${drainDescId}.${floodCoverageNoticeId}`
-      : floodScore > 35
-      ? `${floodSourceLabelId} pada elevasi ${elevTextId}${slopeDescId}${reliefDescId}, ${riverTextId}, dipengaruhi ${rainTextId}${drainDescId}.${floodCoverageNoticeId}`
-      : `${floodSourceLabelId} pada elevasi ${elevTextId}${slopeDescId}${reliefDescId}, ${riverTextId}${drainDescId}.${floodCoverageNoticeId}`;
+      : floodScore > 60
+      ? `${floodGeomorphicSynthesisId} ${floodSourceLabelId}, dengan ${rainTextId}${drainDescId}.${floodCoverageNoticeId}`
+      : floodScore > 30
+      ? `${floodGeomorphicSynthesisId} ${floodSourceLabelId}, dipengaruhi ${rainTextId}${drainDescId}.${floodCoverageNoticeId}`
+      : `${floodGeomorphicSynthesisId} ${floodSourceLabelId}${drainDescId}.${floodCoverageNoticeId}`;
 
     const floodCauseEn = !hasFloodData || floodScore === null
       ? 'Insufficient flood parameter data to perform risk assessment.'
-      : floodScore > 65
-      ? `${floodSourceLabelEn} at elevation ${elevTextEn}${slopeDescEn}${reliefDescEn}, ${riverTextEn}, with ${rainTextEn}${drainDescEn}.${floodCoverageNoticeEn}`
-      : floodScore > 35
-      ? `${floodSourceLabelEn} at elevation ${elevTextEn}${slopeDescEn}${reliefDescEn}, ${riverTextEn}, influenced by ${rainTextEn}${drainDescEn}.${floodCoverageNoticeEn}`
-      : `${floodSourceLabelEn} at elevation ${elevTextEn}${slopeDescEn}${reliefDescEn}, ${riverTextEn}${drainDescEn}.${floodCoverageNoticeEn}`;
+      : floodScore > 60
+      ? `${floodGeomorphicSynthesisEn} ${floodSourceLabelEn}, with ${rainTextEn}${drainDescEn}.${floodCoverageNoticeEn}`
+      : floodScore > 30
+      ? `${floodGeomorphicSynthesisEn} ${floodSourceLabelEn}, influenced by ${rainTextEn}${drainDescEn}.${floodCoverageNoticeEn}`
+      : `${floodGeomorphicSynthesisEn} ${floodSourceLabelEn}${drainDescEn}.${floodCoverageNoticeEn}`;
 
     const flood: FloodMetrics = {
       score: floodScore,
@@ -476,18 +536,18 @@ export class RiskScoringEngine {
         : 'Absolute elevation provides a lower-exposure terrain signal, but does not eliminate localized flood risk.',
       recomId: !hasFloodData || floodScore === null
         ? 'Data parameter banjir tidak cukup untuk merumuskan rekomendasi penapisan teknis.'
-        : floodScore > 65
-        ? 'Evaluasi elevasi peil lantai, sistem katup arus balik (backflow valve), dan kapasitas saluran drainase tapak berdasarkan asesmen teknis.'
-        : floodScore > 35
-        ? 'Pertimbangkan penyediaan saluran drainase keliling dan sumur resapan sesuai karakteristik tanah tapak.'
-        : 'Pertahankan fungsi saluran pembuangan air hujan tapak secara berkala.',
+        : floodScore > 60
+        ? 'Pastikan evaluasi peil lantai dasar (+60cm), pasang katup arus balik (backwater valve), dan periksa kapasitas saluran drainase lingkungan.'
+        : floodScore > 30
+        ? 'Pertimbangkan pembuatan sumur resapan/biopori dan pastikan saluran drainase tapak terhubung lancar.'
+        : 'Periksa kelancaran saluran pembuangan air hujan tapak secara berkala.',
       recomEn: !hasFloodData || floodScore === null
         ? 'Insufficient flood parameter data to formulate technical screening recommendations.'
-        : floodScore > 65
-        ? 'Evaluate finished floor elevation, backflow check valves, and site drainage capacity based on technical site assessment.'
-        : floodScore > 35
-        ? 'Consider perimeter drainage channels and recharge drywells suited to site percolation capacity.'
-        : 'Maintain regular maintenance of site stormwater drainage channels.'
+        : floodScore > 60
+        ? 'Ensure evaluation of finished floor elevation (+60cm), install backwater check valves, and verify neighborhood drainage capacity.'
+        : floodScore > 30
+        ? 'Consider drywells or biopores and verify smooth site stormwater discharge connectivity.'
+        : 'Regularly inspect site rainwater discharge channels for unblocked gravity flow.'
     };
 
     // =========================================================================
@@ -536,6 +596,7 @@ export class RiskScoringEngine {
     let quakeScore: number | null = null;
     let quakeLevel: RiskLevel = 'insufficient_data';
     let quakeReliability: ScoreReliability = 'insufficient_data';
+    let quakeScoreLedger: EarthquakeScoreLedger | null = null;
     const seismicCfg = RISK_MODEL_CONFIG.SEISMIC;
 
     if (hasQuakeData) {
@@ -695,27 +756,38 @@ export class RiskScoringEngine {
       ? `ThinkHazard seismic indicator: ${quakeClassStr}`
       : 'Official seismic classification data unavailable';
 
-    const count150km = inputs.historicalQuakesCount150km;
-    const quakes150kmTextId = count150km !== null
-      ? `${count150km} kejadian gempa (M≥4.0) dalam radius 150 km (Katalog USGS/EMSC)`
-      : 'data histori gempa 150km tidak tersedia';
-
-    const quakes150kmTextEn = count150km !== null
-      ? `${count150km} recorded quakes (M≥4.0) within 150 km (USGS/EMSC Catalog)`
-      : '150km seismic history unavailable';
-
-    const quakeCauseId = !hasQuakeData
-      ? 'Data parameter kegempaan tidak cukup untuk melakukan penilaian risiko.'
-      : `${quakeSourceLabelId} dengan ${quakes150kmTextId}. Likuefaksi: ${liqRiskId}.`;
-
-    const quakeCauseEn = !hasQuakeData
-      ? 'Insufficient seismic parameter data to perform risk assessment.'
-      : `${quakeSourceLabelEn} with ${quakes150kmTextEn}. Liquefaction: ${liqRiskEn}.`;
-
     const nearestFaultName = inputs.nearestFaultName || null;
     const distanceToFaultKm = inputs.distanceToFaultKm !== undefined && inputs.distanceToFaultKm !== null
       ? +inputs.distanceToFaultKm.toFixed(1)
       : null;
+
+    let faultNarrativeId = '';
+    let faultNarrativeEn = '';
+    if (nearestFaultName && distanceToFaultKm !== null) {
+      faultNarrativeId = `Sesar aktif terdekat adalah ${nearestFaultName}, berjarak ${distanceToFaultKm} km.`;
+      faultNarrativeEn = `The nearest active fault is ${nearestFaultName}, located ${distanceToFaultKm} km away.`;
+    } else {
+      const searchRadius = inputs.faultSearchRadiusKm || 50;
+      faultNarrativeId = `Tidak teridentifikasi sesar aktif utama dalam radius ${searchRadius} km berdasarkan katalog geologi publik.`;
+      faultNarrativeEn = `No major active faults identified within ${searchRadius} km based on public geological catalogs.`;
+    }
+
+    const count150km = inputs.historicalQuakesCount150km;
+    const quakes150kmTextId = (count150km !== null && count150km !== undefined)
+      ? `${count150km} kejadian gempa (M≥4.0) tercatat dalam radius 150 km (Riwayat Gempa Tercatat)`
+      : 'Data riwayat gempa belum tersedia';
+
+    const quakes150kmTextEn = (count150km !== null && count150km !== undefined)
+      ? `${count150km} recorded quakes (M≥4.0) within 150 km (Recorded Quake History)`
+      : 'Earthquake historical catalog data unavailable';
+
+    const quakeCauseId = !hasQuakeData
+      ? 'Data parameter kegempaan tidak cukup untuk melakukan penilaian risiko.'
+      : `${faultNarrativeId} ${quakeSourceLabelId}. ${quakes150kmTextId}.`;
+
+    const quakeCauseEn = !hasQuakeData
+      ? 'Insufficient seismic parameter data to perform risk assessment.'
+      : `${faultNarrativeEn} ${quakeSourceLabelEn}. ${quakes150kmTextEn}.`;
 
     const nearestEpicenterKm = inputs.nearestEpicenterKm !== undefined && inputs.nearestEpicenterKm !== null
       ? +inputs.nearestEpicenterKm.toFixed(1)
@@ -750,38 +822,42 @@ export class RiskScoringEngine {
       sniStandardRef: sniRef,
       liquefactionRisk: liqRiskId,
       liquefactionSource: inputs.inariskLiquefactionRisk ? 'BNPB INDEKS_BAHAYA_LIKUEFAKSI ImageServer' : null,
-      scoreLedger: quakeScoreLedger,
+      scoreLedger: quakeScoreLedger || undefined,
       bnpbInaRiskClass: quakeClassSource === 'BNPB' ? quakeClassStr : null,
       causeId: quakeCauseId,
       causeEn: quakeCauseEn,
       impactId: !hasQuakeData || quakeScore === null
         ? 'Data parameter kegempaan tidak cukup untuk mengindikasikan potensi guncangan fisik.'
-        : quakeScore > 65
-        ? 'Potensi guncangan seismik tinggi pada aktivitas tektonik regional, risiko retak geser dinding bata, dan deformasi balok non-daktil.'
-        : quakeScore > 35
-        ? 'Potensi guncangan sedang saat aktivitas tektonik regional, risiko retak rambut pada plesteran dinding.'
-        : 'Tingkat bahaya gempa dan aktivitas seismik historis tercatat relatif rendah.',
+        : (inputs.pgaMcegG !== null && inputs.pgaMcegG !== undefined)
+        ? `Perkiraan percepatan tanah puncak model (PGA) ${inputs.pgaMcegG} g untuk periode ulang 100 tahun (${inputs.pgaMcegG < 0.1 ? 'Guncangan diperkirakan ringan' : inputs.pgaMcegG <= 0.25 ? 'Guncangan diperkirakan sedang' : inputs.pgaMcegG <= 0.4 ? 'Guncangan diperkirakan kuat' : 'Guncangan diperkirakan sangat kuat'}). Berpotensi menimbulkan gaya lateral dinamis pada elemen bangunan saat terjadi gempa signifikan.`
+        : (quakeScore > 60
+            ? 'Potensi guncangan seismik tinggi saat terjadi gempa tektonik regional, memerlukan perhatian pada sistem struktur penahan beban gempa.'
+            : quakeScore > 30
+            ? 'Potensi guncangan sedang saat terjadi gempa tektonik di kawasan sekitar tapak.'
+            : 'Tingkat bahaya gempa dan aktivitas seismik historis tercatat relatif rendah.'),
       impactEn: !hasQuakeData || quakeScore === null
         ? 'Insufficient seismic parameter data to indicate potential physical ground shaking.'
-        : quakeScore > 65
-        ? 'Potential significant seismic shaking during regional tectonic events, risk of shear wall cracking and non-ductile frame deformation.'
-        : quakeScore > 35
-        ? 'Moderate ground acceleration during regional tectonic events, minor hairline plaster fissure risk.'
-        : 'Seismic hazard tier and recorded historical seismicity are relatively low.',
+        : (inputs.pgaMcegG !== null && inputs.pgaMcegG !== undefined)
+        ? `Model peak ground acceleration (PGA) ${inputs.pgaMcegG} g under 100-year return period (${inputs.pgaMcegG < 0.1 ? 'Ground shaking estimated to be light' : inputs.pgaMcegG <= 0.25 ? 'Ground shaking estimated to be moderate' : inputs.pgaMcegG <= 0.4 ? 'Ground shaking estimated to be strong' : 'Ground shaking estimated to be very strong'}). May induce dynamic lateral forces on structural components during significant earthquake events.`
+        : (quakeScore > 60
+            ? 'High seismic shaking potential during regional tectonic events, requiring appropriate structural diligence.'
+            : quakeScore > 30
+            ? 'Moderate ground shaking potential during regional seismic events.'
+            : 'Seismic hazard tier and recorded historical seismicity are relatively low.'),
       recomId: !hasQuakeData || quakeScore === null
         ? 'Data parameter kegempaan tidak cukup untuk merumuskan rekomendasi penapisan.'
-        : quakeScore > 65
-        ? 'Evaluasi sistem struktur dan sambungan balok-kolom oleh engineer struktur sesuai standar ketahanan gempa yang berlaku.'
-        : quakeScore > 35
-        ? 'Pastikan pengikatan kolom praktis dengan pasangan dinding bata terpasang secara berkala.'
-        : 'Terapkan detail standar sambungan struktur bangunan tahan gempa dasar.',
+        : quakeScore > 60
+        ? 'Pastikan evaluasi sistem struktur penahan beban gempa dan detail sambungan daktil oleh ahli teknik struktur berlisensi sesuai standar SNI 1726.'
+        : quakeScore > 30
+        ? 'Periksa pengikatan kolom praktis dengan pasangan dinding bata dan balok pengikat secara cermat.'
+        : 'Pertimbangkan penerapan detail standar sambungan struktur bangunan tahan gempa dasar sebagai langkah preventif.',
       recomEn: !hasQuakeData || quakeScore === null
         ? 'Insufficient seismic parameter data to formulate screening recommendations.'
-        : quakeScore > 65
-        ? 'Evaluate structural framing and ductile connection detailing through a qualified structural engineer referencing applicable seismic design standards.'
-        : quakeScore > 35
-        ? 'Ensure tie columns and bond beams are anchored to masonry walls at regular intervals.'
-        : 'Implement standard structural connection detailing for seismic safety.'
+        : quakeScore > 60
+        ? 'Ensure professional evaluation of seismic force-resisting systems and ductile connection detailing by a licensed structural engineer per SNI 1726.'
+        : quakeScore > 30
+        ? 'Inspect physical tie columns, masonry bond beams, and foundation grade beam connections.'
+        : 'Consider implementing standard seismic-resistant detailing as a preventive measure.'
     };
 
     // =========================================================================
@@ -930,8 +1006,8 @@ export class RiskScoringEngine {
       forecastPeakTempC: (inputs.forecastPeakTempC !== null && inputs.forecastPeakTempC !== undefined) ? +inputs.forecastPeakTempC.toFixed(1) : null,
       avgMaxTempC: (inputs.avgMaxTempC !== null && inputs.avgMaxTempC !== undefined) ? +inputs.avgMaxTempC.toFixed(1) : null,
       historicalPeakTempC: (inputs.historicalPeakTempC !== null && inputs.historicalPeakTempC !== undefined) ? +inputs.historicalPeakTempC.toFixed(1) : null,
-      historicalPeriod: '2020-01-01 to 2024-12-31',
-      historicalDataSource: 'ERA5-Seamless (Open-Meteo)',
+      historicalPeriod: inputs.historicalPeriod || (inputs.isFallbackFlags?.openMeteoFallback ? '2023 (Calendar Year)' : '2020-01-01 to 2024-12-31'),
+      historicalDataSource: inputs.historicalDataSource || (inputs.isFallbackFlags?.openMeteoFallback ? 'NASA POWER (MERRA-2)' : 'ERA5-Seamless (Open-Meteo)'),
       thinkHazardExtremeHeatLevel: inputs.thinkHazardReport?.extremeHeatLevel && inputs.thinkHazardReport.extremeHeatLevel !== 'No Data' ? inputs.thinkHazardReport.extremeHeatLevel : null,
       greenSpaceRatioPct: (inputs.greenSpaceRatioPct !== null && inputs.greenSpaceRatioPct !== undefined && inputs.greenSpaceRatioPct >= 0) ? Math.round(inputs.greenSpaceRatioPct) : null,
       urbanHeatIslandFactor: heatModelLevel,
@@ -1106,17 +1182,27 @@ export class RiskScoringEngine {
       const partialNoteId = transportObservedComponents < 4 ? ` (Penilaian Parsial: ${transportObservedComponents}/4 indikator teramati)` : '';
       const partialNoteEn = transportObservedComponents < 4 ? ` (Partial Assessment: ${transportObservedComponents}/4 indicators observed)` : '';
 
+      const assemblyDescId = inputs.nearestAssemblyPointName
+        ? `, titik kumpul evakuasi ${inputs.nearestAssemblyPointName} (±${inputs.distanceToAssemblyPointMeters}m)`
+        : '';
+      const assemblyDescEn = inputs.nearestAssemblyPointName
+        ? `, emergency assembly point ${inputs.nearestAssemblyPointName} (±${inputs.distanceToAssemblyPointMeters}m)`
+        : '';
+
+      const roadNameId = inputs.nearestRoadName ? `koridor jalan ${inputs.nearestRoadName}` : roadDescId;
+      const roadNameEn = inputs.nearestRoadName ? `road corridor ${inputs.nearestRoadName}` : roadDescEn;
+
       transportCauseId = transportScore !== null && transportScore <= 35
-        ? `Aksesibilitas prima dengan ${roadDescId}, ${arterialDescId}, dan ${hospDescId}.${partialNoteId}`
+        ? `Aksesibilitas prima melalui ${roadNameId} dan ${arterialDescId}${assemblyDescId}; faskes pendukung ${hospDescId}.${partialNoteId}`
         : transportScore !== null && transportScore <= 65
-        ? `Konektivitas kawasan memadai dengan ${roadDescId}, ${arterialDescId}, dan ${hospDescId}.${partialNoteId}`
-        : `Kawasan dengan akses terisolasi, ${roadDescId} dan ${hospDescId}.${partialNoteId}`;
+        ? `Konektivitas kawasan memadai melalui ${roadNameId} dan ${arterialDescId}${assemblyDescId}; faskes pendukung ${hospDescId}.${partialNoteId}`
+        : `Kawasan dengan akses terisolasi melalui ${roadNameId}${assemblyDescId}; faskes ${hospDescId}.${partialNoteId}`;
 
       transportCauseEn = transportScore !== null && transportScore <= 35
-        ? `Prime accessibility with ${roadDescEn}, ${arterialDescEn}, and ${hospDescEn}.${partialNoteEn}`
+        ? `Prime accessibility via ${roadNameEn} and ${arterialDescEn}${assemblyDescEn}; auxiliary healthcare ${hospDescEn}.${partialNoteEn}`
         : transportScore !== null && transportScore <= 65
-        ? `Adequate district connectivity with ${roadDescEn}, ${arterialDescEn}, and ${hospDescEn}.${partialNoteEn}`
-        : `Isolated access profile, ${roadDescEn} and ${hospDescEn}.${partialNoteEn}`;
+        ? `Adequate district connectivity via ${roadNameEn} and ${arterialDescEn}${assemblyDescEn}; auxiliary healthcare ${hospDescEn}.${partialNoteEn}`
+        : `Isolated access profile via ${roadNameEn}${assemblyDescEn}; healthcare ${hospDescEn}.${partialNoteEn}`;
     }
 
     const hasRouteData = Boolean(
@@ -1319,8 +1405,8 @@ export class RiskScoringEngine {
         longitude: coords.lng,
         country
       },
-      propertyType: finalPropType || 'Residential',
-      userPersona: finalPersona || 'Home Buyer',
+      propertyType: finalPropType || (null as any),
+      userPersona: finalPersona || (null as any),
       overallScore,
       overallLevel,
       dominantHazard,
@@ -1402,6 +1488,39 @@ export class RiskScoringEngine {
       heat,
       transport,
       prescriptions,
+      buildingProfile: {
+        propertyType: finalPropType,
+        buildingFloors: inputs.buildingFloors ?? null,
+        constructionYear: inputs.constructionYear ?? null,
+        foundationType: inputs.foundationType ?? null,
+        structuralSystem: inputs.structuralSystem ?? null,
+        estimatedPropertyValueIdr: inputs.estimatedPropertyValueIdr ?? null,
+        profilingLevel: Boolean(
+          inputs.buildingFloors ||
+          inputs.constructionYear ||
+          inputs.foundationType ||
+          inputs.structuralSystem ||
+          inputs.estimatedPropertyValueIdr
+        ) ? 'enriched_building_attributes' : 'basic_location_only',
+        notesId: Boolean(
+          inputs.buildingFloors ||
+          inputs.constructionYear ||
+          inputs.foundationType ||
+          inputs.structuralSystem ||
+          inputs.estimatedPropertyValueIdr
+        )
+          ? 'Atribut fisik bangunan tersedia untuk penapisan kerentanan struktural spesifik.'
+          : 'Penapisan tapak awal berbasis geospasial. Atribut spesifik bangunan dapat dilengkapi melalui progressive profiling atau verifikasi lapangan.',
+        notesEn: Boolean(
+          inputs.buildingFloors ||
+          inputs.constructionYear ||
+          inputs.foundationType ||
+          inputs.structuralSystem ||
+          inputs.estimatedPropertyValueIdr
+        )
+          ? 'Physical building attributes available for structural vulnerability screening.'
+          : 'Initial geospatial site screening. Specific building attributes can be enriched via progressive profiling or field verification.'
+      },
       financialScreening,
       climadaFinancial: financialScreening,
       worldBankReport,

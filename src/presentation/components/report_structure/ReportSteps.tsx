@@ -40,7 +40,7 @@ export const ReportSteps: React.FC = () => {
           <button
             type="button"
             className="gt-download-sample-btn"
-            onClick={() => setIsReportModalOpen(true)}
+            onClick={() => window.open('/api/reports/sample', '_blank')}
             style={{
               display: 'inline-flex',
               alignItems: 'center',

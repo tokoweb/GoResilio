@@ -135,6 +135,56 @@ CREATE TABLE IF NOT EXISTS `system_feeds` (
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ------------------------------------------------------------------------------
+-- 8. Table: user_reports (Persistent Multi-Hazard Assessment Report Library)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `user_reports` (
+  `id` VARCHAR(64) PRIMARY KEY,
+  `user_id` VARCHAR(64) NOT NULL,
+  `user_email` VARCHAR(191) NULL,
+  `ref_number` VARCHAR(64) NOT NULL UNIQUE,
+  `property_name` VARCHAR(180) NOT NULL,
+  `address` TEXT NOT NULL,
+  `latitude` DECIMAL(10, 7) NOT NULL,
+  `longitude` DECIMAL(10, 7) NOT NULL,
+  `overall_score` INT NOT NULL DEFAULT 50,
+  `overall_level` VARCHAR(30) NOT NULL DEFAULT 'medium',
+  `package_type` VARCHAR(120) NOT NULL DEFAULT 'Instant (1 Properti)',
+  `report_data` JSON NULL,
+  `status` VARCHAR(30) NOT NULL DEFAULT 'completed',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_rep_user` (`user_id`),
+  INDEX `idx_rep_ref` (`ref_number`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------------------------------------------
+-- 9. Table: payment_transactions (Historical Transaction & Inquiry Records)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `payment_transactions` (
+  `id` VARCHAR(64) PRIMARY KEY,
+  `order_id` VARCHAR(100) NOT NULL UNIQUE,
+  `user_email` VARCHAR(191) NOT NULL,
+  `user_id` VARCHAR(64) NULL,
+  `plan_name` VARCHAR(150) NOT NULL,
+  `tier_level` VARCHAR(80) NOT NULL DEFAULT 'Tier 2 Pro (Rp 45rb)',
+  `amount` DECIMAL(12, 2) NOT NULL DEFAULT 45000.00,
+  `payment_type` VARCHAR(50) NOT NULL DEFAULT 'direct_admin',
+  `transaction_status` VARCHAR(50) NOT NULL DEFAULT 'pending',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX `idx_tx_order` (`order_id`),
+  INDEX `idx_tx_email` (`user_email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------------------------------------------
+-- 10. Table: system_configs (Dynamic Configuration & Scoring Settings)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `system_configs` (
+  `config_key` VARCHAR(100) PRIMARY KEY,
+  `config_value` JSON NOT NULL,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ==============================================================================
 -- REAL SEED DATA (5 PERSONAS / ROLES & PRODUCTION SAMPLES)
 -- ==============================================================================

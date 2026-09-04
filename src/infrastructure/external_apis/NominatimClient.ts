@@ -111,10 +111,21 @@ export class NominatimClient {
         return mapboxResults;
       }
     } catch {
+      // Fallback to Photon
+    }
+
+    // 2. Primary Autocomplete Engine: Photon by Komoot (Free, OSM-based search-as-you-type, safe for keystroke autocomplete)
+    try {
+      const photonRes = await PhotonGeocodingClient.searchLocations(query);
+      if (photonRes.data && photonRes.data.length > 0) {
+        LocalApiCache.set(cacheKey, photonRes.data, 3600);
+        return photonRes.data;
+      }
+    } catch {
       // Fallback to OSM Nominatim
     }
 
-    // 2. OpenStreetMap Nominatim (Single query scheduled via serialized rate-limiting queue)
+    // 3. Final Fallback: OpenStreetMap Nominatim (Strict single query scheduled via serialized queue, only when Photon yields no result)
     try {
       const items = await this.scheduleSerializedFetch(async () => {
         const controller = new AbortController();
@@ -154,22 +165,17 @@ export class NominatimClient {
           const lon = Number(item.lon);
           if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
 
-          const dedupeKey = item.osm_type && item.osm_id
-            ? `${item.osm_type}_${item.osm_id}`
-            : `${lat.toFixed(6)},${lon.toFixed(6)}`;
-
-          if (!seen.has(dedupeKey)) {
-            seen.add(dedupeKey);
-            unique.push(item);
-          }
+          const key = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          unique.push(item);
         }
 
         if (unique.length > 0) {
           const suggestions: GeocodingSuggestion[] = unique.map((item, idx) => {
             const lat = Number(item.lat);
             const lon = Number(item.lon);
-            // Strict city parsing: only city, town, or municipality. Never state/province.
-            const city = item.address?.city || item.address?.town || item.address?.municipality || undefined;
+            const city = item.address?.city || item.address?.town || item.address?.municipality || item.address?.village || item.address?.county || undefined;
 
             return {
               displayName: item.display_name,
@@ -200,17 +206,6 @@ export class NominatimClient {
           LocalApiCache.set(cacheKey, suggestions, 3600);
           return suggestions;
         }
-      }
-    } catch {
-      // Fallback to Photon
-    }
-
-    // 3. Fallback to Photon by Komoot (using audited PhotonGeocodingClient)
-    try {
-      const photonRes = await PhotonGeocodingClient.searchLocations(query);
-      if (photonRes.data && photonRes.data.length > 0) {
-        LocalApiCache.set(cacheKey, photonRes.data, 3600);
-        return photonRes.data;
       }
     } catch {
       // Fallback exhausted

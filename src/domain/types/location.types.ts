@@ -1,7 +1,36 @@
+export type GeocodingResultType =
+  | 'address'
+  | 'street'
+  | 'neighbourhood'
+  | 'locality'
+  | 'district'
+  | 'region'
+  | 'country'
+  | 'venue';
+
 export interface GeocodingSuggestion {
-  displayName: string;
+  id: string;
+  label: string;
+  name: string;
+  formattedAddress: string;
+  houseNumber: string | null;
+  street: string | null;
+  neighbourhood: string | null;
+  district: string | null;
+  city: string | null;
+  region: string | null;
+  postalCode: string | null;
+  country: string | null;
+  countryCode: string | null;
   latitude: number;
   longitude: number;
+  resultType: GeocodingResultType;
+  confidence: number | null;
+  provider: string;
+  providerRecordId: string | null;
+
+  // Backward-compatibility fields
+  displayName?: string;
   type?: string;
   addressDetails?: {
     city?: string;

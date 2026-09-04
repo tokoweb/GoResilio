@@ -92,6 +92,7 @@ export function runHeatRiskAndEnvironmentalHardeningTests(): boolean {
   console.log('--- Test Case A: Full Heat Data Available ---');
   {
     const fullInputs: RawPhysicalInputs = {
+      coordinates: new Coordinates(-6.2088, 106.8456),
       elevationMeters: 15,
       max24hRainfallMm: 45,
       distanceToRiverMeters: 1500,
