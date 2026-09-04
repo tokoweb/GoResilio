@@ -11,6 +11,7 @@ import { isPaidUser, normalizeUserTier, UserTier } from '../../domain/types/User
 import { IndexedDbRepository } from '../../infrastructure/database/IndexedDbRepository';
 import { DataProvenanceAuditModal } from '../components/audit/DataProvenanceAuditModal';
 import { PerformSiteAssessmentUseCase } from '../../application/use_cases/PerformSiteAssessment.usecase';
+import { CanonicalRatingResolver } from '../../domain/services/CanonicalRatingResolver';
 
 export type OverrideLevel = 'auto' | 'high' | 'medium' | 'low';
 export type AppViewMode = 'public' | 'account';
@@ -288,9 +289,12 @@ interface AssessmentContextProps {
   selectPreset: (presetId: string) => Promise<void>;
   setManualScoreLevel: (level: 'high' | 'medium' | 'low') => void;
   
-  // Admin Live Configuration
+  // Admin Live Configuration & Navigation
   adminConfig: AdminDashboardConfig;
   updateAdminConfig: (newConfig: Partial<AdminDashboardConfig>) => void;
+  adminInitialTab: { tab: 'overview' | 'scoring' | 'customers' | 'inbox' | 'reports' | 'documents' | 'system' | 'account'; subView?: 'requests' | 'inquiries' } | null;
+  setAdminInitialTab: (state: { tab: 'overview' | 'scoring' | 'customers' | 'inbox' | 'reports' | 'documents' | 'system' | 'account'; subView?: 'requests' | 'inquiries' } | null) => void;
+  openAdminConsole: (tab?: 'overview' | 'scoring' | 'customers' | 'inbox' | 'reports' | 'documents' | 'system' | 'account', subView?: 'requests' | 'inquiries') => void;
 }
 
 const AssessmentContext = createContext<AssessmentContextProps | undefined>(undefined);
@@ -480,6 +484,45 @@ export const AssessmentProvider: React.FC<{ children: ReactNode }> = ({ children
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const [adminInitialTab, setAdminInitialTab] = useState<{ tab: 'overview' | 'scoring' | 'customers' | 'inbox' | 'reports' | 'documents' | 'system' | 'account'; subView?: 'requests' | 'inquiries' } | null>(null);
+
+  const openAdminConsole = (
+    tab: 'overview' | 'scoring' | 'customers' | 'inbox' | 'reports' | 'documents' | 'system' | 'account' = 'inbox',
+    subView: 'requests' | 'inquiries' = 'inquiries'
+  ) => {
+    setActiveAccountRole('Super Admin (RDI)');
+    setUserPersona('Real Estate Agent');
+    setAccountEmail('admin.ops@gotangguh.id');
+    setCurrentUser({
+      id: 'usr_admin_01',
+      email: 'admin.ops@gotangguh.id',
+      fullName: 'Tim Admin Geospasial RDI',
+      role: 'Super Admin (RDI)',
+      tierLevel: 'Platform Master Authority',
+      isVerified: true
+    });
+    setIsLoggedIn(true);
+    setCurrentView('account');
+    
+    // Auto map consultation inquiries subview directly to dedicated 'inbox' tab
+    const targetTab = tab === 'reports' && subView === 'inquiries' ? 'inbox' : tab;
+    setAdminInitialTab({ tab: targetTab, subView });
+    try {
+      localStorage.setItem('gotangguh_session', JSON.stringify({
+        user: {
+          id: 'usr_admin_01',
+          email: 'admin.ops@gotangguh.id',
+          fullName: 'Tim Admin Geospasial RDI',
+          role: 'Super Admin (RDI)',
+          tierLevel: 'Platform Master Authority',
+          isVerified: true
+        },
+        view: 'account'
+      }));
+    } catch {}
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const runAssessmentForCoords = async (lat: number, lng: number, address?: string) => {
     // 1. Abort any previous pending scan request
     if (abortControllerRef.current) {
@@ -551,6 +594,7 @@ export const AssessmentProvider: React.FC<{ children: ReactNode }> = ({ children
       }
 
       if (result) {
+        CanonicalRatingResolver.attachCanonicalRatings(result, 'id');
         setAssessment(result);
         setAssessmentCoordinates({ lat: result.location.latitude, lng: result.location.longitude });
         setMapMarkerPosition({ lat: result.location.latitude, lng: result.location.longitude });
@@ -684,7 +728,10 @@ export const AssessmentProvider: React.FC<{ children: ReactNode }> = ({ children
         selectPreset,
         setManualScoreLevel,
         adminConfig,
-        updateAdminConfig
+        updateAdminConfig,
+        adminInitialTab,
+        setAdminInitialTab,
+        openAdminConsole
       }}
     >
       {children}

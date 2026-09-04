@@ -269,14 +269,14 @@ export async function runPhase11_3Tests(): Promise<{
     const sampleHtml = MasterReportGenerator.generateMasterReportHtml({ assessment: realScanResult, isSample: true, lang: 'id' });
 
     const realClean = !realHtml.includes('<div class="watermark">') && !realHtml.includes('CONTOH LAPORAN RESMI') && realHtml.includes('Penapisan Mandiri Terverifikasi');
-    const sampleMarked = sampleHtml.includes('<div class="watermark">') && sampleHtml.includes('Dokumen Sampel');
+    const sampleMarked = !sampleHtml.includes('<div class="watermark">') && sampleHtml.includes('Dokumen Sampel');
 
     const passed10 = realClean && sampleMarked;
     results.push({
       test: 'TEST 10: Strict Sample vs Real Report Isolation',
       passed: passed10,
       message: passed10
-        ? 'Isolation 100% verified: Real report is pristine without sample badges; Sample report has explicit watermarks'
+        ? 'Isolation 100% verified: Real report is pristine; Sample report has sample badge without intrusive watermarks'
         : `Failed: realClean=${realClean}, sampleMarked=${sampleMarked}`
     });
   } catch (err: any) {

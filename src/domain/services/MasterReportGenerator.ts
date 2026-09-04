@@ -745,24 +745,6 @@ export class MasterReportGenerator {
       font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
-    /* Watermark for Sample */
-    .watermark {
-      position: fixed;
-      top: 40%;
-      left: 5%;
-      right: 5%;
-      font-size: 42pt;
-      color: rgba(225, 29, 72, 0.08);
-      transform: rotate(-30deg);
-      font-weight: 900;
-      pointer-events: none;
-      z-index: 999;
-      text-align: center;
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      text-transform: uppercase;
-      letter-spacing: 4px;
-    }
-
     .sample-banner {
       background: #fff1f2;
       border: 1px solid #fecdd3;
@@ -783,8 +765,6 @@ export class MasterReportGenerator {
   </style>
 </head>
 <body>
-  ${isSample ? `<div class="watermark">${cover.watermarkText || (isEn ? 'SAMPLE REPORT' : 'CONTOH LAPORAN RESMI')}</div>` : ''}
-
   <div class="groundsure-pdf-document">
 
     <!-- =========================================================================

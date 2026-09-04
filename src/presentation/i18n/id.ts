@@ -34,25 +34,26 @@ export const idDictionary = {
     }
   },
   dashboard: {
-    mapTitle: 'Visualisasi Tapak & Zonasi Hazard',
+    mapTitle: 'Peta Lokasi & Zonasi Bahaya',
     perspectiveBadge: 'Perspektif',
     mapHint:
       'Peta Interaktif Saling Tersinkronisasi: Mengetik alamat, mengeklik peta, atau menggeser pin marker secara otomatis memperbarui analisis risiko di seluruh platform!',
-    indicatorsTitle: 'Detail Analisis Multi-Hazard & Aksesibilitas Site',
+    indicatorsTitle: 'Detail Analisis Bahaya & Aksesibilitas Tapak',
     indicatorsSubtitle: '4 Indikator Penilaian Utama',
-    overallScoreTitle: 'Skor Risiko Gabungan',
+    overallScoreTitle: 'Indeks Risiko Terpadu',
+    overallScoreSubtitle: 'Risiko Keseluruhan',
     propertyTypeLabel: 'Tipe Properti',
-    downloadPdfBtn: 'Unduh Full Report (PDF)',
+    downloadPdfBtn: 'Unduh Ringkasan Laporan (PDF)',
     roleInsightTitle: 'Rekomendasi',
     cards: {
       floodTitle: 'Banjir & Genangan',
       quakeTitle: 'Gempa & Sesar Aktif',
-      heatTitle: 'Heat Stress & Iklim',
+      heatTitle: 'Kondisi Panas',
       transportTitle: 'Transportasi & Akses',
-      causeLabel: 'Penyebab Utama:',
-      impactLabel: 'Potensi Dampak:',
-      recomLabel: 'Rekomendasi:',
-      accessRecomLabel: 'Rekomendasi Akses:'
+      causeLabel: 'Faktor Utama:',
+      impactLabel: 'Dampak yang Perlu Diperhatikan:',
+      recomLabel: 'Yang Sebaiknya Dilakukan:',
+      accessRecomLabel: 'Akses & Evakuasi:'
     }
   },
   pricing: {
@@ -135,17 +136,21 @@ export const idDictionary = {
     ],
     formTitle: 'Formulir Permohonan Konsultasi & Verifikasi',
     nameLabel: 'Nama Lengkap',
-    namePlaceholder: 'Contoh: Budi Santoso',
-    emailLabel: 'Email & Kontak WhatsApp',
-    emailPlaceholder: 'nama@email.com / 0812xxxx',
+    namePlaceholder: 'Masukkan nama lengkap Anda',
+    emailLabel: 'Alamat Email Resmi',
+    emailPlaceholder: 'nama@email.com',
+    phoneLabel: 'Nomor WhatsApp / Kontak Aktif',
+    phonePlaceholder: '0812-xxxx-xxxx',
     companyLabel: 'Institusi / Perusahaan (Opsional)',
-    companyPlaceholder: 'Contoh: PT Developer Maju / Pribadi',
+    companyPlaceholder: 'Masukkan nama instansi atau perusahaan',
     roleLabel: 'Profil / Peran Anda',
     packageLabel: 'Pilihan Paket Layanan',
+    packagePlaceholder: 'Pilih paket layanan...',
     locationLabel: 'Titik Lokasi Properti / Lahan',
+    locationPlaceholder: 'Masukkan alamat atau lokasi properti',
     dateLabel: 'Pilih Tanggal Rencana Konsultasi',
     notesLabel: 'Catatan Spesifikasi Kebutuhan (Opsional)',
-    notesPlaceholder: 'Tuliskan detail pertanyaan atau kebutuhan khusus Anda...',
+    notesPlaceholder: 'Tuliskan catatan atau kebutuhan spesifik Anda di sini...',
     submitBtn: 'Kirim Permohonan Konsultasi',
     successMsg: 'Permohonan Konsultasi Berhasil Terkirim!',
     successSub: 'Tim ahli akan menghubungi Anda melalui WhatsApp atau Email dalam 1x24 jam untuk konfirmasi jadwal.'
@@ -182,17 +187,17 @@ export const idDictionary = {
     addressLabel: 'Alamat Tapak:',
     propTypeLabel: 'Tipe Properti:',
     perspectiveLabel: 'Perspektif Klien:',
-    opinionHeader: 'Professional Opinion & Key Results',
-    opinionHigh: 'Significant environmental & climate risks have been identified. Action is recommended before transaction completion.',
-    opinionMed: 'Moderate environmental & climate risks identified. Preventive mitigation recommended.',
-    opinionLow: 'Low environmental & climate risks. Standard maintenance sufficient.',
+    opinionHeader: 'Opini Profesional & Kesimpulan Utama',
+    opinionHigh: 'Risiko lingkungan & bencana iklim signifikan teridentifikasi. Tindakan mitigasi teknis direkomendasikan sebelum transaksi selesai.',
+    opinionMed: 'Risiko lingkungan & bencana iklim tingkat sedang teridentifikasi. Tindakan pencegahan direkomendasikan.',
+    opinionLow: 'Risiko lingkungan & bencana iklim tergolong rendah. Pemeliharaan standar tapak sudah memadai.',
     tableHeader: {
       hazard: 'Kategori Hazard',
       status: 'Status / Rating',
       cause: 'Penyebab Utama / Kondisi Tapak',
       mitigation: 'Langkah Mitigasi & Akses Direkomendasikan'
     },
-    nextStepsTitle: "Consultant's Guidance & Next Steps",
+    nextStepsTitle: 'Panduan Konsultan & Langkah Selanjutnya',
     downloadBtn: 'Unduh / Cetak Laporan PDF',
     closeBtn: 'Tutup'
   },
@@ -200,7 +205,7 @@ export const idDictionary = {
     copyright: '© 2026 GoResilio. Climate & Disaster Risk Property Assessment Platform.'
   },
   auth: {
-    portalTitle: 'Portal Klien & Institusi GoTangguh',
+    portalTitle: 'Portal Klien & Institusi GoResilio',
     portalSubtitle: 'Akses dasbor portofolio risiko tapak, arsip laporan PDF terverifikasi, dan integrasi data feed.',
     buyerTab: 'Individu / Pembeli',
     developerTab: 'Developer Properti',
@@ -211,7 +216,7 @@ export const idDictionary = {
     passPlaceholder: '••••••••••••',
     submitBtn: 'Masuk ke Dasbor Portofolio',
     demoInstantBtn: 'Masuk Otomatis (Demo Mode)',
-    loginSuccess: 'Berhasil Masuk! Selamat datang di Dasbor Portofolio GoTangguh.',
+    loginSuccess: 'Berhasil Masuk! Selamat datang di Dasbor Portofolio GoResilio.',
     securityNote: 'Privasi & data Anda terjamin aman.'
   }
 };

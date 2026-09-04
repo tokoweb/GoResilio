@@ -31,7 +31,7 @@ interface ClientLoginModalProps {
 
 export const ClientLoginModal: React.FC<ClientLoginModalProps> = ({ isOpen, onClose }) => {
   const { language, t } = useLanguage();
-  const { loginWithUser, loginAsRole } = useAssessment();
+  const { loginWithUser, loginAsRole, openAdminConsole } = useAssessment();
   const [isMounted, setIsMounted] = useState<boolean>(false);
 
   useEffect(() => {
@@ -136,7 +136,7 @@ export const ClientLoginModal: React.FC<ClientLoginModalProps> = ({ isOpen, onCl
         return;
       }
 
-      setSuccessMsg(isEn ? `Registration successful! Welcome to GoTangguh, ${data.user?.fullName || regFullName}!` : `Pendaftaran berhasil! Selamat datang di GoTangguh, ${data.user?.fullName || regFullName}!`);
+      setSuccessMsg(isEn ? `Registration successful! Welcome to GoResilio, ${data.user?.fullName || regFullName}!` : `Pendaftaran berhasil! Selamat datang di GoResilio, ${data.user?.fullName || regFullName}!`);
       setTimeout(() => {
         if (data.user) {
           loginWithUser(data.user);
@@ -172,11 +172,11 @@ export const ClientLoginModal: React.FC<ClientLoginModalProps> = ({ isOpen, onCl
         <div className="gt-login-header">
           <div className="gt-login-brand">
             <div style={{ width: '32px', height: '32px', background: 'linear-gradient(135deg, #c2410c, #ea580c)', color: '#fff', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.85rem' }}>
-              GT
+              GR
             </div>
             <div className="gt-login-brand-name">
               <span className="gt-login-go">Go</span>
-              <span className="gt-login-tangguh">Tangguh</span>
+              <span className="gt-login-tangguh">Resilio</span>
             </div>
           </div>
           <h3 className="gt-login-title">
@@ -247,7 +247,7 @@ export const ClientLoginModal: React.FC<ClientLoginModalProps> = ({ isOpen, onCl
                   <input
                     type="email"
                     style={{ width: '100%', border: 'none', background: 'transparent', padding: '9px 0', fontSize: '0.84rem', outline: 'none', color: '#0f172a' }}
-                    placeholder={isEn ? 'name@company.com' : 'nama@domain.com'}
+                    placeholder={isEn ? 'name@company.com' : 'nama@email.com'}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -287,6 +287,36 @@ export const ClientLoginModal: React.FC<ClientLoginModalProps> = ({ isOpen, onCl
                 <span>{isSubmitting ? (isEn ? 'Signing in...' : 'Memverifikasi Akun...') : (isEn ? 'Sign In to Workspace' : 'Masuk ke Portal')}</span>
                 <ArrowRight size={15} />
               </button>
+
+              <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px dashed #cbd5e1' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    openAdminConsole('reports', 'inquiries');
+                    onClose();
+                  }}
+                  style={{
+                    width: '100%',
+                    background: '#fff7ed',
+                    border: '1px solid #fed7aa',
+                    borderRadius: '8px',
+                    padding: '9px 12px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    color: '#c2410c',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '7px',
+                    transition: 'all 0.2s'
+                  }}
+                  title={isEn ? 'Direct Login to Consultation & Admin Console' : 'Masuk Langsung ke Dashboard Admin Konsultasi'}
+                >
+                  <ShieldCheck size={15} style={{ color: '#c2410c' }} />
+                  <span>{isEn ? 'Direct Access: Consultation & Admin Console' : 'Akses Langsung: Dashboard Admin Konsultasi'}</span>
+                </button>
+              </div>
             </form>
           </div>
         ) : (
@@ -304,7 +334,7 @@ export const ClientLoginModal: React.FC<ClientLoginModalProps> = ({ isOpen, onCl
                   <input
                     type="text"
                     style={{ width: '100%', border: 'none', background: 'transparent', padding: '8px 0', fontSize: '0.8rem', outline: 'none', color: '#0f172a' }}
-                    placeholder={isEn ? 'John Doe' : 'Nama Lengkap'}
+                    placeholder={isEn ? 'Enter your full name' : 'Masukkan nama lengkap'}
                     value={regFullName}
                     onChange={(e) => setRegFullName(e.target.value)}
                     required
@@ -321,7 +351,7 @@ export const ClientLoginModal: React.FC<ClientLoginModalProps> = ({ isOpen, onCl
                   <input
                     type="text"
                     style={{ width: '100%', border: 'none', background: 'transparent', padding: '8px 0', fontSize: '0.8rem', outline: 'none', color: '#0f172a' }}
-                    placeholder="+62 812-xxxx"
+                    placeholder={isEn ? '+62 812-xxxx-xxxx' : '0812-xxxx-xxxx'}
                     value={regPhone}
                     onChange={(e) => setRegPhone(e.target.value)}
                   />
@@ -339,7 +369,7 @@ export const ClientLoginModal: React.FC<ClientLoginModalProps> = ({ isOpen, onCl
                   <input
                     type="email"
                     style={{ width: '100%', border: 'none', background: 'transparent', padding: '8px 0', fontSize: '0.8rem', outline: 'none', color: '#0f172a' }}
-                    placeholder="email@domain.com"
+                    placeholder={isEn ? 'name@email.com' : 'nama@email.com'}
                     value={regEmail}
                     onChange={(e) => setRegEmail(e.target.value)}
                     required
@@ -391,7 +421,7 @@ export const ClientLoginModal: React.FC<ClientLoginModalProps> = ({ isOpen, onCl
                   <input
                     type="text"
                     style={{ width: '100%', border: 'none', background: 'transparent', padding: '8px 0', fontSize: '0.8rem', outline: 'none', color: '#0f172a' }}
-                    placeholder={isEn ? 'e.g. Individual / PT XYZ' : 'Contoh: Pribadi / PT XYZ'}
+                    placeholder={isEn ? 'Enter organization or individual' : 'Nama instansi atau perorangan'}
                     value={regOrganization}
                     onChange={(e) => setRegOrganization(e.target.value)}
                   />

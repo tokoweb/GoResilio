@@ -21,8 +21,31 @@ const poolConfig: mysql.PoolOptions = {
 let pool: mysql.Pool | null = null;
 let tablesInitialized = false;
 
-export const ensureTablesExist = async (p: mysql.Pool) => {
-  if (tablesInitialized) return;
+export const createDatabaseIfNotExists = async () => {
+  try {
+    const rootConn = await mysql.createConnection({
+      host: process.env.DB_HOST || 'localhost',
+      port: Number(process.env.DB_PORT) || 3306,
+      user: process.env.DB_USER || 'root',
+      password: process.env.DB_PASSWORD || ''
+    });
+    await rootConn.query(`CREATE DATABASE IF NOT EXISTS \`${process.env.DB_NAME || 'gotangguh_db'}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`);
+    await rootConn.end();
+  } catch (e) {
+    console.warn('[mysql.connection] Auto create database warning:', e);
+  }
+};
+
+export const ensureTablesExist = async (p: mysql.Pool, force = false): Promise<void> => {
+  await createDatabaseIfNotExists();
+  if (tablesInitialized && !force) {
+    try {
+      const [bRows]: any = await p.query('SELECT COUNT(*) as count FROM consultation_bookings');
+      if (bRows && bRows[0] && bRows[0].count >= 6) return;
+    } catch {
+      // Table might not exist yet, proceed
+    }
+  }
   try {
     // 1. Users Table
     await p.query(`
@@ -73,17 +96,34 @@ export const ensureTablesExist = async (p: mysql.Pool) => {
         id VARCHAR(64) PRIMARY KEY,
         voucher_code VARCHAR(64) NOT NULL UNIQUE,
         client_name VARCHAR(150) NOT NULL,
+        role VARCHAR(100) NOT NULL DEFAULT 'Pencari Rumah / Pembeli Pribadi',
         client_email VARCHAR(191) NOT NULL,
         client_phone VARCHAR(30) NOT NULL,
         target_location VARCHAR(255) NOT NULL,
         package_type VARCHAR(120) NOT NULL,
         assigned_expert VARCHAR(150) NOT NULL DEFAULT 'Tim Peneliti RDI & BGP',
         scheduled_date VARCHAR(120) NOT NULL,
-        status ENUM('MENUNGGU DISPATCH', 'DIKONFIRMASI', 'SURVEI BERJALAN', 'SELESAI') NOT NULL DEFAULT 'MENUNGGU DISPATCH',
+        status VARCHAR(64) NOT NULL DEFAULT 'Baru',
         notes TEXT NULL,
+        admin_notes TEXT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
+
+    // Safe column migrations for existing installations
+    try {
+      const [columns]: any = await p.query('SHOW COLUMNS FROM consultation_bookings');
+      const colNames = new Set(columns.map((c: any) => c.Field));
+      if (!colNames.has('role')) {
+        await p.query("ALTER TABLE consultation_bookings ADD COLUMN role VARCHAR(100) NOT NULL DEFAULT 'Pencari Rumah / Pembeli Pribadi'");
+      }
+      if (!colNames.has('admin_notes')) {
+        await p.query("ALTER TABLE consultation_bookings ADD COLUMN admin_notes TEXT NULL");
+      }
+      await p.query("ALTER TABLE consultation_bookings MODIFY COLUMN status VARCHAR(64) NOT NULL DEFAULT 'Baru'");
+    } catch (colErr) {
+      console.warn('Column check error:', colErr);
+    }
 
     // 4. Developer Landbanks Table
     await p.query(`
@@ -183,16 +223,23 @@ export const ensureTablesExist = async (p: mysql.Pool) => {
         ('usr_buyer_01', 'buyer.demo@gotangguh.id', '$2b$10$hashed_buyer_pw', 'Budi Santoso, S.T.', 'Home Buyer', 'Pribadi / Pembeli Rumah', '+62 812-3456-7890', 'Tier 2 Pro (Instant 1 Properti)', TRUE),
         ('usr_dev_01', 'developer.lead@ciputra-group.com', '$2b$10$hashed_dev_pw', 'Ir. Hendra Wijaya', 'Property Developer', 'PT Ciputra Development Tbk', '+62 811-9876-5432', 'Tier 2 Pro (Bundling 3 Properti)', TRUE),
         ('usr_bank_01', 'risk.officer@bankmandiri.co.id', '$2b$10$hashed_bank_pw', 'Rina Oktaviani, CFA', 'Lender / Bank', 'PT Bank Mandiri (Persero) Tbk', '+62 813-8888-2233', 'Tier 2 Pro (Bundling 3 Properti)', TRUE),
-        ('usr_consult_01', 'auditor.lead@rdi.or.id', '$2b$10$hashed_consult_pw', 'Dr. Agus Salim', 'Consultant / Auditor', 'Resilience Development Initiative (RDI)', '+62 815-7766-5544', 'Tier 2 Pro (Bundling 3 Properti)', TRUE)
         ON DUPLICATE KEY UPDATE full_name = VALUES(full_name);
       `);
+    }
 
-      // Seed initial consultation inquiry
+    // Seed consultation inquiries matching Admin Console records from MySQL database
+    try {
       await p.query(`
-        INSERT INTO consultation_bookings (id, voucher_code, client_name, client_email, client_phone, target_location, package_type, assigned_expert, scheduled_date, status, notes) VALUES
-        ('bk_01', 'BK-202608-01', 'Dian Permata', 'dian.permata@gmail.com', '+62 812-9988-7766', 'Jl. Kemang Pratama Raya, Bekasi Barat', 'Konsultasi Lite / Basic (Rp 300rb - 750rb)', 'Tim Peneliti RDI & BGP Consultant', '28 Agustus 2026', 'MENUNGGU DISPATCH', 'Mohon analisis kedalaman genangan banjir 2020 dan peil lantai aman.')
-        ON DUPLICATE KEY UPDATE client_name = VALUES(client_name);
+        INSERT IGNORE INTO consultation_bookings (id, voucher_code, client_name, role, client_email, client_phone, target_location, package_type, assigned_expert, scheduled_date, status, notes, admin_notes, created_at) VALUES
+        ('bk_02', 'BK-202608-02', 'PT Nusantara Propertindo', 'Pencari Rumah / Pembeli Pribadi', 'land.acq@nusantaraproperty.co.id', '+6281144556677', 'Kawasan Sentul Hills 15 Ha', 'Paket Premium On-Site Sondir (Rp 3.500.000)', 'Fellow RDI (Ahli Geoteknik & Kegempaan)', '28 Agustus 2026 - 09:00 WIB', 'Baru', 'Permintaan uji tanah sondir CPT 4 titik di area rencana klaster.', 'Ditugaskan ke: Ir. Hendra Wijaya (Geoteknik)', '2026-08-28 10:33:00'),
+        ('bk_03', 'BK-202608-03', 'Bank Central Asia (Risk Division)', 'Lender / Bank', 'risk.division@bca.co.id', '+6281299008877', 'Portfolio 50 Agunan Jabodetabek', 'B2B Enterprise Custom Assessment', 'Pak SAS (Lead Scientist)', '28 Agustus 2026', 'Baru', 'Evaluasi risiko bencana portofolio agunan KPR 50 unit.', '', '2026-08-28 09:15:00'),
+        ('bk_04', 'BK-202608-04', 'Ir. Hendra Gunawan', 'Pengembang Properti', 'hendra.gunawan@ciputra.com', '+6281122334455', 'Jl. MH Thamrin No. 28', 'Konsultasi Premium / Gold: On-Site Survey (Rp 1.5jt - 5jt)', 'Fellow RDI (Ahli Geoteknik & Kegempaan)', '24 Agustus 2026', 'Baru', 'Kajian mikrozonasi gempa dan sesar aktif dekat tapak pembangunan gedung komersial.', '', '2026-08-24 14:20:00'),
+        ('bk_05', 'BK-202608-05', 'tes', 'Pencari Rumah / Pembeli Pribadi', 'tes@gotangguh.id', '+6281234567890', 'testing', 'Konsultasi Premium / Gold: On-Site Survey (Rp 1.5jt - 5jt)', 'Belum Ditugaskan', '24 Agustus 2026', 'Baru', 'testing input konsultasi form', '', '2026-08-24 11:45:00'),
+        ('bk_06', 'BK-202608-06', 'Siti Rahmawati', 'Pencari Rumah / Pembeli Pribadi', 'siti.rahmawati@gmail.com', '+6281344556677', 'Jl. BSD Boulevard Barat', 'Konsultasi Lite / Basic (Rp 300rb - 750rb)', 'Tim Peneliti RDI & BGP Consultant', '24 Agustus 2026', 'Baru', 'Verifikasi risiko banjir dan ketinggian muka air sebelum transaksi tanah.', '', '2026-08-24 10:10:00'),
+        ('bk_07', 'BK-202608-07', 'Ahmad Fauzi (Pembeli Properti)', 'Pencari Rumah / Pembeli Pribadi', 'ahmad.fauzi@yahoo.com', '+6281566778899', 'Perumahan Grand Galaxy Bekasi', 'Konsultasi Lite / Basic (Rp 300rb - 750rb)', 'Tim Surveyor Lapangan & On-Site Inspector', '24 Agustus 2026', 'Selesai', 'Konsultasi selesai dan laporan rekomendasi mitigasi telah dikirim via email.', '', '2026-08-24 08:30:00');
       `);
+    } catch (seedErr) {
+      console.warn('[mysql.connection] Seed bookings warning:', seedErr);
     }
 
     // Normalize any existing legacy tier labels in users table

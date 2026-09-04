@@ -8,7 +8,9 @@ export interface ConsultationBookingEntity {
   packageType: string;
   assignedExpert: string;
   scheduledDate: string;
-  status: 'MENUNGGU DISPATCH' | 'DIKONFIRMASI' | 'SURVEI BERJALAN' | 'SELESAI';
+  status: string;
+  role?: string;
   notes?: string;
+  adminNotes?: string;
   createdAt?: string;
 }

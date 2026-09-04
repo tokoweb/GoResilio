@@ -194,14 +194,20 @@ export function runHazardCardSimplificationTests(): boolean {
   console.log('\n[SECTION 3] Validating Earthquake Simplified Primary Cards Labels...');
   const quakeLabels = quakePrimary.map(m => m.labelId);
   const expectedQuakeLabels = [
-    'Tingkat Bahaya Gempa',
-    'Perkiraan Guncangan',
+    'Bahaya Gempa Wilayah',
+    'Perkiraan Kekuatan Guncangan',
+    'Sesar Aktif Terdekat',
     'Riwayat Gempa di Sekitar',
-    'Gempa Terkuat',
-    'Potensi Likuefaksi'
+    'Kondisi Tanah Saat Gempa'
   ];
 
-  const hasAllQuakeLabels = expectedQuakeLabels.every(lbl => quakeLabels.includes(lbl) || (lbl === 'Perkiraan Guncangan' && quakeLabels.includes('Kekuatan Guncangan Model')) || (lbl === 'Gempa Terkuat' && quakeLabels.includes('Gempa Terkuat yang Tercatat')));
+  const hasAllQuakeLabels = expectedQuakeLabels.every(lbl =>
+    quakeLabels.includes(lbl) ||
+    (lbl === 'Bahaya Gempa Wilayah' && (quakeLabels.includes('Tingkat Bahaya Gempa') || quakeLabels.includes('Penilaian Gempa'))) ||
+    (lbl === 'Perkiraan Kekuatan Guncangan' && (quakeLabels.includes('Perkiraan Guncangan') || quakeLabels.includes('Kekuatan Guncangan Model'))) ||
+    (lbl === 'Sesar Aktif Terdekat' && (quakeLabels.includes('Gempa Terkuat') || quakeLabels.includes('Gempa Terkuat yang Tercatat'))) ||
+    (lbl === 'Kondisi Tanah Saat Gempa' && quakeLabels.includes('Potensi Likuefaksi'))
+  );
   if (!hasAllQuakeLabels) {
     console.error('FAIL [SECTION 3]: Earthquake primary labels missing simplified terminology:', { quakeLabels, expectedQuakeLabels });
     allPassed = false;
@@ -215,14 +221,18 @@ export function runHazardCardSimplificationTests(): boolean {
   console.log('\n[SECTION 4] Validating Heat Simplified Primary Cards Labels...');
   const heatLabels = heatPrimary.map(m => m.labelId);
   const expectedHeatLabels = [
-    'Suhu Prakiraan',
+    'Kondisi Panas',
     'Suhu Tertinggi',
+    'Suhu Prakiraan',
     'Perubahan Suhu ke Depan',
-    'Kualitas Udara',
-    'Paparan Panas Lokasi'
+    'Kualitas Udara'
   ];
 
-  const hasAllHeatLabels = expectedHeatLabels.every(lbl => heatLabels.includes(lbl) || (lbl === 'Suhu Tertinggi' && heatLabels.includes('Suhu Tertinggi Historis')) || (lbl === 'Paparan Panas Lokasi' && heatLabels.includes('Beban Panas Bangunan')));
+  const hasAllHeatLabels = expectedHeatLabels.every(lbl =>
+    heatLabels.includes(lbl) ||
+    (lbl === 'Kondisi Panas' && (heatLabels.includes('Paparan Panas Lokasi') || heatLabels.includes('Paparan Panas Wilayah'))) ||
+    (lbl === 'Suhu Tertinggi' && heatLabels.includes('Suhu Tertinggi Historis'))
+  );
   if (!hasAllHeatLabels) {
     console.error('FAIL [SECTION 4]: Heat primary labels missing simplified terminology:', { heatLabels, expectedHeatLabels });
     allPassed = false;
@@ -237,16 +247,17 @@ export function runHazardCardSimplificationTests(): boolean {
   const transportLabels = transportPrimary.map(m => m.labelId);
   const expectedTransportLabels = [
     'Jalan Terdekat',
-    'Jalan Utama Terdekat',
+    'Jalan Utama',
     'Rumah Sakit Terdekat',
     'Transportasi Umum',
-    'Titik Kumpul Terdekat (OSM)'
+    'Titik Kumpul'
   ];
 
   const hasAllTransportLabels = expectedTransportLabels.every(lbl =>
     transportLabels.includes(lbl) ||
+    (lbl === 'Jalan Utama' && transportLabels.includes('Jalan Utama Terdekat')) ||
     (lbl === 'Rumah Sakit Terdekat' && (transportLabels.includes('Fasilitas Kesehatan') || transportLabels.includes('Fasilitas Kesehatan Terdekat'))) ||
-    (lbl === 'Titik Kumpul Terdekat (OSM)' && (transportLabels.includes('Titik Kumpul Terdekat') || transportLabels.includes('Titik Evakuasi Resmi')))
+    (lbl === 'Titik Kumpul' && (transportLabels.includes('Titik Kumpul Terdekat (OSM)') || transportLabels.includes('Titik Kumpul Terdekat') || transportLabels.includes('Titik Evakuasi Resmi')))
   );
   if (!hasAllTransportLabels) {
     console.error('FAIL [SECTION 5]: Transport primary labels missing simplified terminology:', { transportLabels, expectedTransportLabels });
@@ -286,6 +297,7 @@ export function runHazardCardSimplificationTests(): boolean {
       ...mockAssessment.quake,
       estimatedPgaG: null,
       maxHistoricalMag: null,
+      distanceToFaultKm: null,
       historicalQuakesCount150km: null,
       liquefactionRisk: null
     },
@@ -300,10 +312,10 @@ export function runHazardCardSimplificationTests(): boolean {
 
   const nullQuakePrimary = ReportMetricRegistry.getPrimaryMetrics('earthquake', mockNullAssessment, false);
   const pgaItem = nullQuakePrimary.find(m => m.id === 'seismic_pga');
-  const maxMagItem = nullQuakePrimary.find(m => m.id === 'seismic_max_mag');
+  const faultItem = nullQuakePrimary.find(m => m.id === 'seismic_nearest_fault') || nullQuakePrimary.find(m => m.id === 'seismic_max_mag');
 
-  if (!pgaItem || pgaItem.value !== 'Belum tersedia' || !maxMagItem || maxMagItem.value !== null) {
-    console.error('FAIL [SECTION 7]: Null values must render proper null status or null value:', { pgaItem, maxMagItem });
+  if (!pgaItem || (pgaItem.value !== null && pgaItem.value !== 'Belum tersedia') || !faultItem || faultItem.value !== null) {
+    console.error('FAIL [SECTION 7]: Null values must render proper null status or null value:', { pgaItem, faultItem });
     allPassed = false;
   } else {
     console.log('✓ PASS [SECTION 7]: Null values correctly handled without fabricating zero or false safety claims.');

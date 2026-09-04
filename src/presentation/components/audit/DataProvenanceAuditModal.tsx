@@ -104,7 +104,7 @@ export const DataProvenanceAuditModal: React.FC<DataProvenanceAuditModalProps> =
               </h2>
             </div>
             <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
-              Reference: {assessment.referenceNumber} | Engine: {assessment.modelMetadata?.modelName || 'GoTangguh Engine'} (v{assessment.modelMetadata?.modelVersion || '2.3.0'})
+              Reference: {assessment.referenceNumber} | Engine: {assessment.modelMetadata?.modelName || 'GoResilio Engine'} (v{assessment.modelMetadata?.modelVersion || '2.3.0'})
             </p>
           </div>
           <button
@@ -301,7 +301,7 @@ export const DataProvenanceAuditModal: React.FC<DataProvenanceAuditModalProps> =
           }}
         >
           <div>
-            <strong>GoTangguh Model Provenance:</strong> Scores calculated via {assessment.modelMetadata?.overallFormula || '70% max + 30% mean'}. Missing data policy: {assessment.modelMetadata?.missingDataPolicy || 'Strictly null'}.
+            <strong>GoResilio Model Provenance:</strong> Scores calculated via {assessment.modelMetadata?.overallFormula || 'Internal GoResilio screening model (versioned)'}. Missing data policy: {assessment.modelMetadata?.missingDataPolicy || 'Strictly null'}.
           </div>
           <button
             onClick={onClose}

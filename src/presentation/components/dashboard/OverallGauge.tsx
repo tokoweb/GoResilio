@@ -3,6 +3,7 @@ import gsap from 'gsap';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAssessment } from '../../context/AssessmentContext';
 import { FileText, ArrowRight, ShieldCheck, MapPin } from 'lucide-react';
+import { CanonicalRatingResolver } from '../../../domain/services/CanonicalRatingResolver';
 
 export const OverallGauge: React.FC = () => {
   const { language, t } = useLanguage();
@@ -139,33 +140,9 @@ export const OverallGauge: React.FC = () => {
     );
   }
 
-  const color = isOverallNull
-    ? '#94a3b8'
-    : overallLevel === 'extreme'
-    ? '#dc2626'
-    : overallLevel === 'high'
-    ? '#ea580c'
-    : overallLevel === 'medium'
-    ? '#d97706'
-    : '#15803d';
-
-  const label = isOverallNull
-    ? (language === 'id' ? 'Belum dapat dinilai' : 'Insufficient Data')
-    : language === 'id'
-      ? overallLevel === 'extreme'
-        ? 'Risiko Ekstrem'
-        : overallLevel === 'high'
-        ? 'Risiko Tinggi'
-        : overallLevel === 'medium'
-        ? 'Risiko Sedang'
-        : 'Risiko Rendah'
-      : overallLevel === 'extreme'
-      ? 'Extreme Risk'
-      : overallLevel === 'high'
-      ? 'High Risk'
-      : overallLevel === 'medium'
-      ? 'Moderate Risk'
-      : 'Low Risk';
+  const canonicalOverall = CanonicalRatingResolver.getHazardRating(assessment.overallScore, language);
+  const color = canonicalOverall.color;
+  const label = canonicalOverall.fullLabel;
 
   const hasFloodScore = typeof assessment.flood?.score === 'number';
   const hasQuakeScore = typeof assessment.quake?.score === 'number';
@@ -181,7 +158,12 @@ export const OverallGauge: React.FC = () => {
     <div className={`gt-cadastral-seal-card ${isLoading ? 'is-loading-shimmer' : ''}`} ref={cardRef}>
       {/* Header */}
       <div className="gt-seal-header">
-        <h3 className="gt-seal-title">{t.dashboard.overallScoreTitle}</h3>
+        <div>
+          <h3 className="gt-seal-title">{t.dashboard.overallScoreTitle}</h3>
+          <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 500, display: 'block' }}>
+            {t.dashboard.overallScoreSubtitle || (language === 'id' ? 'Risiko Keseluruhan' : 'Overall Risk')}
+          </span>
+        </div>
         <span className="gt-seal-sub-type">
           {t.dashboard.propertyTypeLabel}: <strong>{propertyType}</strong>
         </span>
@@ -231,7 +213,7 @@ export const OverallGauge: React.FC = () => {
                 {language === 'id' ? 'Belum dapat dinilai' : 'Insufficient Data'}
               </span>
               <span className="gt-seal-tier-label" style={{ color: '#94a3b8', marginTop: '4px', fontSize: '0.78rem' }}>
-                {language === 'id' ? 'Data tidak mencukupi' : 'No Evaluated Score'}
+                {language === 'id' ? 'Data belum tersedia' : 'Data Unavailable'}
               </span>
             </>
           ) : (
@@ -247,6 +229,13 @@ export const OverallGauge: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* User-friendly scale explainer */}
+      <p style={{ fontSize: '0.75rem', color: '#64748b', textAlign: 'center', margin: '-4px 12px 14px 12px', lineHeight: 1.45 }}>
+        {language === 'id'
+          ? 'Skala 0–100 menggabungkan potensi bahaya banjir, gempa, panas, dan aksesibilitas. Skor lebih rendah menunjukkan risiko fisik yang lebih ringan.'
+          : 'Scale 0–100 combines flood, earthquake, heat, and accessibility risks. A lower score indicates lower physical risk.'}
+      </p>
 
       {/* 4 Hazard Progress Spectrum Bars */}
       <div className="gt-seal-spectrum-list">
@@ -272,7 +261,7 @@ export const OverallGauge: React.FC = () => {
 
         <div className="gt-spectrum-row">
           <div className="gt-spectrum-info">
-            <span className="gt-spectrum-name">{language === 'id' ? 'Gempa & Sesar' : 'Seismic & Fault'}</span>
+            <span className="gt-spectrum-name">{language === 'id' ? 'Gempa & Sesar Aktif' : 'Earthquake & Active Faults'}</span>
             <span className={`gt-spectrum-val gt-level-${assessment.quake.level}`}>
               {hasQuakeScore ? `${quakeVal}/100` : (language === 'id' ? 'Belum dapat dinilai' : 'No Data')}
             </span>
@@ -292,7 +281,7 @@ export const OverallGauge: React.FC = () => {
 
         <div className="gt-spectrum-row">
           <div className="gt-spectrum-info">
-            <span className="gt-spectrum-name">{language === 'id' ? 'Panas & Iklim' : 'Heat & Climate'}</span>
+            <span className="gt-spectrum-name">{language === 'id' ? 'Kondisi Panas' : 'Heat Conditions'}</span>
             <span className={`gt-spectrum-val gt-level-${assessment.heat.level}`}>
               {hasHeatScore ? `${heatVal}/100` : (language === 'id' ? 'Belum dapat dinilai' : 'No Data')}
             </span>
@@ -312,7 +301,7 @@ export const OverallGauge: React.FC = () => {
 
         <div className="gt-spectrum-row">
           <div className="gt-spectrum-info">
-            <span className="gt-spectrum-name">{language === 'id' ? 'Transportasi & Akses' : 'Transport & Access'}</span>
+            <span className="gt-spectrum-name">{language === 'id' ? 'Transportasi & Akses' : 'Transportation & Access'}</span>
             <span className={`gt-spectrum-val gt-level-${assessment.transport.level === 'good' ? 'low' : assessment.transport.level === 'moderate' ? 'medium' : 'high'}`}>
               {hasTransportScore ? `${transportVal}/100` : (language === 'id' ? 'Belum dapat dinilai' : 'No Data')}
             </span>

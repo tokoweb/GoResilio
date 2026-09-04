@@ -228,7 +228,8 @@
   color: #121926;
 }
 
-.gt-wordmark__tangguh {
+.gt-wordmark__tangguh,
+.gt-wordmark__resilio {
   color: #ea580c;
   margin-left: 1px;
   filter: drop-shadow(0 0 12px rgba(234, 88, 12, 0.35));
@@ -500,7 +501,8 @@
   color: #121926;
 }
 
-.gt-sheet-tangguh {
+.gt-sheet-tangguh,
+.gt-sheet-resilio {
   color: #ea580c;
   margin-left: 1px;
 }

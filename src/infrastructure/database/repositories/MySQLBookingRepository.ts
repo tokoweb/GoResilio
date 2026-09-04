@@ -1,15 +1,17 @@
-import { getDbPool } from '../connection/mysql.connection';
+import { getDbPool, ensureTablesExist } from '../connection/mysql.connection';
 import type { ConsultationBookingEntity } from '../../../domain/entities/ConsultationBooking.entity';
 
 export class MySQLBookingRepository {
   static async getAll(): Promise<ConsultationBookingEntity[]> {
     try {
       const pool = getDbPool();
+      await ensureTablesExist(pool);
       const [rows]: any = await pool.query(
         `SELECT 
           id, 
           voucher_code as voucherCode, 
           client_name as clientName, 
+          COALESCE(role, 'Pencari Rumah / Pembeli Pribadi') as role,
           client_email as clientEmail, 
           client_phone as clientPhone, 
           target_location as targetLocation, 
@@ -18,14 +20,15 @@ export class MySQLBookingRepository {
           scheduled_date as scheduledDate, 
           status, 
           notes,
+          admin_notes as adminNotes,
           created_at as createdAt
         FROM consultation_bookings 
         ORDER BY created_at DESC`
       );
 
       return (rows as ConsultationBookingEntity[]) || [];
-    } catch (error) {
-      console.warn('[MySQLBookingRepository] Query fallback:', error);
+    } catch (error: any) {
+      console.error('[MySQLBookingRepository] Error fetching bookings from database:', error);
       return [];
     }
   }
@@ -41,18 +44,20 @@ export class MySQLBookingRepository {
     const id = booking.id || `bk_${Date.now()}`;
     const voucherCode = booking.voucherCode || `BK-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
     const assignedExpert = booking.assignedExpert || 'Tim Peneliti RDI & BGP Consultant';
-    const status = booking.status || 'MENUNGGU DISPATCH';
+    const status = booking.status || 'Baru';
+    const role = booking.role || 'Pencari Rumah / Pembeli Pribadi';
 
     try {
       const pool = getDbPool();
       await pool.query(
         `INSERT INTO consultation_bookings 
-          (id, voucher_code, client_name, client_email, client_phone, target_location, package_type, assigned_expert, scheduled_date, status, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          (id, voucher_code, client_name, role, client_email, client_phone, target_location, package_type, assigned_expert, scheduled_date, status, notes, admin_notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
           voucherCode,
           booking.clientName.trim(),
+          role,
           booking.clientEmail.trim(),
           booking.clientPhone ?? null,
           booking.targetLocation ?? null,
@@ -60,7 +65,8 @@ export class MySQLBookingRepository {
           assignedExpert,
           booking.scheduledDate || 'Segera Dikonfirmasi',
           status,
-          booking.notes || null
+          booking.notes || null,
+          booking.adminNotes || null
         ]
       );
       return id;
@@ -70,7 +76,7 @@ export class MySQLBookingRepository {
     }
   }
 
-  static async updateStatusAndNotes(id: string, status?: string, notes?: string, assignedExpert?: string): Promise<boolean> {
+  static async updateStatusAndNotes(id: string, status?: string, notes?: string, assignedExpert?: string, adminNotes?: string): Promise<boolean> {
     try {
       const pool = getDbPool();
       const fields: string[] = [];
@@ -83,6 +89,10 @@ export class MySQLBookingRepository {
       if (notes !== undefined) {
         fields.push('notes = ?');
         values.push(notes);
+      }
+      if (adminNotes !== undefined) {
+        fields.push('admin_notes = ?');
+        values.push(adminNotes);
       }
       if (assignedExpert) {
         fields.push('assigned_expert = ?');

@@ -34,25 +34,26 @@ export const enDictionary = {
     }
   },
   dashboard: {
-    mapTitle: 'Site Spatial Visualization & Hazard Zoning',
+    mapTitle: 'Site Location & Hazard Zoning',
     perspectiveBadge: 'Perspective',
     mapHint:
       'Fully Synchronized Interactive Map: Searching an address, clicking on the map, or dragging the pin marker dynamically updates multi-hazard analytics across the entire platform!',
-    indicatorsTitle: 'Multi-Hazard & Site Accessibility Breakdown',
+    indicatorsTitle: 'Site Hazard & Accessibility Breakdown',
     indicatorsSubtitle: '4 Core Assessment Pillars',
-    overallScoreTitle: 'Overall Multi-Hazard Risk',
+    overallScoreTitle: 'Integrated Risk Index',
+    overallScoreSubtitle: 'Overall Risk',
     propertyTypeLabel: 'Property Type',
-    downloadPdfBtn: 'Download Full Report (PDF)',
+    downloadPdfBtn: 'Download Summary Report (PDF)',
     roleInsightTitle: 'Recommendations',
     cards: {
-      floodTitle: 'Flooding & Inundation',
-      quakeTitle: 'Earthquake & Fault Lines',
-      heatTitle: 'Heat Stress & Climate',
+      floodTitle: 'Flood & Inundation',
+      quakeTitle: 'Earthquake & Active Faults',
+      heatTitle: 'Heat Conditions',
       transportTitle: 'Transportation & Access',
-      causeLabel: 'Primary Causal Factor:',
-      impactLabel: 'Potential Impact:',
-      recomLabel: 'Recommendations:',
-      accessRecomLabel: 'Access Guidance:'
+      causeLabel: 'Key Factors:',
+      impactLabel: 'Potential Impacts to Consider:',
+      recomLabel: 'Recommended Actions:',
+      accessRecomLabel: 'Access & Evacuation:'
     }
   },
   pricing: {
@@ -135,17 +136,21 @@ export const enDictionary = {
     ],
     formTitle: 'Consultation & Field Verification Request Form',
     nameLabel: 'Full Name',
-    namePlaceholder: 'e.g. John Doe',
-    emailLabel: 'Email & WhatsApp Contact',
-    emailPlaceholder: 'name@email.com / +62812xxxx',
+    namePlaceholder: 'Enter your full name',
+    emailLabel: 'Official Email Address',
+    emailPlaceholder: 'name@email.com',
+    phoneLabel: 'Active WhatsApp Number',
+    phonePlaceholder: '+62 812-xxxx-xxxx',
     companyLabel: 'Organization / Company (Optional)',
-    companyPlaceholder: 'e.g. PT Property Corp / Individual',
+    companyPlaceholder: 'Enter organization or company name',
     roleLabel: 'Your Profile / Role',
     packageLabel: 'Service Package Interest',
+    packagePlaceholder: 'Select service package...',
     locationLabel: 'Target Property Location / Land Site',
+    locationPlaceholder: 'Enter property location or address',
     dateLabel: 'Preferred Consultation / Survey Date',
     notesLabel: 'Special Requirements / Notes (Optional)',
-    notesPlaceholder: 'Specify your key inquiries or site assessment details...',
+    notesPlaceholder: 'Enter your specific requirements or inquiries here...',
     submitBtn: 'Submit Consultation Request',
     successMsg: 'Consultation Request Successfully Submitted!',
     successSub: 'Our specialists will contact you via WhatsApp or Email within 24 hours to confirm your schedule.'
@@ -200,7 +205,7 @@ export const enDictionary = {
     copyright: '© 2026 GoResilio. Climate & Disaster Risk Property Assessment Platform.'
   },
   auth: {
-    portalTitle: 'GoTangguh Client & Enterprise Portal',
+    portalTitle: 'GoResilio Client & Enterprise Portal',
     portalSubtitle: 'Access multi-site risk portfolios, verified PDF report archives, and API data feeds.',
     buyerTab: 'Individual / Buyer',
     developerTab: 'Property Developer',
@@ -211,7 +216,7 @@ export const enDictionary = {
     passPlaceholder: '••••••••••••',
     submitBtn: 'Sign In to Risk Dashboard',
     demoInstantBtn: 'Quick Demo Access',
-    loginSuccess: 'Successfully Signed In! Welcome to your GoTangguh Portfolio Dashboard.',
+    loginSuccess: 'Successfully Signed In! Welcome to your GoResilio Portfolio Dashboard.',
     securityNote: 'Your privacy and data are safely secured.'
   }
 };

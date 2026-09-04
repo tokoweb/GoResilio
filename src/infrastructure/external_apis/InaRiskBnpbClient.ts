@@ -1,6 +1,7 @@
 import { Coordinates } from '../../domain/value_objects/Coordinates.vo';
 import { LocalApiCache } from '../cache/LocalApiCache';
 import { ApiResult } from '../../domain/types/api.types';
+import type { AssessmentDepth } from '../../domain/types/hazard.types';
 
 export interface InaRiskLayerResult {
   layerName: string;
@@ -76,7 +77,10 @@ export class InaRiskBnpbClient {
    * Query official BNPB inaRISK GIS Server for multi-hazard raster indices, verified PGA maps, and spatial layers.
    * Direct spatial identify using EPSG:4326 point geometry without synthetic threshold approximations.
    */
-  public static async fetchSiteHazards(coords: Coordinates): Promise<ApiResult<InaRiskAssessmentData>> {
+  public static async fetchSiteHazards(
+    coords: Coordinates,
+    options?: { depth?: AssessmentDepth }
+  ): Promise<ApiResult<InaRiskAssessmentData>> {
     // 1. Boundary check: BNPB inaRISK raster data strictly covers the Indonesian national extent
     if (coords.lat < -11.0 || coords.lat > 6.0 || coords.lng < 95.0 || coords.lng > 141.0) {
       return {
@@ -88,7 +92,8 @@ export class InaRiskBnpbClient {
       };
     }
 
-    const cacheKey = `inarisk_expanded_v2_${coords.lat.toFixed(4)}_${coords.lng.toFixed(4)}`;
+    const isDeep = options?.depth === 'deep';
+    const cacheKey = `inarisk_${isDeep ? 'deep' : 'screen'}_v3_${coords.lat.toFixed(4)}_${coords.lng.toFixed(4)}`;
     const cached = LocalApiCache.get<ApiResult<InaRiskAssessmentData>>(cacheKey);
     if (cached) return cached;
 
@@ -311,52 +316,115 @@ export class InaRiskBnpbClient {
         };
       };
 
-      // Execute all priority ImageServer & spatial MapServer queries concurrently
-      const [
-        floodLayer,
-        floodRiskLayer,
-        quakeLayer,
-        pgaLayer,
-        s1Layer,
-        ssLayer,
-        liqLayer,
-        landslideHazardLayer,
-        landslideRiskLayer,
-        droughtLayer,
-        weatherHazardLayer,
-        weatherRiskLayer,
-        wildfireLayer,
-        tsunamiLayer,
-        multiHazardLayer,
-        multiRiskLayer,
-        evacuationRouteLayer,
-        adminBoundaryLayer,
-        faultLayer,
-        hazardClassSdkLayer,
-        riskClassSdkLayer
-      ] = await Promise.all([
-        queryFloodLayer(),
-        queryGenericRaster('layer_risiko_banjir'),
-        queryEarthquakeLayer(),
-        queryGenericRaster('PGA_MCEG_100'),
-        queryGenericRaster('PGA_MCER_S1_100'),
-        queryGenericRaster('PGA_MCER_Ss_100'),
-        queryGenericRaster('INDEKS_BAHAYA_LIKUEFAKSI'),
-        queryGenericRaster('INDEKS_BAHAYA_TANAHLONGSOR'),
-        queryGenericRaster('layer_risiko_tanah_longsor'),
-        queryGenericRaster('INDEKS_BAHAYA_KEKERINGAN'),
-        queryGenericRaster('INDEKS_BAHAYA_CUACAEKSTRIM'),
-        queryGenericRaster('layer_risiko_cuaca_ekstrim'),
-        queryGenericRaster('INDEKS_BAHAYA_KEBAKARAN_HUTAN_DAN_LAHAN'),
-        queryGenericRaster('INDEKS_BAHAYA_TSUNAMI'),
-        queryGenericRaster('layer_bahaya_multi'),
-        queryGenericRaster('layer_risiko_multi'),
-        queryMapServerLayer('Arah_jalur_evakuasi'),
-        queryMapServerLayer('batas_administrasi'),
-        queryMapServerLayer('Faults'),
-        queryGenericRaster('LAYER_KELAS_H_SDK'),
-        queryGenericRaster('LAYER_KELAS_R_SDK')
-      ]);
+      const createNoDataLayer = (layerName: string): InaRiskLayerResult => ({
+        layerName,
+        serviceUrl: `${this.BASE_GIS_URL}/${layerName}`,
+        rawValue: null,
+        officialClass: 'Data tidak tersedia',
+        status: 'nodata'
+      });
+
+      let floodLayer: InaRiskLayerResult;
+      let floodRiskLayer: InaRiskLayerResult;
+      let quakeLayer: InaRiskLayerResult;
+      let pgaLayer: InaRiskLayerResult;
+      let s1Layer: InaRiskLayerResult;
+      let ssLayer: InaRiskLayerResult;
+      let liqLayer: InaRiskLayerResult;
+      let landslideHazardLayer: InaRiskLayerResult;
+      let landslideRiskLayer: InaRiskLayerResult;
+      let droughtLayer: InaRiskLayerResult;
+      let weatherHazardLayer: InaRiskLayerResult;
+      let weatherRiskLayer: InaRiskLayerResult;
+      let wildfireLayer: InaRiskLayerResult;
+      let tsunamiLayer: InaRiskLayerResult;
+      let multiHazardLayer: InaRiskLayerResult;
+      let multiRiskLayer: InaRiskLayerResult;
+      let evacuationRouteLayer: InaRiskLayerResult;
+      let adminBoundaryLayer: InaRiskLayerResult;
+      let faultLayer: InaRiskLayerResult;
+      let hazardClassSdkLayer: InaRiskLayerResult;
+      let riskClassSdkLayer: InaRiskLayerResult;
+
+      if (!isDeep) {
+        // INSTANT SCREENING: Query ONLY 4 core layers needed for screening scores and 5 core cards
+        [
+          floodLayer,
+          quakeLayer,
+          pgaLayer,
+          liqLayer
+        ] = await Promise.all([
+          queryFloodLayer(),
+          queryEarthquakeLayer(),
+          queryGenericRaster('PGA_MCEG_100'),
+          queryGenericRaster('INDEKS_BAHAYA_LIKUEFAKSI')
+        ]);
+
+        floodRiskLayer = createNoDataLayer('layer_risiko_banjir');
+        s1Layer = createNoDataLayer('PGA_MCER_S1_100');
+        ssLayer = createNoDataLayer('PGA_MCER_Ss_100');
+        landslideHazardLayer = createNoDataLayer('INDEKS_BAHAYA_TANAHLONGSOR');
+        landslideRiskLayer = createNoDataLayer('layer_risiko_tanah_longsor');
+        droughtLayer = createNoDataLayer('INDEKS_BAHAYA_KEKERINGAN');
+        weatherHazardLayer = createNoDataLayer('INDEKS_BAHAYA_CUACAEKSTRIM');
+        weatherRiskLayer = createNoDataLayer('layer_risiko_cuaca_ekstrim');
+        wildfireLayer = createNoDataLayer('INDEKS_BAHAYA_KEBAKARAN_HUTAN_DAN_LAHAN');
+        tsunamiLayer = createNoDataLayer('INDEKS_BAHAYA_TSUNAMI');
+        multiHazardLayer = createNoDataLayer('layer_bahaya_multi');
+        multiRiskLayer = createNoDataLayer('layer_risiko_multi');
+        evacuationRouteLayer = createNoDataLayer('Arah_jalur_evakuasi');
+        adminBoundaryLayer = createNoDataLayer('batas_administrasi');
+        faultLayer = createNoDataLayer('Faults');
+        hazardClassSdkLayer = createNoDataLayer('LAYER_KELAS_H_SDK');
+        riskClassSdkLayer = createNoDataLayer('LAYER_KELAS_R_SDK');
+      } else {
+        // DEEP ASSESSMENT: Query all 21 GIS layers
+        [
+          floodLayer,
+          floodRiskLayer,
+          quakeLayer,
+          pgaLayer,
+          s1Layer,
+          ssLayer,
+          liqLayer,
+          landslideHazardLayer,
+          landslideRiskLayer,
+          droughtLayer,
+          weatherHazardLayer,
+          weatherRiskLayer,
+          wildfireLayer,
+          tsunamiLayer,
+          multiHazardLayer,
+          multiRiskLayer,
+          evacuationRouteLayer,
+          adminBoundaryLayer,
+          faultLayer,
+          hazardClassSdkLayer,
+          riskClassSdkLayer
+        ] = await Promise.all([
+          queryFloodLayer(),
+          queryGenericRaster('layer_risiko_banjir'),
+          queryEarthquakeLayer(),
+          queryGenericRaster('PGA_MCEG_100'),
+          queryGenericRaster('PGA_MCER_S1_100'),
+          queryGenericRaster('PGA_MCER_Ss_100'),
+          queryGenericRaster('INDEKS_BAHAYA_LIKUEFAKSI'),
+          queryGenericRaster('INDEKS_BAHAYA_TANAHLONGSOR'),
+          queryGenericRaster('layer_risiko_tanah_longsor'),
+          queryGenericRaster('INDEKS_BAHAYA_KEKERINGAN'),
+          queryGenericRaster('INDEKS_BAHAYA_CUACAEKSTRIM'),
+          queryGenericRaster('layer_risiko_cuaca_ekstrim'),
+          queryGenericRaster('INDEKS_BAHAYA_KEBAKARAN_HUTAN_DAN_LAHAN'),
+          queryGenericRaster('INDEKS_BAHAYA_TSUNAMI'),
+          queryGenericRaster('layer_bahaya_multi'),
+          queryGenericRaster('layer_risiko_multi'),
+          queryMapServerLayer('Arah_jalur_evakuasi'),
+          queryMapServerLayer('batas_administrasi'),
+          queryMapServerLayer('Faults'),
+          queryGenericRaster('LAYER_KELAS_H_SDK'),
+          queryGenericRaster('LAYER_KELAS_R_SDK')
+        ]);
+      }
 
       const allLayers = [
         floodLayer, floodRiskLayer, quakeLayer, pgaLayer, s1Layer, ssLayer, liqLayer,
@@ -364,6 +432,7 @@ export class InaRiskBnpbClient {
         weatherRiskLayer, wildfireLayer, tsunamiLayer, multiHazardLayer, multiRiskLayer,
         evacuationRouteLayer, adminBoundaryLayer, faultLayer, hazardClassSdkLayer, riskClassSdkLayer
       ];
+
 
       const successfulLayersCount = allLayers.filter((l) => l.status === 'success').length;
       const anyLayerResponded = allLayers.some((l) => l.status === 'success' || l.status === 'nodata');

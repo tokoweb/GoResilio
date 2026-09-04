@@ -125,7 +125,7 @@ export const GroundsureReportModal: React.FC = () => {
             </div>
             <div>
               <h3 className="modal-header-main-title">
-                {isEn ? 'GoTangguh Property Risk Report' : 'Laporan Risiko Properti GoTangguh'}
+                {isEn ? 'GoResilio Property Risk Report' : 'Laporan Risiko Properti GoResilio'}
               </h3>
               <p className="modal-header-sub-text">
                 {isEn
@@ -221,9 +221,9 @@ export const GroundsureReportModal: React.FC = () => {
             <div className="gs-pdf-page" id="report-page-1">
               <div className="gs-header-section">
                 <div className="gs-brand-group">
-                  <img src="/assets/logo.svg" alt="GoTangguh Logo" className="gs-logo-icon" />
+                  <img src="/assets/logo.svg" alt="GoResilio Logo" className="gs-logo-icon" />
                   <div>
-                    <div className="gs-title-main">GoTangguh</div>
+                    <div className="gs-title-main">GoResilio</div>
                     <div className="gs-subtitle-tag">{cover.tagline}</div>
                   </div>
                 </div>
@@ -263,7 +263,7 @@ export const GroundsureReportModal: React.FC = () => {
               </div>
 
               <div className="gs-pdf-footer-note">
-                {isEn ? 'Page 1 of 11 · GoTangguh Property Risk Assessment Report' : 'Halaman 1 dari 11 · Laporan Risiko Properti GoTangguh'}
+                {isEn ? 'Page 1 of 11 · GoResilio Property Risk Assessment Report' : 'Halaman 1 dari 11 · Laporan Risiko Properti GoResilio'}
               </div>
             </div>
 
@@ -328,7 +328,7 @@ export const GroundsureReportModal: React.FC = () => {
               </div>
 
               <div className="gs-pdf-footer-note">
-                {isEn ? 'Page 2 of 11 · GoTangguh Property Risk Assessment Report' : 'Halaman 2 dari 11 · Laporan Risiko Properti GoTangguh'}
+                {isEn ? 'Page 2 of 11 · GoResilio Property Risk Assessment Report' : 'Halaman 2 dari 11 · Laporan Risiko Properti GoResilio'}
               </div>
             </div>
 
@@ -394,7 +394,7 @@ export const GroundsureReportModal: React.FC = () => {
               </div>
 
               <div className="gs-pdf-footer-note">
-                {isEn ? 'Page 3 of 11 · GoTangguh Property Risk Assessment Report' : 'Halaman 3 dari 11 · Laporan Risiko Properti GoTangguh'}
+                {isEn ? 'Page 3 of 11 · GoResilio Property Risk Assessment Report' : 'Halaman 3 dari 11 · Laporan Risiko Properti GoResilio'}
               </div>
             </div>
 
@@ -442,7 +442,7 @@ export const GroundsureReportModal: React.FC = () => {
               </div>
 
               <div className="gs-pdf-footer-note">
-                {isEn ? 'Page 4 of 11 · GoTangguh Property Risk Assessment Report' : 'Halaman 4 dari 11 · Laporan Risiko Properti GoTangguh'}
+                {isEn ? 'Page 4 of 11 · GoResilio Property Risk Assessment Report' : 'Halaman 4 dari 11 · Laporan Risiko Properti GoResilio'}
               </div>
             </div>
 
@@ -503,7 +503,7 @@ export const GroundsureReportModal: React.FC = () => {
               </div>
 
               <div className="gs-pdf-footer-note">
-                {isEn ? 'Page 5 of 11 · GoTangguh Property Risk Assessment Report' : 'Halaman 5 dari 11 · Laporan Risiko Properti GoTangguh'}
+                {isEn ? 'Page 5 of 11 · GoResilio Property Risk Assessment Report' : 'Halaman 5 dari 11 · Laporan Risiko Properti GoResilio'}
               </div>
             </div>
 
@@ -567,7 +567,7 @@ export const GroundsureReportModal: React.FC = () => {
               </div>
 
               <div className="gs-pdf-footer-note">
-                {isEn ? 'Page 6 of 11 · GoTangguh Property Risk Assessment Report' : 'Halaman 6 dari 11 · Laporan Risiko Properti GoTangguh'}
+                {isEn ? 'Page 6 of 11 · GoResilio Property Risk Assessment Report' : 'Halaman 6 dari 11 · Laporan Risiko Properti GoResilio'}
               </div>
             </div>
 
@@ -631,7 +631,7 @@ export const GroundsureReportModal: React.FC = () => {
               </div>
 
               <div className="gs-pdf-footer-note">
-                {isEn ? 'Page 7 of 11 · GoTangguh Property Risk Assessment Report' : 'Halaman 7 dari 11 · Laporan Risiko Properti GoTangguh'}
+                {isEn ? 'Page 7 of 11 · GoResilio Property Risk Assessment Report' : 'Halaman 7 dari 11 · Laporan Risiko Properti GoResilio'}
               </div>
             </div>
 
@@ -680,7 +680,7 @@ export const GroundsureReportModal: React.FC = () => {
               </div>
 
               <div className="gs-pdf-footer-note">
-                {isEn ? 'Page 8 of 11 · GoTangguh Property Risk Assessment Report' : 'Halaman 8 dari 11 · Laporan Risiko Properti GoTangguh'}
+                {isEn ? 'Page 8 of 11 · GoResilio Property Risk Assessment Report' : 'Halaman 8 dari 11 · Laporan Risiko Properti GoResilio'}
               </div>
             </div>
 
@@ -740,7 +740,7 @@ export const GroundsureReportModal: React.FC = () => {
               </div>
 
               <div className="gs-pdf-footer-note">
-                {isEn ? 'Page 9 of 11 · GoTangguh Property Risk Assessment Report' : 'Halaman 9 dari 11 · Laporan Risiko Properti GoTangguh'}
+                {isEn ? 'Page 9 of 11 · GoResilio Property Risk Assessment Report' : 'Halaman 9 dari 11 · Laporan Risiko Properti GoResilio'}
               </div>
             </div>
 
@@ -788,7 +788,7 @@ export const GroundsureReportModal: React.FC = () => {
               </div>
 
               <div className="gs-pdf-footer-note">
-                {isEn ? 'Page 10 of 11 · GoTangguh Property Risk Assessment Report' : 'Halaman 10 dari 11 · Laporan Risiko Properti GoTangguh'}
+                {isEn ? 'Page 10 of 11 · GoResilio Property Risk Assessment Report' : 'Halaman 10 dari 11 · Laporan Risiko Properti GoResilio'}
               </div>
             </div>
 
@@ -849,7 +849,7 @@ export const GroundsureReportModal: React.FC = () => {
               </div>
 
               <div className="gs-pdf-footer-note" style={{ marginTop: '24px' }}>
-                {isEn ? 'Page 11 of 11 · GoTangguh Property Risk Assessment Report (End of Document)' : 'Halaman 11 dari 11 · Laporan Risiko Properti GoTangguh (Akhir Dokumen)'}
+                {isEn ? 'Page 11 of 11 · GoResilio Property Risk Assessment Report (End of Document)' : 'Halaman 11 dari 11 · Laporan Risiko Properti GoResilio (Akhir Dokumen)'}
               </div>
             </div>
 

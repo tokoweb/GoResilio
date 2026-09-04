@@ -4,6 +4,7 @@ import { ApiResult } from '../../domain/types/api.types';
 import { OsrmRoutingClient } from './OsrmRoutingClient';
 import type { BoundedSpatialDistance, SpatialObservationState } from '../../domain/types/feature.types';
 import type { NormalizedTransportComponent } from '../../domain/types/transport.types';
+import type { AssessmentDepth } from '../../domain/types/hazard.types';
 
 export type SpatialQueryState = 'success' | 'nodata' | 'error' | 'timeout';
 
@@ -2003,11 +2004,13 @@ out body 60;`;
   // 7. COMPREHENSIVE PROXIMITY AGGREGATOR (Runs all independent queries in parallel)
   // ===========================================================================
   public static async fetchProximityMetrics(
-    coords: Coordinates
+    coords: Coordinates,
+    options?: { depth?: AssessmentDepth }
   ): Promise<ApiResult<SpatialProximityData>> {
+    const isDeep = options?.depth === 'deep';
     const lat = coords.lat.toFixed(5);
     const lon = coords.lng.toFixed(5);
-    const cacheKey = `osm_prox_v27_${lat}_${lon}`;
+    const cacheKey = `osm_prox_${isDeep ? 'deep' : 'screen'}_v28_${lat}_${lon}`;
     const cached = LocalApiCache.get<ApiResult<SpatialProximityData>>(cacheKey);
     if (cached) return cached;
 
@@ -2028,11 +2031,16 @@ out body 60;`;
       this.getNearestHealthcare(coords),
       this.getNearestTransit(coords),
       this.getNearestWaterway(coords),
-      this.getNearestCoastline(coords),
-      this.getNearestFireStation(coords),
+      isDeep
+        ? this.getNearestCoastline(coords)
+        : Promise.resolve({ name: null, distanceMeters: null, status: 'nodata' as const, isFallback: false }),
+      isDeep
+        ? this.getNearestFireStation(coords)
+        : Promise.resolve<ApiResult<NormalizedTransportComponent>>({ data: null, isFallback: false, confidenceLevel: 'low', sourceName: 'OpenStreetMap Overpass' }),
       this.getNearestAssemblyPoint(coords),
       this.getGreenSpaceRatio(coords)
     ]);
+
 
     const nearestRoadData = nearestRoadRes.data;
     const majorRoadData = majorRoadRes.data;
@@ -2099,12 +2107,12 @@ out body 60;`;
     const nearestAssemblyPointName = assemblyData?.name || (assemblyData?.status === 'success_bounded' ? 'Tidak terdeteksi dalam radius 15 km' : 'Data titik kumpul tidak tersedia');
     const assemblyObs = assemblyData?.boundedObservation || this.createBoundedObservation(distanceToAssemblyPointMeters, 15000, nearestAssemblyPointName, assemblyRes.isFallback);
 
-    // 8. Driving / Egress Route via OSRM to Assembly Point
+    // 8. Driving / Egress Route via OSRM to Assembly Point (Deep Assessment only)
     let assemblyPointTravelTimeMinutes: number | null = null;
-    let assemblyPointTravelTimeDisplay = 'Titik kumpul tidak terpetakan dalam radius 15 km';
+    let assemblyPointTravelTimeDisplay: string | null = isDeep ? 'Titik kumpul tidak terpetakan dalam radius 15 km' : null;
     let assemblyPointRouteDistanceMeters: number | null = null;
 
-    if (assemblyData?.coordinates?.latitude && assemblyData?.coordinates?.longitude) {
+    if (isDeep && assemblyData?.coordinates?.latitude && assemblyData?.coordinates?.longitude) {
       try {
         const assemCoords = new Coordinates(assemblyData.coordinates.latitude, assemblyData.coordinates.longitude);
         const routeRes = await OsrmRoutingClient.calculateDrivingRoute(coords, assemCoords);
@@ -2120,15 +2128,15 @@ out body 60;`;
       }
     }
 
-    // 9. Driving Route via OSRM to Hospital (if hospital coordinate was discovered)
+    // 9. Driving Route via OSRM to Hospital (Deep Assessment only)
     let travelTimeMinutes: number | null = null;
-    let travelTimeDisplay = 'Rumah sakit tidak terpetakan dalam radius 15 km';
+    let travelTimeDisplay: string | null = isDeep ? 'Rumah sakit tidak terpetakan dalam radius 15 km' : null;
     let travelTimeRouteDistanceMeters: number | null = null;
-    let routingSource = 'OSRM road-network routing';
+    let routingSource = isDeep ? 'OSRM road-network routing' : 'Straight-line / segment distance';
     let routingStatus: OsmAuditTrail['routingStatus'] = 'not_applicable';
 
     const targetHospCoords = hospitalData?.coordinates || healthcareFacilityData?.coordinates;
-    if (targetHospCoords?.latitude && targetHospCoords?.longitude) {
+    if (isDeep && targetHospCoords?.latitude && targetHospCoords?.longitude) {
       try {
         const hospCoords = new Coordinates(targetHospCoords.latitude, targetHospCoords.longitude);
         const routeRes = await OsrmRoutingClient.calculateDrivingRoute(coords, hospCoords);
@@ -2146,6 +2154,7 @@ out body 60;`;
         routingStatus = 'route_calculation_failed';
       }
     }
+
 
     const queryStatus: SpatialProximityData['queryStatus'] = {
       hospital: hospitalData?.status === 'success_exact' ? 'success' : hospitalData?.status === 'success_bounded' ? 'nodata' : (hospitalData?.status as SpatialQueryState) || 'error',

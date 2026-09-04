@@ -61,8 +61,8 @@ export const InstantReportPaymentModal: React.FC<InstantReportPaymentModalProps>
 
   const planDescriptions = {
     instant: isEn
-      ? 'Official comprehensive 10-14 page risk PDF report for 1 property site.'
-      : 'Laporan resmi format PDF (±10–14 halaman) mencakup profil 3 hazard, peta evakuasi, dan mitigasi risiko.',
+      ? 'Official comprehensive 10–14 page risk PDF report for 1 property site covering 4 risk categories, evacuation routes, and action plan.'
+      : 'Laporan resmi format PDF (±10–14 halaman) mencakup 4 potensi risiko (banjir, gempa, panas, aksesibilitas), peta evakuasi, dan rencana tindakan mitigasi.',
     bundling: isEn
       ? 'Side-by-side comparison dossier for 3 candidate properties before purchase.'
       : 'Laporan komparasi risiko side-by-side 3 properti untuk memilih alternatif lokasi teraman.',
@@ -109,7 +109,7 @@ export const InstantReportPaymentModal: React.FC<InstantReportPaymentModalProps>
 
       // 2. Generate pre-filled WhatsApp message
       const waMessage =
-        `Halo Tim Admin GoTangguh / BGP Consultant,\n\n` +
+        `Halo Tim Admin GoResilio / BGP Consultant,\n\n` +
         `Saya ingin memesan layanan asesmen properti:\n` +
         `• Paket: ${targetPackageTitle}\n` +
         `• Alamat Properti: ${propertyAddress}\n` +
@@ -233,7 +233,7 @@ export const InstantReportPaymentModal: React.FC<InstantReportPaymentModalProps>
               <p style={{ fontSize: '0.92rem', color: '#64748b', lineHeight: 1.6, marginBottom: '24px' }}>
                 {isEn
                   ? 'WhatsApp chat with our admin team has been initiated. Our specialists will assist you with official dossier issuance.'
-                  : 'Pesan WhatsApp telah terkirim ke Admin GoTangguh. Tim ahli kami akan segera memverifikasi detail lokasi dan menerbitkan dokumen laporan resmi Anda.'}
+                  : 'Pesan WhatsApp telah terkirim ke Admin GoResilio. Tim ahli kami akan segera memverifikasi detail lokasi dan menerbitkan dokumen laporan resmi Anda.'}
               </p>
               <button
                 type="button"
@@ -324,7 +324,7 @@ export const InstantReportPaymentModal: React.FC<InstantReportPaymentModalProps>
                     required
                     value={clientName}
                     onChange={(e) => setClientName(e.target.value)}
-                    placeholder="Contoh: Budi Santoso"
+                    placeholder={isEn ? 'Enter your full name' : 'Masukkan nama lengkap Anda'}
                     style={{
                       width: '100%',
                       padding: '10px 14px',
@@ -344,7 +344,7 @@ export const InstantReportPaymentModal: React.FC<InstantReportPaymentModalProps>
                     required
                     value={clientContact}
                     onChange={(e) => setClientContact(e.target.value)}
-                    placeholder="0812xxxxxxx"
+                    placeholder={isEn ? '+62 812-xxxx-xxxx' : '0812-xxxx-xxxx'}
                     style={{
                       width: '100%',
                       padding: '10px 14px',
@@ -366,7 +366,7 @@ export const InstantReportPaymentModal: React.FC<InstantReportPaymentModalProps>
                   rows={2}
                   value={clientNotes}
                   onChange={(e) => setClientNotes(e.target.value)}
-                  placeholder={isEn ? 'e.g. Need flood depth analysis or construction verification' : 'Misal: Mohon cek elevasi lantai bebas banjir dan penguatan struktur kolom.'}
+                  placeholder={isEn ? 'Enter any specific questions or property requirements...' : 'Tuliskan catatan khusus atau kebutuhan verifikasi properti Anda...'}
                   style={{
                     width: '100%',
                     padding: '10px 14px',

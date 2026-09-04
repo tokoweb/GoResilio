@@ -28,6 +28,7 @@ import { RiskScore } from '../value_objects/RiskScore.vo';
 import { PrescriptionEngine } from './PrescriptionEngine';
 import { GoTangguhFinancialScreeningEngine } from './GoTangguhFinancialScreeningEngine';
 import { RISK_MODEL_CONFIG } from '../config/RiskModelConfig';
+import { CanonicalRatingResolver } from './CanonicalRatingResolver';
 import type { NormalizedTransportEvidence } from '../types/transport.types';
 import { metersToKilometers, formatDistanceMeters } from '../utils/UnitConversions';
 
@@ -275,7 +276,7 @@ export class RiskScoringEngine {
     if (hasFloodData) {
       let baseScore: number = floodCfg.baseTiers.defaultBase;
       let baseSource = 'Default Model Base';
-      let baseReason = 'Skor dasar awal model penapisan banjir GoTangguh';
+      let baseReason = 'Skor dasar awal model penapisan banjir GoResilio';
       const adjustments: ScoreLedgerAdjustment[] = [];
 
       if (hasFloodClassEvidence) {
@@ -287,7 +288,7 @@ export class RiskScoringEngine {
           baseScore = floodCfg.baseTiers.low;
         }
         baseSource = floodClassSource === 'BNPB' ? 'BNPB inaRISK Official Classification' : 'ThinkHazard Regional Baseline';
-        baseReason = `Klasifikasi resmi ${floodClassSource} (${floodClassStr}) dipetakan ke skor dasar penapisan internal GoTangguh (${baseScore}/100)`;
+        baseReason = `Klasifikasi resmi ${floodClassSource} (${floodClassStr}) dipetakan ke skor dasar penapisan internal GoResilio (${baseScore}/100)`;
         floodReliability = 'partially_observed'; // Model, raster, and reanalysis data without in-situ gauge measurements
       } else {
         // Physical observations exist without official tier
@@ -376,8 +377,8 @@ export class RiskScoringEngine {
         officialSource: floodClassSource === 'BNPB' ? 'BNPB inaRISK' : floodClassSource === 'ThinkHazard' ? 'World Bank ThinkHazard!' : null,
         internalBaseScore: baseScore,
         internalBaseTransformation: hasFloodClassEvidence
-          ? `Klasifikasi resmi ${floodClassSource} (${floodClassStr}) dipetakan ke skor dasar penapisan internal GoTangguh (${baseScore}/100)`
-          : `Skor dasar penapisan internal GoTangguh berbasis observasi fisik tapak (${baseScore}/100)`,
+          ? `Klasifikasi resmi ${floodClassSource} (${floodClassStr}) dipetakan ke skor dasar penapisan internal GoResilio (${baseScore}/100)`
+          : `Skor dasar penapisan internal GoResilio berbasis observasi fisik tapak (${baseScore}/100)`,
         baseScore,
         baseSource,
         baseReason,
@@ -464,21 +465,72 @@ export class RiskScoringEngine {
       floodGeomorphicSynthesisEn = `Site elevation ${elevTextEn}${slopeDescEn}${reliefDescEn}, ${riverTextEn}.`;
     }
 
+    const floodCausesIdParts: string[] = [];
+    const floodCausesEnParts: string[] = [];
+
+    if (inputs.elevationMeters !== null && inputs.elevationMeters !== undefined) {
+      if (inputs.elevationMeters <= 8) {
+        floodCausesIdParts.push(`Elevasi tapak rendah (${Math.round(inputs.elevationMeters)} mdpl)`);
+        floodCausesEnParts.push(`Low site elevation (${Math.round(inputs.elevationMeters)}m MSL)`);
+      } else if (inputs.elevationMeters <= 20) {
+        floodCausesIdParts.push(`Elevasi tapak relatif rendah (${Math.round(inputs.elevationMeters)} mdpl)`);
+        floodCausesEnParts.push(`Relatively low site elevation (${Math.round(inputs.elevationMeters)}m MSL)`);
+      } else {
+        floodCausesIdParts.push(`Elevasi tapak ${Math.round(inputs.elevationMeters)} mdpl`);
+        floodCausesEnParts.push(`Site elevation of ${Math.round(inputs.elevationMeters)}m MSL`);
+      }
+    } else {
+      floodCausesIdParts.push('Elevasi tapak rendah');
+      floodCausesEnParts.push('Low site elevation');
+    }
+
+    if (inputs.max24hRainfallMm !== null && inputs.max24hRainfallMm !== undefined) {
+      if (inputs.max24hRainfallMm >= 100) {
+        floodCausesIdParts.push(`curah hujan ekstrem (${Math.round(inputs.max24hRainfallMm)} mm/hari)`);
+        floodCausesEnParts.push(`extreme precipitation (${Math.round(inputs.max24hRainfallMm)} mm/day)`);
+      } else if (inputs.max24hRainfallMm >= 50) {
+        floodCausesIdParts.push(`curah hujan lebat (${Math.round(inputs.max24hRainfallMm)} mm/hari)`);
+        floodCausesEnParts.push(`heavy rainfall (${Math.round(inputs.max24hRainfallMm)} mm/day)`);
+      } else {
+        floodCausesIdParts.push(`curah hujan musiman (${Math.round(inputs.max24hRainfallMm)} mm/hari)`);
+        floodCausesEnParts.push(`seasonal rainfall (${Math.round(inputs.max24hRainfallMm)} mm/day)`);
+      }
+    } else {
+      floodCausesIdParts.push('curah hujan ekstrem');
+      floodCausesEnParts.push('extreme precipitation');
+    }
+
+    if (hasRiver && inputs.distanceToRiverMeters !== null && inputs.distanceToRiverMeters <= 800) {
+      const rName = inputs.nearestRiverName ? `aliran ${inputs.nearestRiverName}` : 'sungai terdekat';
+      const rNameEn = inputs.nearestRiverName ? `${inputs.nearestRiverName}` : 'nearby river';
+      floodCausesIdParts.push(`luapan ${rName} (jarak ±${Math.round(inputs.distanceToRiverMeters)} m)`);
+      floodCausesEnParts.push(`overflow from ${rNameEn} (±${Math.round(inputs.distanceToRiverMeters)}m away)`);
+    } else if (hasRiver && inputs.nearestRiverName) {
+      floodCausesIdParts.push(`luapan sungai terdekat (${inputs.nearestRiverName})`);
+      floodCausesEnParts.push(`nearby river overflow (${inputs.nearestRiverName})`);
+    } else {
+      floodCausesIdParts.push('luapan sungai terdekat');
+      floodCausesEnParts.push('nearby river overflow');
+    }
+
+    if (isNegativeRelief || (inputs.flowAccumulationPotential && inputs.flowAccumulationPotential.toLowerCase().includes('cekungan'))) {
+      floodCausesIdParts.push('kondisi cekungan lokal yang menampung limpasan air');
+      floodCausesEnParts.push('localized basin terrain retaining stormwater runoff');
+    } else {
+      floodCausesIdParts.push('kapasitas drainase kota terbatas');
+      floodCausesEnParts.push('limited urban drainage capacity');
+    }
+
+    const floodCauseSentenceId = floodCausesIdParts.slice(0, -1).join(', ') + ', dan ' + floodCausesIdParts[floodCausesIdParts.length - 1] + '.';
+    const floodCauseSentenceEn = floodCausesEnParts.slice(0, -1).join(', ') + ', and ' + floodCausesEnParts[floodCausesEnParts.length - 1] + '.';
+
     const floodCauseId = !hasFloodData || floodScore === null
       ? 'Data parameter banjir tidak cukup untuk melakukan penilaian risiko.'
-      : floodScore > 60
-      ? `${floodGeomorphicSynthesisId} ${floodSourceLabelId}, dengan ${rainTextId}${drainDescId}.${floodCoverageNoticeId}`
-      : floodScore > 30
-      ? `${floodGeomorphicSynthesisId} ${floodSourceLabelId}, dipengaruhi ${rainTextId}${drainDescId}.${floodCoverageNoticeId}`
-      : `${floodGeomorphicSynthesisId} ${floodSourceLabelId}${drainDescId}.${floodCoverageNoticeId}`;
+      : floodCauseSentenceId;
 
     const floodCauseEn = !hasFloodData || floodScore === null
       ? 'Insufficient flood parameter data to perform risk assessment.'
-      : floodScore > 60
-      ? `${floodGeomorphicSynthesisEn} ${floodSourceLabelEn}, with ${rainTextEn}${drainDescEn}.${floodCoverageNoticeEn}`
-      : floodScore > 30
-      ? `${floodGeomorphicSynthesisEn} ${floodSourceLabelEn}, influenced by ${rainTextEn}${drainDescEn}.${floodCoverageNoticeEn}`
-      : `${floodGeomorphicSynthesisEn} ${floodSourceLabelEn}${drainDescEn}.${floodCoverageNoticeEn}`;
+      : floodCauseSentenceEn;
 
     const flood: FloodMetrics = {
       score: floodScore,
@@ -522,18 +574,18 @@ export class RiskScoringEngine {
       causeEn: floodCauseEn,
       impactId: !hasFloodData || floodScore === null
         ? 'Data parameter banjir tidak cukup untuk mengindikasikan potensi dampak fisik.'
-        : floodScore > 70
-        ? 'Indikasi penapisan potensi genangan lantai bawah, penurunan daya dukung tanah pondasi, dan risiko terhadap instalasi elektrikal.'
-        : floodScore > 40
-        ? 'Indikasi genangan berkala di area luar/halaman saat intensitas hujan tinggi.'
-        : 'Elevasi relatif memberikan sinyal keterpaparan topografi yang lebih rendah, namun tidak meniadakan potensi risiko genangan mikro.',
+        : floodScore > 65
+        ? 'Kombinasi faktor ini berpotensi memicu genangan air di halaman dan lantai dasar bangunan saat puncak musim hujan, serta risiko terhadap instalasi elektrikal bawah tanah.'
+        : floodScore > 35
+        ? 'Berpotensi menimbulkan genangan air berkala pada akses jalan lingkungan dan area resapan halaman luar rumah saat hujan lebat berkepanjangan.'
+        : 'Topografi tapak relatif aman dari risiko genangan besar, namun pemeliharaan saluran talang air dan resapan mikro tetap dianjurkan.',
       impactEn: !hasFloodData || floodScore === null
         ? 'Insufficient flood parameter data to indicate potential physical impact.'
-        : floodScore > 70
-        ? 'Screening indication of ground-floor inundation potential, subgrade bearing capacity reduction, and MEP equipment hazard.'
-        : floodScore > 40
-        ? 'Potential episodic surface ponding across exterior perimeter during heavy rainfall.'
-        : 'Absolute elevation provides a lower-exposure terrain signal, but does not eliminate localized flood risk.',
+        : floodScore > 65
+        ? 'This combination of factors may trigger localized ground-floor and garden inundation during peak monsoon rainfall, posing risks to lower-level electrical systems.'
+        : floodScore > 35
+        ? 'May cause periodic surface water ponding along neighborhood access roads and outdoor garden drainage during prolonged heavy downpours.'
+        : 'Favorable terrain reduces macro-flood susceptibility, though roof gutters and micro-drainage upkeep remain advisable.',
       recomId: !hasFloodData || floodScore === null
         ? 'Data parameter banjir tidak cukup untuk merumuskan rekomendasi penapisan teknis.'
         : floodScore > 60
@@ -602,7 +654,7 @@ export class RiskScoringEngine {
     if (hasQuakeData) {
       let baseScore: number = seismicCfg.baseTiers.defaultBase;
       let baseSource = 'Default Model Base';
-      let baseReason = 'Skor dasar awal model penapisan seismik GoTangguh';
+      let baseReason = 'Skor dasar awal model penapisan seismik GoResilio';
       const adjustments: ScoreLedgerAdjustment[] = [];
 
       if (hasQuakeClassEvidence) {
@@ -614,7 +666,7 @@ export class RiskScoringEngine {
           baseScore = seismicCfg.baseTiers.lowOrVeryLow;
         }
         baseSource = quakeClassSource === 'BNPB' ? 'BNPB inaRISK Official Classification' : 'ThinkHazard Regional Baseline';
-        baseReason = `Klasifikasi resmi ${quakeClassSource} (${quakeClassStr}) dipetakan ke skor dasar penapisan internal GoTangguh (${baseScore}/100)`;
+        baseReason = `Klasifikasi resmi ${quakeClassSource} (${quakeClassStr}) dipetakan ke skor dasar penapisan internal GoResilio (${baseScore}/100)`;
         quakeReliability = 'partially_observed'; // Model, raster, and catalog data without in-situ parcel accelerographs
       } else {
         baseScore = seismicCfg.baseTiers.historicalOnlyBaseline; // Screening baseline
@@ -717,8 +769,8 @@ export class RiskScoringEngine {
         officialSource: quakeClassSource === 'BNPB' ? 'BNPB inaRISK' : quakeClassSource === 'ThinkHazard' ? 'World Bank ThinkHazard!' : null,
         internalBaseScore: baseScore,
         internalBaseTransformation: hasQuakeClassEvidence
-          ? `Klasifikasi resmi ${quakeClassSource} (${quakeClassStr}) dipetakan ke skor dasar penapisan internal GoTangguh (${baseScore}/100)`
-          : `Skor dasar penapisan internal GoTangguh berbasis riwayat kegempaan tapak (${baseScore}/100)`,
+          ? `Klasifikasi resmi ${quakeClassSource} (${quakeClassStr}) dipetakan ke skor dasar penapisan internal GoResilio (${baseScore}/100)`
+          : `Skor dasar penapisan internal GoResilio berbasis riwayat kegempaan tapak (${baseScore}/100)`,
         baseScore,
         baseSource,
         baseReason,
@@ -989,11 +1041,11 @@ export class RiskScoringEngine {
 
     const heatCauseId = !hasHeatData
       ? 'Data parameter suhu dan iklim tidak cukup untuk melakukan penilaian risiko.'
-      : `${thinkHazardHeatStrId}Observasi fisik tapak: ${obsPartsId}. Penilaian model beban termal GoTangguh: ${heatModelLevel}.`;
+      : `${thinkHazardHeatStrId}Observasi fisik tapak: ${obsPartsId}. Penilaian model beban termal GoResilio: ${heatModelLevel}.`;
 
     const heatCauseEn = !hasHeatData
       ? 'Insufficient temperature and climate parameter data to perform risk assessment.'
-      : `${thinkHazardHeatStrEn}Observed physical evidence: ${obsPartsEn}. GoTangguh thermal stress model assessment: ${heatModelLevel}.`;
+      : `${thinkHazardHeatStrEn}Observed physical evidence: ${obsPartsEn}. GoResilio thermal stress model assessment: ${heatModelLevel}.`;
 
     const heat: HeatMetrics = {
       score: heatScore,
@@ -1392,8 +1444,8 @@ export class RiskScoringEngine {
     } else {
       const labelId = overallScore !== null ? new RiskScore(overallScore).getLabel('id') : 'Data Tidak Tersedia';
       const labelEn = overallScore !== null ? new RiskScore(overallScore).getLabel('en') : 'Insufficient Data';
-      executiveSummaryId = `Berdasarkan evaluasi spasial terpadu GoTangguh Multi-Hazard Engine, tapak ini memiliki skor risiko gabungan ${overallScore}/100 (${labelId}) dengan ancaman dominan ${dominantHazard?.toUpperCase()} (Kelengkapan Data: ${dataCompletenessScorePct}%). Rekomendasi mitigasi spesifik disarankan sebelum proses finalisasi transaksi atau konstruksi.`;
-      executiveSummaryEn = `Based on integrated spatial evaluation by GoTangguh Multi-Hazard Engine, this site exhibits an overall risk score of ${overallScore}/100 (${labelEn}) with ${dominantHazard?.toUpperCase()} as the dominant threat (Data Completeness: ${dataCompletenessScorePct}%). Targeted mitigation measures are recommended prior to transaction settlement or construction.`;
+      executiveSummaryId = `Berdasarkan evaluasi spasial terpadu GoResilio Multi-Hazard Engine, tapak ini memiliki skor risiko gabungan ${overallScore}/100 (${labelId}) dengan ancaman dominan ${dominantHazard?.toUpperCase()} (Kelengkapan Data: ${dataCompletenessScorePct}%). Rekomendasi mitigasi spesifik disarankan sebelum proses finalisasi transaksi atau konstruksi.`;
+      executiveSummaryEn = `Based on integrated spatial evaluation by GoResilio Multi-Hazard Engine, this site exhibits an overall risk score of ${overallScore}/100 (${labelEn}) with ${dominantHazard?.toUpperCase()} as the dominant threat (Data Completeness: ${dataCompletenessScorePct}%). Targeted mitigation measures are recommended prior to transaction settlement or construction.`;
     }
 
     const result: MultiHazardAssessmentResult = {
@@ -1548,6 +1600,8 @@ export class RiskScoringEngine {
       features: inputs.features,
       featureStore: inputs.featureStore
     };
+
+    CanonicalRatingResolver.attachCanonicalRatings(result, 'id');
 
     return result;
   }

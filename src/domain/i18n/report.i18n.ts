@@ -229,7 +229,7 @@ export const reportI18nId: ReportI18nDictionary = {
     ownerLabel: 'Pemilik / Pengguna',
     unspecifiedOwner: 'Pengguna Terdaftar / Klien',
     dataUnavailable: 'Data belum tersedia',
-    sampleWatermark: 'CONTOH LAPORAN RESMI',
+    sampleWatermark: '',
     sampleNoticeTitle: 'DOKUMEN SAMPEL PENILAIAN',
     sampleNoticeSubtitle: 'Laporan ini disusun menggunakan parameter simulasi terkalibrasi untuk keperluan peninjauan tata letak.'
   },
@@ -242,15 +242,15 @@ export const reportI18nId: ReportI18nDictionary = {
   executiveSummary: {
     sectionNumber: '02',
     title: 'Ringkasan Eksekutif',
-    overallRiskOverviewTitle: 'Tingkat Risiko Keseluruhan',
+    overallRiskOverviewTitle: 'Indeks Risiko Terpadu',
     dominantHazardTitle: 'Risiko Utama di Lokasi',
     generalOverviewTitle: 'Gambaran Umum Kondisi Tapak',
     topRecommendationsTitle: 'Rekomendasi Utama',
     dominantHazardIntro: 'Berdasarkan penapisan terverifikasi, risiko paling dominan di lokasi ini adalah',
     hazardNames: {
-      quake: 'Gempa Bumi & Sesar Aktif',
+      quake: 'Gempa & Sesar Aktif',
       flood: 'Banjir & Genangan',
-      heat: 'Heat Stress & Iklim Ekstrem'
+      heat: 'Kondisi Panas'
     },
     levels: {
       high: 'Risiko Tinggi',
@@ -258,7 +258,7 @@ export const reportI18nId: ReportI18nDictionary = {
       low: 'Risiko Rendah',
       insufficient_data: 'Belum dapat dinilai'
     },
-    scoreReliabilityLabel: 'Tingkat Keandalan Data'
+    scoreReliabilityLabel: 'Kelengkapan Bukti'
   },
   propertyProfile: {
     sectionNumber: '03',
@@ -272,15 +272,15 @@ export const reportI18nId: ReportI18nDictionary = {
     floorCountLabel: 'Jumlah Lantai',
     buildingAgeLabel: 'Perkiraan Usia Bangunan',
     surroundingEnvTitle: 'Kondisi Lingkungan Sekitar',
-    waterwayDistanceLabel: 'Jarak Badan Air / Sungai',
+    waterwayDistanceLabel: 'Jarak ke Sungai / Saluran',
     buildingDensityLabel: 'Kepadatan Bangunan',
-    accessibilityRoadLabel: 'Aksesibilitas Jalan',
+    accessibilityRoadLabel: 'Jalan Akses',
     descriptionTitle: 'Deskripsi Karakteristik Lingkungan',
     descriptionBody: 'Kondisi lokasi dan lingkungan sekitar sangat mempengaruhi tingkat risiko yang mungkin terjadi. Karakteristik elevasi tapak, kedekatan badan air, kepadatan lingkungan, serta keterhubungan jaringan jalan membentuk fondasi ketahanan properti.'
   },
   methodology: {
     sectionNumber: '04',
-    title: 'Penjelasan Penilaian',
+    title: 'Dasar Penilaian',
     howAssessmentConductedTitle: 'Cara Penilaian Dilakukan',
     introBody: 'Skor merupakan indikator penapisan awal berbasis data spasial publik. Tidak menggantikan audit kelayakan teknis profesional. Analisis mempertimbangkan riwayat kejadian bencana 10 tahun terakhir, keterpaparan tapak terhadap jalur bahaya fisik, dan potensi beban risiko pada integritas struktural properti.',
     approachTableTitle: 'Pendekatan yang Digunakan',
@@ -290,54 +290,54 @@ export const reportI18nId: ReportI18nDictionary = {
     },
     aspects: {
       hazardPotential: {
-        name: 'Potensi Risiko',
-        explanation: 'Kemungkinan terjadinya bencana berdasarkan katalog historis multi-dekade dan reanalisis fisik.'
+        name: 'Potensi Bahaya',
+        explanation: 'Kemungkinan terjadinya peristiwa alam berdasarkan data historis dan wilayah.'
       },
       exposure: {
         name: 'Paparan',
-        explanation: 'Seberapa dekat properti dengan sumber risiko (jarak patahan aktif, badan air permukaan, pulau panas).'
+        explanation: 'Seberapa dekat properti dengan sumber risiko (jarak sesar aktif, sungai/saluran, area panas).'
       },
       impact: {
         name: 'Dampak',
-        explanation: 'Tingkat kerusakan fisik, gangguan struktural, dan beban operasional yang mungkin dialami properti.'
+        explanation: 'Tingkat gangguan fisik dan operasional yang dapat dialami properti saat bencana terjadi.'
       }
     },
     layExplanationTitle: 'Penjelasan Sederhana',
-    layExplanationBody: 'Kami menilai seberapa besar potensi bahaya, seberapa dekat sumber risiko terhadap lokasi Anda, dan apa dampak terukur yang mungkin terjadi pada properti.'
+    layExplanationBody: 'Kami menilai seberapa besar potensi bahaya di wilayah Anda, seberapa dekat lokasinya ke properti, dan apa dampaknya bagi bangunan.'
   },
   earthquakeSection: {
     sectionNumber: '05',
     title: 'Risiko Gempa Bumi',
-    hazardLevelTitle: 'Tingkat Bahaya Gempa',
-    groundShakingTitle: 'Perkiraan Guncangan (PGA)',
+    hazardLevelTitle: 'Bahaya Gempa Wilayah',
+    groundShakingTitle: 'Perkiraan Kekuatan Guncangan',
     historicalTimelineTitle: 'Riwayat Gempa di Sekitar',
     timelineSubtitle: 'Aktivitas Seismik Radius 150 km dalam 10 Tahun Terakhir',
     strongestQuakeTitle: 'Gempa Terkuat',
     frequencyTitle: 'Frekuensi Kejadian',
     frequencyBody: 'Gempa kecil hingga sedang terjadi secara berkala di kawasan tektonik regional. Gempa signifikan berkekuatan sedang-tinggi berpeluang terjadi dalam rentang beberapa tahun sekali.',
-    potentialImpactTitle: 'Tingkat Dampak yang Mungkin Terjadi',
+    potentialImpactTitle: 'Dampak yang Perlu Diperhatikan',
     potentialImpactBody: 'Dampak dapat berupa retakan non-struktural pada plesteran dinding bata, pergeseran genteng atau plafon, serta risiko perabotan tinggi terguling jika tidak terikat.',
-    recommendationsTitle: 'Rekomendasi Kesiapsiagaan',
+    recommendationsTitle: 'Yang Sebaiknya Dilakukan',
     primaryPriorityLabel: 'Prioritas Utama',
     suggestedLabel: 'Disarankan',
-    conclusionTitle: 'Kesimpulan Seismik',
+    conclusionTitle: 'Kesimpulan Gempa',
     technicalDetailsTitle: 'Audit Parameter Teknis Gempa'
   },
   floodSection: {
     sectionNumber: '06',
     title: 'Risiko Banjir',
-    siteElevationTitle: 'Ketinggian Lokasi (DEM)',
-    peakRainfallTitle: 'Hujan Terberat (24 Jam)',
+    siteElevationTitle: 'Ketinggian Lokasi',
+    peakRainfallTitle: 'Hujan Terberat',
     waterProximityTitle: 'Jarak ke Sungai / Saluran',
-    terrainFormTitle: 'Bentuk Lahan & Kemiringan',
-    floodAssessmentTitle: 'Penilaian Potensi Banjir',
+    terrainFormTitle: 'Bentuk Lahan',
+    floodAssessmentTitle: 'Bahaya Banjir Wilayah',
     historicalEventsTitle: 'Riwayat Genangan Sekitar',
     inundationDepthTitle: 'Kedalaman Genangan Tapak',
     frequencyTitle: 'Frekuensi Kejadian',
     frequencyBody: 'Potensi banjir umumnya terkonsentrasi pada puncak musim hujan dengan intensitas presipitasi tinggi atau limpasan kiriman hulu.',
-    potentialImpactTitle: 'Tingkat Dampak yang Mungkin Terjadi',
+    potentialImpactTitle: 'Dampak yang Perlu Diperhatikan',
     potentialImpactBody: 'Genangan air berpotensi merendam area halaman, mengganggu lantai dasar, merusak perabotan bawah, serta melumpuhkan jalur akses kendaraan keluar-masuk properti.',
-    recommendationsTitle: 'Rekomendasi Pengelolaan Banjir',
+    recommendationsTitle: 'Yang Sebaiknya Dilakukan',
     primaryPriorityLabel: 'Prioritas Utama',
     suggestedLabel: 'Disarankan',
     conclusionTitle: 'Kesimpulan Risiko Banjir',
@@ -345,26 +345,26 @@ export const reportI18nId: ReportI18nDictionary = {
   },
   heatSection: {
     sectionNumber: '07',
-    title: 'Risiko Heat Stress',
+    title: 'Kondisi Panas',
     forecastTempTitle: 'Suhu Prakiraan Maksimum',
-    historicalPeakTempTitle: 'Suhu Tertinggi Historis',
-    climateProjectionTitle: 'Proyeksi Perubahan Suhu (CMIP6 2050)',
-    airQualityTitle: 'Kualitas Udara Sekitar',
-    heatExposureTitle: 'Paparan Panas & Beban Termal',
-    historicalTrendTitle: 'Tren Peningkatan Suhu Multi-Tahun',
+    historicalPeakTempTitle: 'Suhu Tertinggi',
+    climateProjectionTitle: 'Perubahan Suhu ke Depan',
+    airQualityTitle: 'Kualitas Udara',
+    heatExposureTitle: 'Kondisi Panas',
+    historicalTrendTitle: 'Tren Suhu',
     frequencyTitle: 'Frekuensi Paparan',
-    frequencyBody: 'Beban panas lingkungan mencapai puncaknya pada musim kemarau dan periode kemarau berkepanjangan dengan kelembapan tinggi.',
-    potentialImpactTitle: 'Tingkat Dampak yang Mungkin Terjadi',
-    potentialImpactBody: 'Peningkatan suhu permukaan dalam ruangan, kenaikan konsumsi daya pendingin udara (AC), serta penurunan kenyamanan termal bagi penghuni.',
-    recommendationsTitle: 'Rekomendasi Kenyamanan Termal',
+    frequencyBody: 'Suhu panas lingkungan mencapai puncaknya pada musim kemarau dan periode kemarau berkepanjangan dengan kelembapan tinggi.',
+    potentialImpactTitle: 'Dampak yang Perlu Diperhatikan',
+    potentialImpactBody: 'Peningkatan suhu permukaan dalam ruangan, kenaikan konsumsi daya pendingin udara (AC), serta penurunan kenyamanan bagi penghuni.',
+    recommendationsTitle: 'Yang Sebaiknya Dilakukan',
     primaryPriorityLabel: 'Prioritas Utama',
     suggestedLabel: 'Disarankan',
-    conclusionTitle: 'Kesimpulan Heat Stress',
+    conclusionTitle: 'Kesimpulan Kondisi Panas',
     technicalDetailsTitle: 'Audit Parameter Mikroklimat & Tutupan Lahan'
   },
   accessibilitySection: {
     sectionNumber: '08',
-    title: 'Aksesibilitas & Transportasi',
+    title: 'Transportasi & Akses',
     networkMapSubtitle: 'Analisis Jaringan Jalan & Jarak Evakuasi Darurat',
     facilityDistanceTitle: 'Jarak ke Fasilitas Kunci',
     tableHeaders: {
@@ -376,13 +376,13 @@ export const reportI18nId: ReportI18nDictionary = {
     },
     facilityTypes: {
       nearestRoad: 'Jalan Terdekat',
-      mainRoad: 'Jalan Utama Terdekat',
-      healthcare: 'Fasilitas Kesehatan Terdekat',
-      publicTransit: 'Transportasi Umum Terdekat',
-      assemblyPoint: 'Titik Kumpul Terdekat'
+      mainRoad: 'Jalan Utama',
+      healthcare: 'Rumah Sakit Terdekat',
+      publicTransit: 'Transportasi Umum',
+      assemblyPoint: 'Titik Kumpul'
     },
     interpretationTitle: 'Interpretasi Aksesibilitas',
-    riskNotesTitle: 'Catatan Risiko Saat Bencana',
+    riskNotesTitle: 'Catatan Akses Saat Keadaan Darurat',
     recommendationsTitle: 'Rekomendasi Rute Evakuasi',
     fastestRouteLabel: 'Rute Tercepat',
     alternativeRouteLabel: 'Jalur Alternatif'
@@ -443,7 +443,7 @@ export const reportI18nEn: ReportI18nDictionary = {
     ownerLabel: 'Property Owner / Client',
     unspecifiedOwner: 'Registered User / Client',
     dataUnavailable: 'Data unavailable',
-    sampleWatermark: 'SAMPLE REPORT',
+    sampleWatermark: '',
     sampleNoticeTitle: 'SAMPLE AUDIT DOSSIER',
     sampleNoticeSubtitle: 'This report was generated using calibrated simulation inputs for layout and architecture review.'
   },
@@ -456,23 +456,23 @@ export const reportI18nEn: ReportI18nDictionary = {
   executiveSummary: {
     sectionNumber: '02',
     title: 'Executive Summary',
-    overallRiskOverviewTitle: 'Overall Risk Level Overview',
-    dominantHazardTitle: 'Primary Site Hazard',
+    overallRiskOverviewTitle: 'Integrated Risk Index',
+    dominantHazardTitle: 'Primary Risk at Location',
     generalOverviewTitle: 'General Site Overview',
     topRecommendationsTitle: 'Key Recommendations',
-    dominantHazardIntro: 'Based on verified screening models, the primary risk driver at this location is',
+    dominantHazardIntro: 'Based on verified screening models, the primary risk at this location is',
     hazardNames: {
       quake: 'Earthquake & Active Faults',
-      flood: 'Flooding & Inundation',
-      heat: 'Heat Stress & Climate Extremes'
+      flood: 'Flood & Inundation',
+      heat: 'Heat Conditions'
     },
     levels: {
       high: 'High Risk',
       medium: 'Moderate Risk',
       low: 'Low Risk',
-      insufficient_data: 'Insufficient Data'
+      insufficient_data: 'Data unavailable'
     },
-    scoreReliabilityLabel: 'Data Reliability Tier'
+    scoreReliabilityLabel: 'Evidence Quality'
   },
   propertyProfile: {
     sectionNumber: '03',
@@ -486,17 +486,17 @@ export const reportI18nEn: ReportI18nDictionary = {
     floorCountLabel: 'Floor Count',
     buildingAgeLabel: 'Estimated Building Age',
     surroundingEnvTitle: 'Surrounding Environment',
-    waterwayDistanceLabel: 'Distance to Water Body / Canal',
+    waterwayDistanceLabel: 'Distance to River / Canal',
     buildingDensityLabel: 'Building Density',
-    accessibilityRoadLabel: 'Road Accessibility',
+    accessibilityRoadLabel: 'Access Road',
     descriptionTitle: 'Environmental Baseline Description',
-    descriptionBody: 'Location conditions and surrounding environment significantly determine potential disaster exposure. Site elevation, surface waterways, building density, and road connectivity define the fundamental resilience baseline.'
+    descriptionBody: 'Location conditions and surrounding environment significantly determine potential disaster exposure. Site elevation, proximity to water bodies, building density, and road connectivity define the fundamental resilience baseline.'
   },
   methodology: {
     sectionNumber: '04',
-    title: 'Assessment Explanation',
+    title: 'Basis of Assessment',
     howAssessmentConductedTitle: 'How the Assessment is Conducted',
-    introBody: 'Scores represent an initial screening indicator based on public spatial data and do not replace a professional technical due diligence audit. The assessment systematically evaluates: 10-year historical disaster catalogs, event recurrence frequency, property exposure to physical hazard pathways, and potential consequences on building superstructure.',
+    introBody: 'Scores represent an initial screening indicator based on public spatial data and do not replace a professional technical due diligence audit. The assessment systematically evaluates: 10-year historical disaster catalogs, event recurrence frequency, property exposure to physical hazard pathways, and potential consequences on building integrity.',
     approachTableTitle: 'Evaluation Framework',
     tableHeaders: {
       aspect: 'Aspect',
@@ -505,137 +505,137 @@ export const reportI18nEn: ReportI18nDictionary = {
     aspects: {
       hazardPotential: {
         name: 'Hazard Potential',
-        explanation: 'Probability and likelihood of hazard events occurring based on verified multi-agency empirical data.'
+        explanation: 'Probability and likelihood of hazard events occurring based on regional historical data.'
       },
       exposure: {
         name: 'Exposure',
-        explanation: 'Spatial proximity of the property to hazardous sources (active faults, surface waterways, heat islands).'
+        explanation: 'How close the property is to hazard sources (active faults, rivers/canals, heat islands).'
       },
       impact: {
         name: 'Impact',
-        explanation: 'Expected magnitude of physical structural damage, financial expense, and operational downtime.'
+        explanation: 'Degree of physical and operational disruption the property could experience when a disaster occurs.'
       }
     },
-    layExplanationTitle: 'Simple Summary',
-    layExplanationBody: 'We evaluate the magnitude of potential hazards, how close the risk sources are to your property, and what tangible impacts could occur.'
+    layExplanationTitle: 'Simple Explanation',
+    layExplanationBody: 'We evaluate the magnitude of regional hazards, how close they are to your property, and what tangible impacts could occur on the building.'
   },
   earthquakeSection: {
     sectionNumber: '05',
     title: 'Earthquake Risk',
-    hazardLevelTitle: 'Earthquake Hazard Level',
-    groundShakingTitle: 'Estimated Shaking (PGA)',
-    historicalTimelineTitle: 'Historical Seismicity Around Site',
+    hazardLevelTitle: 'Regional Earthquake Hazard',
+    groundShakingTitle: 'Estimated Shaking Strength',
+    historicalTimelineTitle: 'Nearby Earthquake History',
     timelineSubtitle: '150 km Radius Seismic Catalog in the Past 10 Years',
-    strongestQuakeTitle: 'Strongest Recorded Event',
+    strongestQuakeTitle: 'Strongest Recorded Earthquake',
     frequencyTitle: 'Recurrence Frequency',
     frequencyBody: 'Minor to moderate tremors occur periodically within the regional tectonic zone. Significant moderate-high events typically occur once every several years.',
-    potentialImpactTitle: 'Potential Consequences on Building',
-    potentialImpactBody: 'Damage may include superficial non-structural plaster cracks, displacement of roof tiles or ceiling fixtures, and tipping hazard for unrestrained furniture.',
-    recommendationsTitle: 'Preparedness Recommendations',
+    potentialImpactTitle: 'Potential Impacts to Consider',
+    potentialImpactBody: 'Impacts may include non-structural wall plaster cracks, displaced roof tiles or ceilings, and tipping hazards for unrestrained tall furniture.',
+    recommendationsTitle: 'Recommended Actions',
     primaryPriorityLabel: 'Top Priority',
     suggestedLabel: 'Recommended',
-    conclusionTitle: 'Earthquake Conclusion',
+    conclusionTitle: 'Earthquake Summary',
     technicalDetailsTitle: 'Seismic Technical Audit Parameters'
   },
   floodSection: {
     sectionNumber: '06',
     title: 'Flood Risk',
-    siteElevationTitle: 'Site Elevation (DEM)',
-    peakRainfallTitle: 'Heaviest 24-Hour Rainfall',
-    waterProximityTitle: 'Distance to Waterway / Canal',
-    terrainFormTitle: 'Terrain Landform & Slope',
-    floodAssessmentTitle: 'Flood Risk Evaluation',
-    historicalEventsTitle: 'Nearby Flood History',
-    inundationDepthTitle: 'Micro-Site Inundation Depth',
+    siteElevationTitle: 'Site Elevation',
+    peakRainfallTitle: 'Heaviest Rainfall',
+    waterProximityTitle: 'Distance to River / Canal',
+    terrainFormTitle: 'Landform',
+    floodAssessmentTitle: 'Regional Flood Hazard',
+    historicalEventsTitle: 'Nearby Inundation History',
+    inundationDepthTitle: 'Estimated Inundation Depth',
     frequencyTitle: 'Recurrence Frequency',
-    frequencyBody: 'Flooding potential is highest during peak monsoon months when extreme localized precipitation coincides with high catchment runoff.',
-    potentialImpactTitle: 'Potential Consequences on Building',
-    potentialImpactBody: 'Standing water can inundate grounds, submerge ground floor living areas, damage lower cabinetry, and block vehicular ingress and egress routes.',
-    recommendationsTitle: 'Flood Mitigation Recommendations',
+    frequencyBody: 'Flooding potential is highest during peak monsoon months with heavy precipitation or upstream river overflow.',
+    potentialImpactTitle: 'Potential Impacts to Consider',
+    potentialImpactBody: 'Standing water may inundate yard areas, enter ground floors, damage lower cabinetry, and disrupt vehicle access in and out of the property.',
+    recommendationsTitle: 'Recommended Actions',
     primaryPriorityLabel: 'Top Priority',
     suggestedLabel: 'Recommended',
-    conclusionTitle: 'Flood Risk Conclusion',
+    conclusionTitle: 'Flood Risk Summary',
     technicalDetailsTitle: 'Hydrological & Topographical Technical Audit'
   },
   heatSection: {
     sectionNumber: '07',
-    title: 'Heat Stress Risk',
+    title: 'Heat Conditions',
     forecastTempTitle: 'Forecast Maximum Temperature',
-    historicalPeakTempTitle: 'Historical Peak Temperature',
-    climateProjectionTitle: 'Temperature Change Projection (CMIP6 2050)',
-    airQualityTitle: 'Ambient Air Quality',
-    heatExposureTitle: 'Heat Stress Exposure & Thermal Load',
-    historicalTrendTitle: 'Multi-Year Temperature Trend',
+    historicalPeakTempTitle: 'Highest Temperature',
+    climateProjectionTitle: 'Future Temperature Projection',
+    airQualityTitle: 'Air Quality',
+    heatExposureTitle: 'Heat Conditions',
+    historicalTrendTitle: 'Temperature Trend',
     frequencyTitle: 'Exposure Frequency',
-    frequencyBody: 'Thermal stress peaks during dry-season heatwaves and extended dry spells when solar irradiance and humidity compound.',
-    potentialImpactTitle: 'Potential Consequences on Building',
-    potentialImpactBody: 'Elevated indoor ambient temperatures, higher mechanical air conditioning electrical expenditure, and diminished indoor thermal comfort.',
-    recommendationsTitle: 'Thermal Comfort Recommendations',
+    frequencyBody: 'Heat conditions peak during the dry season and extended dry periods with high humidity.',
+    potentialImpactTitle: 'Potential Impacts to Consider',
+    potentialImpactBody: 'Higher indoor temperatures, increased air conditioning electricity costs, and reduced thermal comfort for residents.',
+    recommendationsTitle: 'Recommended Actions',
     primaryPriorityLabel: 'Top Priority',
     suggestedLabel: 'Recommended',
-    conclusionTitle: 'Heat Stress Conclusion',
+    conclusionTitle: 'Heat Summary',
     technicalDetailsTitle: 'Microclimate & Vegetation Technical Audit'
   },
   accessibilitySection: {
     sectionNumber: '08',
-    title: 'Accessibility & Transportation',
+    title: 'Transportation & Access',
     networkMapSubtitle: 'Road Network & Emergency Evacuation Distance Analysis',
-    facilityDistanceTitle: 'Distance to Essential Facilities',
+    facilityDistanceTitle: 'Distance to Key Facilities',
     tableHeaders: {
       facilityType: 'Facility Type',
-      facilityName: 'Facility Name / Ident',
-      shelterDistance: 'Distance to Evacuation Assembly Point',
+      facilityName: 'Name / Identifier',
+      shelterDistance: 'Distance to Evacuation Point',
       travelTime: 'Estimated Travel Distance',
       corridorClearance: 'Corridor Clearance / Road Width'
     },
     facilityTypes: {
       nearestRoad: 'Nearest Road',
-      mainRoad: 'Nearest Arterial / Main Road',
-      healthcare: 'Nearest Healthcare Facility',
-      publicTransit: 'Nearest Public Transit',
-      assemblyPoint: 'Nearest Assembly Point'
+      mainRoad: 'Main Road',
+      healthcare: 'Nearest Hospital',
+      publicTransit: 'Public Transportation',
+      assemblyPoint: 'Evacuation Point'
     },
     interpretationTitle: 'Accessibility Interpretation',
-    riskNotesTitle: 'Disaster Ingress / Egress Risk Notes',
-    recommendationsTitle: 'Evacuation Route Directives',
-    fastestRouteLabel: 'Fastest Primary Route',
-    alternativeRouteLabel: 'Alternative Pathway'
+    riskNotesTitle: 'Emergency Access Notes',
+    recommendationsTitle: 'Evacuation Route Recommendations',
+    fastestRouteLabel: 'Fastest Route',
+    alternativeRouteLabel: 'Alternative Route'
   },
   riskComparison: {
     sectionNumber: '09',
     title: 'Risk Comparison',
-    tableTitle: 'Physical Multi-Hazard Matrix Summary',
+    tableTitle: 'Multi-Hazard Risk Summary',
     tableHeaders: {
-      hazardType: 'Hazard Type',
+      hazardType: 'Risk Type',
       riskLevel: 'Hazard Level',
       score: 'Screening Score',
-      reliability: 'Data Reliability'
+      reliability: 'Evidence Quality'
     },
     insightTitle: 'Comparative Insight & Conclusion',
     dominantHazardInsightTemplate: (hazardName: string, levelName: string) =>
-      `${hazardName} classified as ${levelName} represents the primary physical risk priority for this property.`
+      `Risk of ${hazardName} at ${levelName} level is the primary concern compared to other hazards for this property.`
   },
   actionPlan: {
     sectionNumber: '10',
     title: 'Action Plan',
-    subtitle: 'Structured Mitigation and Climate Adaptation Roadmaps',
+    subtitle: 'Targeted Mitigation Strategies and Property Adaptation Steps',
     priority1Title: 'Priority 1 (Immediate)',
     priority2Title: 'Priority 2 (Medium-Term)',
     priority3Title: 'Priority 3 (Continuous Resilience)',
-    notesTitle: 'Implementation Note',
-    notesBody: 'Not all actions need to be executed simultaneously—prioritize based on the dominant hazard tier and your property maintenance roadmap.'
+    notesTitle: 'Implementation Notes',
+    notesBody: 'Not all actions need to be done at once—prioritize based on the dominant risk level and your property maintenance budget.'
   },
   closing: {
     sectionNumber: '11',
-    title: 'Closing & Disclaimer',
-    conclusionTitle: 'Assessment Conclusion',
-    disclaimerTitle: 'Disclaimer & Scope Limitation',
-    disclaimerBody: 'This analysis serves as an initial screening indicator based on public spatial data and does not replace technical due diligence, soil investigation, or professional structural audit.',
+    title: 'Closing & Next Steps',
+    conclusionTitle: 'Assessment Summary',
+    disclaimerTitle: 'Scope & Disclaimer',
+    disclaimerBody: 'This analysis is an initial screening indicator based on public spatial data and does not replace technical due diligence, soil investigation, or professional structural audit.',
     nextStepsTitle: 'Recommended Next Steps',
     nextStepsList: [
-      'Conduct an on-site visual walk-through focusing on identified structural and drainage vulnerability points.',
-      'Consult licensed structural or geotechnical engineers for substantial physical alterations.',
-      'Review property insurance policies to ensure adequate earthquake and flooding endorsement riders.'
+      'Perform a visual walk-through at the vulnerability points identified in this report.',
+      'Consult a licensed structural or geotechnical engineer for major structural modifications.',
+      'Review your property insurance policy to ensure adequate coverage for natural disasters (earthquake and flood).'
     ]
   }
 };

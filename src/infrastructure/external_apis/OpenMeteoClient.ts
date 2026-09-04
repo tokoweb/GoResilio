@@ -1,6 +1,7 @@
 import { Coordinates } from '../../domain/value_objects/Coordinates.vo';
 import { LocalApiCache } from '../cache/LocalApiCache';
 import { ApiResult } from '../../domain/types/api.types';
+import type { AssessmentDepth } from '../../domain/types/hazard.types';
 import { OpenElevationClient } from './OpenElevationClient';
 import { NasaPowerClient } from './NasaPowerClient';
 
@@ -93,8 +94,12 @@ export class OpenMeteoClient {
    * ERA5-Seamless historical reanalysis, and CMIP6 climate model projections directly from Open-Meteo live APIs.
    * With automatic fallback to Open-Elevation (DEM) and NASA POWER (MERRA-2 reanalysis).
    */
-  public static async fetchMetrics(coords: Coordinates): Promise<ApiResult<ClimateAndElevationData>> {
-    const cacheKey = `meteo_expanded_v12_${coords.lat.toFixed(4)}_${coords.lng.toFixed(4)}`;
+  public static async fetchMetrics(
+    coords: Coordinates,
+    options?: { depth?: AssessmentDepth }
+  ): Promise<ApiResult<ClimateAndElevationData>> {
+    const isDeep = options?.depth === 'deep';
+    const cacheKey = `meteo_${isDeep ? 'deep' : 'screen'}_v13_${coords.lat.toFixed(4)}_${coords.lng.toFixed(4)}`;
     const cached = LocalApiCache.get<ApiResult<ClimateAndElevationData>>(cacheKey);
     if (cached) return cached;
 
@@ -224,10 +229,11 @@ export class OpenMeteoClient {
     const [elevRes, weatherRes, floodRes, archiveRes, climateRes] = await Promise.all([
       safeFetchJson(elevUrl),
       safeFetchJson(weatherUrl),
-      safeFetchJson(floodUrl),
+      isDeep ? safeFetchJson(floodUrl) : Promise.resolve<{ data: any; error?: string }>({ data: null }),
       safeFetchJson(archiveUrl),
       safeFetchJson(climateUrl)
     ]);
+
 
     let slopeDegrees: number | null = null;
     let slopePercent: number | null = null;

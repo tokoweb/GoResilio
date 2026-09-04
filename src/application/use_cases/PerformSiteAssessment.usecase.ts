@@ -1,4 +1,4 @@
-import type { MultiHazardAssessmentResult, PropertyType, UserPersona } from '../../domain/types/hazard.types';
+import type { MultiHazardAssessmentResult, PropertyType, UserPersona, AssessmentDepth } from '../../domain/types/hazard.types';
 import { Coordinates } from '../../domain/value_objects/Coordinates.vo';
 import { RiskScoringEngine } from '../../domain/services/RiskScoringEngine';
 import type { RawPhysicalInputs } from '../../domain/services/RiskScoringEngine';
@@ -26,7 +26,9 @@ export interface SiteAssessmentInput {
   userPersona: UserPersona;
   country?: string;
   requestId?: string;
+  depth?: AssessmentDepth;
 }
+
 
 export class PerformSiteAssessmentUseCase {
   public static async execute(input: SiteAssessmentInput): Promise<MultiHazardAssessmentResult> {
@@ -81,6 +83,9 @@ export class PerformSiteAssessmentUseCase {
 
     const isMapboxEnabled = process.env.MAPBOX_ENABLED !== 'false' && Boolean(process.env.MAPBOX_ACCESS_TOKEN);
 
+    const depth: AssessmentDepth = input.depth === 'deep' ? 'deep' : 'screening';
+    const isDeep = depth === 'deep';
+
     // 2. Parallel Ingestion from 100% Real Live External APIs with isolated fault handling
     const [
       meteoRes,
@@ -95,7 +100,7 @@ export class PerformSiteAssessmentUseCase {
       worldPopRes,
       firmsRes
     ] = await Promise.all([
-      safeExec(() => OpenMeteoClient.fetchMetrics(coords), 'Open-Meteo Weather & Climate API', 'Open-Meteo service unreachable'),
+      safeExec(() => OpenMeteoClient.fetchMetrics(coords, { depth }), 'Open-Meteo Weather & Climate API', 'Open-Meteo service unreachable'),
       safeExec(() => UsgsEarthquakeClient.fetchSeismicHistory(coords), 'USGS Earthquake Hazards Program', 'USGS/EMSC catalog unreachable'),
       country === 'Indonesia'
         ? safeExec(() => BmkgEarthquakeClient.fetchLatestEarthquakes(coords), 'BMKG Indonesia', 'BMKG real-time feed unreachable')
@@ -117,9 +122,9 @@ export class PerformSiteAssessmentUseCase {
             sourceName: 'Mapbox Spatial POI Discovery',
             status: 'not_applicable'
           }),
-      safeExec(() => OverpassOsmClient.fetchProximityMetrics(coords), 'OpenStreetMap Overpass API', 'OSM Overpass query failed'),
+      safeExec(() => OverpassOsmClient.fetchProximityMetrics(coords, { depth }), 'OpenStreetMap Overpass API', 'OSM Overpass query failed'),
       country === 'Indonesia'
-        ? safeExec(() => InaRiskBnpbClient.fetchSiteHazards(coords), 'BNPB inaRISK GIS Server', 'BNPB inaRISK server unreachable')
+        ? safeExec(() => InaRiskBnpbClient.fetchSiteHazards(coords, { depth }), 'BNPB inaRISK GIS Server', 'BNPB inaRISK server unreachable')
         : Promise.resolve<ApiResult<InaRiskAssessmentData>>({
             data: null,
             isFallback: false,
@@ -129,11 +134,39 @@ export class PerformSiteAssessmentUseCase {
             status: 'not_applicable'
           }),
       safeExec(() => ThinkHazardClient.fetchSiteReport(coords), 'World Bank / GFDRR ThinkHazard!', 'ThinkHazard API unreachable'),
-      safeExec(() => SoilGridsClient.fetchSoilMetrics(coords), 'ISRIC SoilGrids 2.0', 'SoilGrids API unreachable'),
+      isDeep
+        ? safeExec(() => SoilGridsClient.fetchSoilMetrics(coords), 'ISRIC SoilGrids 2.0', 'SoilGrids API unreachable')
+        : Promise.resolve<ApiResult<any>>({
+            data: null,
+            isFallback: false,
+            confidenceLevel: 'high',
+            reason: 'Omitted in screening mode — available in deep assessment',
+            sourceName: 'ISRIC SoilGrids',
+            status: 'not_applicable'
+          }),
       safeExec(() => OpenMeteoAirQualityClient.fetchAirQualityMetrics(coords), 'Open-Meteo Air Quality & CAMS', 'Air Quality API unreachable'),
-      safeExec(() => WorldPopClient.fetchPopulationExposure(coords), 'WorldPop Global High Resolution Population', 'WorldPop API unreachable'),
-      safeExec(() => NasaFirmsClient.fetchRecentHotspots(coords), 'NASA FIRMS', 'NASA FIRMS API unreachable')
+      isDeep
+        ? safeExec(() => WorldPopClient.fetchPopulationExposure(coords), 'WorldPop Global High Resolution Population', 'WorldPop API unreachable')
+        : Promise.resolve<ApiResult<any>>({
+            data: null,
+            isFallback: false,
+            confidenceLevel: 'high',
+            reason: 'Omitted in screening mode — available in deep assessment',
+            sourceName: 'WorldPop',
+            status: 'not_applicable'
+          }),
+      isDeep
+        ? safeExec(() => NasaFirmsClient.fetchRecentHotspots(coords), 'NASA FIRMS', 'NASA FIRMS API unreachable')
+        : Promise.resolve<ApiResult<any>>({
+            data: null,
+            isFallback: false,
+            confidenceLevel: 'high',
+            reason: 'Omitted in screening mode — available in deep assessment',
+            sourceName: 'NASA FIRMS',
+            status: 'not_applicable'
+          })
     ]);
+
 
     // 3. Extract verified data from live APIs
     const meteo = meteoRes.data;
@@ -275,7 +308,12 @@ export class PerformSiteAssessmentUseCase {
       rawInputs
     );
 
+    if (assessmentResult.modelMetadata) {
+      assessmentResult.modelMetadata.assessmentDepth = depth;
+    }
+
     return assessmentResult;
   }
 }
+
 

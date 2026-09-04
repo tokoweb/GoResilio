@@ -33,7 +33,7 @@ export class GoTangguhFinancialScreeningEngine {
     const hasHeat = heatScore !== null;
 
     const methodologyNote =
-      'GoTangguh Parametric Financial Screening. Indicative screening estimate; not a direct CLIMADA model run, formal valuation, or contractor quotation.';
+      'GoResilio Parametric Financial Screening. Indicative screening estimate; not a direct CLIMADA model run, formal valuation, or contractor quotation.';
 
     if (!hasFlood && !hasQuake && !hasHeat) {
       return {

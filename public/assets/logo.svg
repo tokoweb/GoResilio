@@ -80,9 +80,9 @@
     <path d="M 210,325 Q 240,310 270,325" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity="0.9" />
   </g>
 
-  <!-- Typography: GoTangguh -->
+  <!-- Typography: GoResilio -->
   <text x="200" y="420" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-weight="800" font-size="48" letter-spacing="-1">
-    <tspan fill="#0f172a">Go</tspan><tspan fill="#2563eb">Tangguh</tspan>
+    <tspan fill="#0f172a">Go</tspan><tspan fill="#2563eb">Resilio</tspan>
   </text>
   <text x="200" y="445" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-weight="600" font-size="14" fill="#64748b" letter-spacing="2">
     DISASTER RESILIENCE PLATFORM

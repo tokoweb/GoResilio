@@ -20,6 +20,8 @@ export type HazardClassSource = 'BNPB' | 'ThinkHazard' | null;
 
 export type HeatModelLevel = 'Low' | 'Moderate' | 'High' | 'Severe' | 'Data Tidak Tersedia';
 
+export type AssessmentDepth = 'screening' | 'deep';
+
 export interface ScoreLedgerAdjustment {
   name: string;
   source: string;
@@ -63,6 +65,8 @@ export interface EarthquakeScoreLedger {
 export interface FloodMetrics {
   score: number | null;
   level: RiskLevel;
+  rating?: string;
+  badgeClass?: string;
   scoreReliability: ScoreReliability;
   observedComponents: number;
   expectedComponents: number;
@@ -111,6 +115,8 @@ export interface FloodMetrics {
 export interface QuakeMetrics {
   score: number | null;
   level: RiskLevel;
+  rating?: string;
+  badgeClass?: string;
   scoreReliability: ScoreReliability;
   observedComponents: number;
   expectedComponents: number;
@@ -151,6 +157,8 @@ export interface QuakeMetrics {
 export interface HeatMetrics {
   score: number | null;
   level: RiskLevel;
+  rating?: string;
+  badgeClass?: string;
   scoreReliability: ScoreReliability;
   observedComponents: number;
   expectedComponents: number;
@@ -179,6 +187,8 @@ export interface HeatMetrics {
 export interface TransportMetrics {
   score: number | null;
   level: 'good' | 'moderate' | 'isolated' | 'critical' | 'unavailable';
+  rating?: string;
+  badgeClass?: string;
   scoreReliability: ScoreReliability;
   observedComponents: number;
   expectedComponents: number;
@@ -296,7 +306,9 @@ export interface RiskModelMetadata {
     heat: ComponentModelMetadata;
     transport: ComponentModelMetadata;
   };
+  assessmentDepth?: AssessmentDepth;
 }
+
 
 export interface SoilGridsData {
   phH2o: number | null;               // pH in H2O (e.g. 6.2)
@@ -422,8 +434,17 @@ export interface MultiHazardAssessmentResult {
   modelMetadata?: RiskModelMetadata;
   flood: FloodMetrics;
   quake: QuakeMetrics;
+  earthquake?: QuakeMetrics;
   heat: HeatMetrics;
   transport: TransportMetrics;
+  accessibility?: TransportMetrics;
+  overall?: {
+    score: number | null;
+    rating: string;
+    level: RiskLevel;
+    badgeClass: string;
+    color: string;
+  };
   prescriptions: PrescriptionItem[];
   buildingProfile?: BuildingVulnerabilityProfile | null;
   financialScreening?: FinancialScreeningMetrics | null;

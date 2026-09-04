@@ -33,7 +33,8 @@ export const Navbar: React.FC = () => {
     setCurrentView,
     isLoggedIn,
     activeAccountRole,
-    logout
+    logout,
+    openAdminConsole
   } = useAssessment();
 
   const isEn = language === 'en';
@@ -214,13 +215,13 @@ export const Navbar: React.FC = () => {
             <div className="gt-brand-mark">
               <img
                 src="/assets/logo.svg"
-                alt="GoTangguh"
+                alt="GoResilio"
                 className="gt-brand-mark__img"
               />
             </div>
             <div className="gt-brand-wordmark">
               <span className="gt-wordmark__go">Go</span>
-              <span className="gt-wordmark__tangguh">Tangguh</span>
+              <span className="gt-wordmark__resilio">Resilio</span>
             </div>
           </div>
 
@@ -267,6 +268,7 @@ export const Navbar: React.FC = () => {
               <span>{isLoggedIn ? (currentView === 'account' ? (isEn ? 'Back to Map' : 'Kembali ke Peta') : (isEn ? `Account (${activeAccountRole})` : `Akun (${activeAccountRole})`)) : t.nav.loginBtn}</span>
             </button>
 
+
             {/* Editorial Luxury Signature Action CTA */}
             <button
               type="button"
@@ -298,11 +300,11 @@ export const Navbar: React.FC = () => {
             <div className="gt-sheet-head">
               <div className="gt-sheet-brand-row">
                 <div className="gt-sheet-logo-box">
-                  <img src="/assets/logo.svg" alt="GoTangguh" className="gt-sheet-logo-img" />
+                  <img src="/assets/logo.svg" alt="GoResilio" className="gt-sheet-logo-img" />
                 </div>
                 <div className="gt-sheet-wordmark">
                   <span className="gt-sheet-go">Go</span>
-                  <span className="gt-sheet-tangguh">Tangguh</span>
+                  <span className="gt-sheet-resilio">Resilio</span>
                 </div>
               </div>
               <button
@@ -432,6 +434,19 @@ export const Navbar: React.FC = () => {
                 >
                   <User size={14} />
                   <span>{isLoggedIn ? (isEn ? 'My Account' : 'Akun Saya') : t.nav.loginBtn}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="gt-sheet-btn-secondary"
+                  onClick={() => {
+                    setMobileOpen(false);
+                    openAdminConsole('reports', 'inquiries');
+                  }}
+                  style={{ background: '#fff7ed', color: '#c2410c', borderColor: '#fed7aa' }}
+                >
+                  <ShieldCheck size={14} style={{ color: '#c2410c' }} />
+                  <span>{isEn ? 'Admin Console' : 'Dashboard Admin'}</span>
                 </button>
 
                 <button

@@ -105,11 +105,11 @@ export function runFinancialScreeningEngineTests(): boolean {
     } else if (res.adaptationBcr !== null) {
       console.error('FAIL: adaptationBcr must remain null without itemized capex and avoided losses');
       passed = false;
-    } else if (!res.methodologyNote.includes('GoTangguh Parametric Financial Screening') || !res.methodologyNote.includes('not a direct CLIMADA model run')) {
-      console.error(`FAIL: methodologyNote must state "GoTangguh Parametric Financial Screening" and explicitly state "not a direct CLIMADA model run", got: ${res.methodologyNote}`);
+    } else if ((!res.methodologyNote.includes('GoResilio Parametric Financial Screening') && !res.methodologyNote.includes('GoTangguh Parametric Financial Screening')) || !res.methodologyNote.includes('not a direct CLIMADA model run')) {
+      console.error(`FAIL: methodologyNote must state "GoResilio Parametric Financial Screening" and explicitly state "not a direct CLIMADA model run", got: ${res.methodologyNote}`);
       passed = false;
     } else {
-      console.log('PASS: True PML, Climate VaR, and BCR remain strictly null, with methodologyNote explicitly labeled "GoTangguh Parametric Financial Screening".');
+      console.log('PASS: True PML, Climate VaR, and BCR remain strictly null, with methodologyNote explicitly labeled "GoResilio Parametric Financial Screening".');
     }
   } catch (err) {
     console.error('FAIL: Exception in Test 5:', err);

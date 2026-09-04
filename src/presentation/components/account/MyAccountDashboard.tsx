@@ -46,7 +46,10 @@ import {
   Star,
   ChevronDown,
   ChevronUp,
-  X
+  X,
+  Info,
+  FileText,
+  Clock
 } from 'lucide-react';
 import { isPaidUser, canAccessComparison, getPaidDossierQuota, getTierDisplayName, getTierBadgeInfo, normalizeUserTier, UserTier } from '../../../domain/types/UserTier';
 
@@ -79,7 +82,8 @@ export const MyAccountDashboard: React.FC = () => {
     setIsReportModalOpen,
     handleDownloadReportRequest,
     assessment,
-    logout
+    logout,
+    openAdminConsole
   } = useAssessment();
 
   const isEn = language === 'en';
@@ -307,51 +311,129 @@ export const MyAccountDashboard: React.FC = () => {
       ? { label: isEn ? 'Low' : 'Aman', class: 'green' }
       : { label: isEn ? 'Empty' : 'Kosong', class: 'neutral' };
 
-  // Due Diligence Checklist State (Interactive & Persistent per user)
-  const defaultChecklistItems = [
-    {
-      id: 'chk-1',
-      title: isEn ? 'Ground Elevation & Slab Level Verification' : 'Verifikasi Peil Banjir & Peninggian Lantai Dasar',
-      desc: isEn ? 'Ensure ground floor finished slab elevation is at least +60cm above road crown level.' : 'Pastikan elevasi peil lantai dasar minimum +60cm di atas puncak aspal jalan depan kavling.',
-      checked: false
-    },
-    {
-      id: 'chk-2',
-      title: isEn ? 'Active Fault Line Proximity Audit (PusGen 2024)' : 'Audit Jarak Patahan Sesar Aktif (PusGen 2024)',
-      desc: isEn ? 'Identify nearest active fault segment and ensure reinforced framing complies with SNI 1726:2019.' : 'Identifikasi segmen sesar aktif terdekat dan pastikan struktur portal telah mengacu ke SNI 1726:2019.',
-      checked: false
-    },
-    {
-      id: 'chk-3',
-      title: isEn ? 'Insurance Policy Hazard Extension (FLEXAS PLUS)' : 'Klaim Klausul Perluasan Asuransi Gempa & Banjir (FLEXAS)',
-      desc: isEn ? 'Ensure property insurance covers 100% replacement cost for flood and earthquake events.' : 'Pastikan polis asuransi properti menyertakan perluasan banjir dan gempa bumi 100% replacement cost.',
-      checked: false
-    },
-    {
-      id: 'chk-4',
-      title: isEn ? 'Soil Cone Penetration Testing (CPT / Sondir)' : 'Uji Penetrasi Tanah Sederhana (Sondir / Cone Penetration Test)',
-      desc: isEn ? 'Conduct 2-point CPT testing to verify hard stratum bearing capacity before deed signing.' : 'Lakukan uji CPT 2 titik untuk memastikan daya dukung tanah keras sebelum tanda tangan akad jual beli.',
-      checked: false
+  // Dynamic Hazard-Driven Due Diligence Checklist (Interactive & Persistent)
+  const floodRiskScore = typeof assessment?.flood?.score === 'number' ? assessment.flood.score : 0;
+  const quakeRiskScore = typeof assessment?.quake?.score === 'number' ? assessment.quake.score : 0;
+  const heatRiskScore = typeof assessment?.heat?.score === 'number' ? assessment.heat.score : 0;
+
+  const getDynamicChecklistTemplates = () => {
+    const items: Array<{
+      id: string;
+      title: string;
+      desc: string;
+      category: 'flood' | 'quake' | 'heat' | 'universal';
+      badgeLabel: string;
+      badgeColor: string;
+      checked: boolean;
+    }> = [
+      {
+        id: 'chk-cpt',
+        title: isEn ? 'Soil Cone Penetration Testing (CPT / Sondir)' : 'Uji Penetrasi Tanah Sederhana (Sondir / CPT)',
+        desc: isEn ? 'Conduct 2-point CPT testing to verify hard stratum bearing capacity before deed signing.' : 'Lakukan uji CPT 2 titik untuk memastikan daya dukung tanah keras sebelum tanda tangan akad jual beli.',
+        category: 'universal',
+        badgeLabel: isEn ? 'Geotechnical' : 'Geoteknik SNI',
+        badgeColor: '#0284c7',
+        checked: false
+      },
+      {
+        id: 'chk-insurance',
+        title: isEn ? 'Insurance Policy Hazard Extension (FLEXAS PLUS)' : 'Klaim Klausul Perluasan Asuransi Gempa & Banjir (FLEXAS)',
+        desc: isEn ? 'Ensure property insurance covers 100% replacement cost for flood and earthquake events.' : 'Pastikan polis asuransi properti menyertakan perluasan banjir dan gempa bumi 100% replacement cost.',
+        category: 'universal',
+        badgeLabel: isEn ? 'Insurance' : 'Asuransi Properti',
+        badgeColor: '#059669',
+        checked: false
+      }
+    ];
+
+    if (floodRiskScore > 50) {
+      items.unshift({
+        id: 'chk-flood-elev',
+        title: isEn ? 'Ground Elevation & Slab Level Verification (+60cm)' : 'Verifikasi Peil Banjir & Peninggian Lantai Dasar (+60cm)',
+        desc: isEn
+          ? `High flood exposure detected (Score: ${floodRiskScore}). Ensure ground floor slab is at least +60cm above road crown level and verify neighborhood drainage outlet.`
+          : `Terdeteksi paparan banjir tinggi (Skor: ${floodRiskScore}). Pastikan elevasi peil lantai dasar minimum +60cm di atas puncak aspal jalan dan cek saluran drainase lingkungan.`,
+        category: 'flood',
+        badgeLabel: isEn ? 'Flood Hazard' : 'Mitigasi Banjir',
+        badgeColor: '#0284c7',
+        checked: false
+      });
+      items.push({
+        id: 'chk-flood-valve',
+        title: isEn ? 'Backflow Prevention Valve & Auto Sump Pump' : 'Instalasi Backflow Valve & Pompa Sump Otomatis',
+        desc: isEn
+          ? 'Prevent stormwater sewage backflow into residential perimeter during extreme rainfall events.'
+          : 'Cegah arus balik luapan air got/drainase kota ke dalam perimeter hunian saat hujan ekstrem.',
+        category: 'flood',
+        badgeLabel: isEn ? 'Drainage' : 'Drainase Saluran',
+        badgeColor: '#0284c7',
+        checked: false
+      });
     }
-  ];
 
-  const [checklist, setChecklist] = useState(defaultChecklistItems);
+    if (quakeRiskScore > 40) {
+      items.unshift({
+        id: 'chk-quake-fault',
+        title: isEn ? 'Active Fault Line & Seismic Code Audit (SNI 1726:2019)' : 'Audit Jarak Patahan Sesar Aktif & SNI 1726:2019',
+        desc: isEn
+          ? `Significant seismic hazard identified (Score: ${quakeRiskScore}). Ensure foundation footing, continuous tie-beams (sloof), and reinforced concrete frames conform to SNI 1726:2019.`
+          : `Terdeteksi paparan gempa signifikan (Skor: ${quakeRiskScore}). Pastikan struktur pondasi, sloof pengikat, dan portal kolom mengacu ke standar SNI 1726:2019.`,
+        category: 'quake',
+        badgeLabel: isEn ? 'Seismic Code' : 'Mitigasi Gempa',
+        badgeColor: '#ea580c',
+        checked: false
+      });
+      items.push({
+        id: 'chk-quake-anchor',
+        title: isEn ? 'Masonry Wall Anchoring & Ring Beam Binding' : 'Angkur Dinding Bata & Ikatan Ringbalk Beton',
+        desc: isEn
+          ? 'Verify minimum 10mm rebars anchoring wall corners to perimeter ring beams to prevent out-of-plane collapse.'
+          : 'Verifikasi ikatan besi angkur minimum 10mm pada pertemuan dinding dan ringbalk beton untuk mencegah roboh saat guncangan.',
+        category: 'quake',
+        badgeLabel: isEn ? 'Structural' : 'Struktur Bangunan',
+        badgeColor: '#ea580c',
+        checked: false
+      });
+    }
 
+    if (heatRiskScore > 50) {
+      items.push({
+        id: 'chk-heat-insul',
+        title: isEn ? 'Roof Thermal Insulation & Cross Ventilation (UHI)' : 'Insulasi Termal Atap & Ventilasi Silang (Mitigasi Panas)',
+        desc: isEn
+          ? `High heat stress / microclimate thermal index detected (Score: ${heatRiskScore}). Install reflective aluminum roof foil and optimize cross-ventilation.`
+          : `Terdeteksi beban panas lingkungan tinggi (Skor: ${heatRiskScore}). Pasang insulasi alumunium foil reflektif di bawah atap dan optimalkan bukaan sirkulasi udara.`,
+        category: 'heat',
+        badgeLabel: isEn ? 'Heat Stress' : 'Mitigasi Panas',
+        badgeColor: '#d97706',
+        checked: false
+      });
+    }
+
+    return items;
+  };
+
+  const [checklist, setChecklist] = useState(() => getDynamicChecklistTemplates());
+
+  // Recompute checklist items when assessment hazard profile changes, preserving checked states
   useEffect(() => {
     try {
+      const templates = getDynamicChecklistTemplates();
       const emailKey = currentUser?.email || accountEmail || 'guest';
       const saved = localStorage.getItem(`gt_dd_checklist_${emailKey}`);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          setChecklist(defaultChecklistItems.map((item) => {
+          setChecklist(templates.map((item) => {
             const found = parsed.find((p: any) => p.id === item.id);
             return found ? { ...item, checked: !!found.checked } : item;
           }));
+          return;
         }
       }
+      setChecklist(templates);
     } catch {}
-  }, [currentUser, accountEmail, language]);
+  }, [currentUser, accountEmail, language, floodRiskScore, quakeRiskScore, heatRiskScore]);
 
   const toggleChecklistItem = (id: string) => {
     setChecklist((prev) => {
@@ -365,7 +447,98 @@ export const MyAccountDashboard: React.FC = () => {
   };
 
   const completedCount = checklist.filter((c) => c.checked).length;
-  const checklistPct = Math.round((completedCount / checklist.length) * 100);
+  const checklistPct = checklist.length > 0 ? Math.round((completedCount / checklist.length) * 100) : 0;
+
+  // Customer Report Request Lifecycle State
+  interface CustomerReportRequest {
+    id: string;
+    refNumber: string;
+    propertyName: string;
+    city: string;
+    packageType: string;
+    status: 'requested' | 'price_proposed' | 'payment_confirmed' | 'generating' | 'delivered';
+    proposedPrice?: string;
+    requestedDate: string;
+    deliveredDate?: string;
+    overallScore?: number;
+    overallLevel?: 'low' | 'medium' | 'high' | 'extreme';
+  }
+
+  const [customerRequests, setCustomerRequests] = useState<CustomerReportRequest[]>([
+    {
+      id: 'crq-1',
+      refNumber: 'REQ-2026-0819',
+      propertyName: 'Cluster Bukit Asri Residence Kavling 4B',
+      city: 'Kab. Bogor, Jawa Barat',
+      packageType: 'Instant Groundsure Dossier (10–14 Hal)',
+      status: 'delivered',
+      proposedPrice: 'Rp 35.000',
+      requestedDate: '2026-08-19',
+      deliveredDate: '2026-08-19',
+      overallScore: 38,
+      overallLevel: 'medium'
+    },
+    {
+      id: 'crq-2',
+      refNumber: 'REQ-2026-0902',
+      propertyName: 'Kavling Graha Harmoni Blok C1',
+      city: 'Kota Bekasi, Jawa Barat',
+      packageType: 'Instant Groundsure Dossier (10–14 Hal)',
+      status: 'generating',
+      proposedPrice: 'Rp 35.000',
+      requestedDate: '2026-09-02',
+      overallScore: 54,
+      overallLevel: 'high'
+    },
+    {
+      id: 'crq-3',
+      refNumber: 'REQ-2026-0904',
+      propertyName: 'Rukan Sudirman Bisnis Park',
+      city: 'Jakarta Pusat, DKI Jakarta',
+      packageType: 'Bundling Multi-Property Report (3 Kavling)',
+      status: 'price_proposed',
+      proposedPrice: 'Rp 85.000',
+      requestedDate: '2026-09-04'
+    }
+  ]);
+
+  const [reportFilter, setReportFilter] = useState<'all' | 'in_progress' | 'delivered'>('all');
+  const [newRequestSuccessMsg, setNewRequestSuccessMsg] = useState<string | null>(null);
+
+  const handleCreateNewReportRequest = () => {
+    const newReqId = `crq-${Date.now()}`;
+    const newRefNumber = `REQ-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const propName = assessment?.address ? assessment.address.split(',')[0] : (properties[0]?.name || 'Properti Asesmen Baru');
+    const propCity = assessment?.city || (properties[0]?.city || 'Indonesia');
+
+    const newReq: CustomerReportRequest = {
+      id: newReqId,
+      refNumber: newRefNumber,
+      propertyName: propName,
+      city: propCity,
+      packageType: 'Instant Groundsure Dossier (10–14 Hal)',
+      status: 'requested',
+      requestedDate: new Date().toISOString().split('T')[0],
+      overallScore: typeof assessment?.overallScore === 'number' ? assessment.overallScore : undefined,
+      overallLevel: assessment?.overallLevel || undefined
+    };
+
+    setCustomerRequests((prev) => [newReq, ...prev]);
+    setNewRequestSuccessMsg(isEn
+      ? `Report request ${newRefNumber} successfully submitted! Admin team will review and issue quotation.`
+      : `Permohonan laporan ${newRefNumber} berhasil dikirim! Tim admin akan segera meninjau dan menerbitkan penawaran.`
+    );
+    setTimeout(() => setNewRequestSuccessMsg(null), 6000);
+  };
+
+  const handleConfirmCustomerPayment = (reqId: string) => {
+    setCustomerRequests((prev) => prev.map((r) => {
+      if (r.id === reqId) {
+        return { ...r, status: 'generating' };
+      }
+      return r;
+    }));
+  };
 
   const handleSaveProfile = async () => {
     setIsSavingProfile(true);
@@ -461,9 +634,9 @@ export const MyAccountDashboard: React.FC = () => {
       <aside className={`gt-sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
         <div className="gt-sidebar-header">
           <div className="gt-sidebar-logo-group">
-            <div className="gt-sidebar-logo-sq">GT</div>
+            <div className="gt-sidebar-logo-sq">GR</div>
             <div className="gt-sidebar-brand-text">
-              <span className="gt-sb-title">GoTangguh</span>
+              <span className="gt-sb-title">GoResilio</span>
               <span className="gt-sb-env">Spatial Asset Console</span>
             </div>
           </div>
@@ -569,6 +742,17 @@ export const MyAccountDashboard: React.FC = () => {
           <button
             type="button"
             className="gt-calm-btn-logout"
+            onClick={() => openAdminConsole('reports', 'inquiries')}
+            style={{ background: '#fff7ed', color: '#c2410c', borderColor: '#fed7aa', fontWeight: 700 }}
+            title={isEn ? 'Switch to Consultation Admin Console' : 'Buka Dashboard Admin Konsultasi'}
+          >
+            <ShieldCheck size={14} style={{ color: '#c2410c' }} />
+            <span>{isEn ? 'Consultation Admin' : 'Dashboard Admin Konsultasi'}</span>
+          </button>
+
+          <button
+            type="button"
+            className="gt-calm-btn-logout"
             onClick={() => setShowLogoutConfirm(true)}
           >
             <LogOut size={14} />
@@ -608,6 +792,16 @@ export const MyAccountDashboard: React.FC = () => {
             <button
               type="button"
               className="gt-btn-ghost-sm"
+              onClick={() => openAdminConsole('reports', 'inquiries')}
+              style={{ background: '#fff7ed', color: '#c2410c', borderColor: '#fed7aa', fontWeight: 700 }}
+              title={isEn ? 'Consultation & Site Survey Admin Console' : 'Dashboard Admin Konsultasi & Pengelola'}
+            >
+              <ShieldCheck size={14} style={{ color: '#c2410c' }} />
+              <span>{isEn ? 'Admin Console' : 'Dashboard Admin'}</span>
+            </button>
+            <button
+              type="button"
+              className="gt-btn-ghost-sm"
               onClick={() => setCurrentView('public')}
             >
               <Compass size={14} />
@@ -632,14 +826,14 @@ export const MyAccountDashboard: React.FC = () => {
               {/* 1. Dynamic Metric Strip KPI Cards */}
               <div className="gt-metric-strip">
                 <div className="gt-metric-tile">
-                  <span className="gt-tile-label">{isEn ? 'Monitored Assets' : 'Total Aset Dipantau'}</span>
+                  <span className="gt-tile-label">{isEn ? 'Saved Properties' : 'Properti Tersimpan'}</span>
                   <div className="gt-tile-num-row">
                     <span className="gt-tile-num">{totalAssetsCount}</span>
                     <span className={`gt-tile-badge ${totalAssetsCount > 0 ? 'green' : 'neutral'}`}>
                       {totalAssetsCount > 0 ? (isEn ? 'Active' : 'Aktif') : (isEn ? 'None' : 'Kosong')}
                     </span>
                   </div>
-                  <span className="gt-tile-sub">{isEn ? 'Continuous Property Assessment' : 'Pemantauan Risiko Berkelanjutan'}</span>
+                  <span className="gt-tile-sub">{isEn ? 'Total saved properties' : 'Total properti tersimpan'}</span>
                 </div>
 
                 <div className="gt-metric-tile">
@@ -650,18 +844,18 @@ export const MyAccountDashboard: React.FC = () => {
                       {avgRiskBadge.label}
                     </span>
                   </div>
-                  <span className="gt-tile-sub">{isEn ? 'Integrated Multi-Hazard Weight' : 'Bobot multi-hazard terintegrasi'}</span>
+                  <span className="gt-tile-sub">{isEn ? 'Integrated Risk Index' : 'Indeks Risiko Terpadu'}</span>
                 </div>
 
                 <div className="gt-metric-tile">
-                  <span className="gt-tile-label">{isEn ? 'Critical / Mitigation Zones' : 'Zona Kritis / Perlu Mitigasi'}</span>
+                  <span className="gt-tile-label">{isEn ? 'Needs Attention' : 'Perlu Perhatian'}</span>
                   <div className="gt-tile-num-row">
                     <span className="gt-tile-num">{criticalAssetsCount}</span>
                     <span className={`gt-tile-badge ${criticalAssetsCount > 0 ? 'orange' : 'green'}`}>
-                      {criticalAssetsCount > 0 ? (isEn ? 'Action Req.' : 'Wajib Peil') : (isEn ? 'Safe' : 'Aman')}
+                      {criticalAssetsCount > 0 ? (isEn ? 'Action Req.' : 'Perlu Tindakan') : (isEn ? 'Safe' : 'Terkendali')}
                     </span>
                   </div>
-                  <span className="gt-tile-sub">{isEn ? 'Ground floor elevation +60cm' : 'Butuh peninggian peil +60cm'}</span>
+                  <span className="gt-tile-sub">{isEn ? 'High / critical risk locations' : 'Lokasi risiko tinggi / kritis'}</span>
                 </div>
 
                 <div className="gt-metric-tile">
@@ -709,21 +903,21 @@ export const MyAccountDashboard: React.FC = () => {
                           className={`gt-filter-btn ${selectedRiskFilter === 'high' ? 'active' : ''}`}
                           onClick={() => setSelectedRiskFilter('high')}
                         >
-                          {isEn ? 'High' : 'Tinggi'}
+                          {isEn ? 'High Risk' : 'Risiko Tinggi'}
                         </button>
                         <button
                           type="button"
                           className={`gt-filter-btn ${selectedRiskFilter === 'medium' ? 'active' : ''}`}
                           onClick={() => setSelectedRiskFilter('medium')}
                         >
-                          {isEn ? 'Moderate' : 'Sedang'}
+                          {isEn ? 'Moderate Risk' : 'Risiko Sedang'}
                         </button>
                         <button
                           type="button"
                           className={`gt-filter-btn ${selectedRiskFilter === 'low' ? 'active' : ''}`}
                           onClick={() => setSelectedRiskFilter('low')}
                         >
-                          {isEn ? 'Safe' : 'Aman'}
+                          {isEn ? 'Low Risk' : 'Risiko Rendah'}
                         </button>
                       </div>
 
@@ -1451,9 +1645,9 @@ export const MyAccountDashboard: React.FC = () => {
             const propC = properties.find(p => p.id === slotCId) || properties[2] || properties[1] || properties[0];
 
             const slots = [
-              { slotName: isEn ? 'CANDIDATE 1' : 'KANDIDAT 1', prop: propA, currentId: propA.id, setSlot: setSlotAId },
-              { slotName: isEn ? 'CANDIDATE 2' : 'KANDIDAT 2', prop: propB, currentId: propB.id, setSlot: setSlotBId },
-              { slotName: isEn ? 'CANDIDATE 3' : 'KANDIDAT 3', prop: propC, currentId: propC.id, setSlot: setSlotCId }
+              { slotName: isEn ? 'Property A' : 'Properti A', prop: propA, currentId: propA.id, setSlot: setSlotAId },
+              { slotName: isEn ? 'Property B' : 'Properti B', prop: propB, currentId: propB.id, setSlot: setSlotBId },
+              { slotName: isEn ? 'Property C' : 'Properti C', prop: propC, currentId: propC.id, setSlot: setSlotCId }
             ];
 
             const winner = [...slots].sort((a, b) => (a.prop.overallScore ?? 999) - (b.prop.overallScore ?? 999))[0];
@@ -1465,10 +1659,10 @@ export const MyAccountDashboard: React.FC = () => {
                 <div className="gt-compare-header-banner">
                   <div>
                     <span className="gt-compare-banner-badge">
-                      {isEn ? 'Bundling 1 Feature · Compare Up to 3 Sites' : 'Fitur Paket Bundling 1 · Komparasi 3 Lokasi Tapak'}
+                      {isEn ? 'Compare Up to 3 Sites' : 'Komparasi 3 Lokasi Tapak'}
                     </span>
                     <h3 className="gt-compare-banner-title">
-                      {isEn ? 'Multi-Site Due Diligence Comparison Matrix' : 'Matriks Komparasi Due Diligence 3 Properti'}
+                      {isEn ? 'Risk Comparison' : 'Perbandingan Risiko'}
                     </h3>
                     <p className="gt-compare-banner-sub">
                       {isEn
@@ -1502,16 +1696,18 @@ export const MyAccountDashboard: React.FC = () => {
                 <div className="gt-compare-winner-card">
                   <span className="gt-compare-winner-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                     <Award size={14} />
-                    <span>{isEn ? 'Top Recommendation' : 'Pilihan Paling Tangguh'}</span>
+                    <span>{isEn ? 'Most Balanced Risk Profile' : 'Profil Risiko Paling Seimbang'}</span>
                   </span>
                   <div>
                     <strong style={{ color: '#166534', fontSize: '0.9rem', display: 'block', marginBottom: '2px' }}>
-                      {winner.prop.name} ({winner.prop.city}) — {isEn ? 'Lowest Multi-Hazard Score' : 'Skor Risiko Terendah'}: {winner.prop.overallScore !== null ? `${winner.prop.overallScore}/100` : '-'} ({winner.prop.overallLevel.toUpperCase()})
+                      {isEn
+                        ? `Location with the most balanced risk profile: ${winner.prop.name} (${winner.prop.city})`
+                        : `Lokasi dengan profil risiko paling seimbang: ${winner.prop.name} (${winner.prop.city})`}
                     </strong>
                     <span style={{ fontSize: '0.78rem', color: '#15803d', lineHeight: 1.4 }}>
                       {isEn
-                        ? `Site exhibits superior climate resilience with lowest flood exposure and safest distance from active faults. Recommended for acquisition priority.`
-                        : `Tapak ini memiliki profil ketahanan bencana paling optimal dengan elevasi peil tanah aman dan risiko gempa terkontrol. Sangat direkomendasikan sebagai prioritas negosiasi & transaksi.`}
+                        ? `Skor ${winner.prop.overallScore !== null ? `${winner.prop.overallScore}/100` : '-'} · Tapak ini memiliki profil ketahanan bencana paling optimal dengan elevasi peil tanah aman dan risiko gempa terkontrol.`
+                        : `Skor ${winner.prop.overallScore !== null ? `${winner.prop.overallScore}/100` : '-'} · Tapak ini memiliki profil ketahanan bencana paling optimal dengan elevasi peil tanah aman dan risiko gempa terkontrol.`}
                     </span>
                   </div>
                 </div>
@@ -1526,7 +1722,7 @@ export const MyAccountDashboard: React.FC = () => {
                         {/* Candidate Dropdown Selector */}
                         <div>
                           <label style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                            {isEn ? 'Switch Monitored Plot:' : 'Ganti Tapak Terpilih:'}
+                            {isEn ? 'Select Property:' : 'Pilih Properti:'}
                           </label>
                           <select
                             className="gt-sb-select"
@@ -1545,7 +1741,7 @@ export const MyAccountDashboard: React.FC = () => {
                         <div className="gt-compare-score-box">
                           <div>
                             <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
-                              {isEn ? 'Composite Risk' : 'Skor Risiko Komposit'}
+                              {isEn ? 'Risk Score' : 'Skor Risiko'}
                             </span>
                             <div style={{ fontSize: '1.4rem', fontWeight: 800, color: (s.prop.overallScore ?? 0) > 70 ? '#dc2626' : (s.prop.overallScore ?? 0) > 40 ? '#d97706' : '#16a34a' }}>
                               {s.prop.overallScore !== null ? s.prop.overallScore : '-'}<span style={{ fontSize: '0.76rem', color: '#94a3b8' }}>/100</span>
@@ -1560,7 +1756,7 @@ export const MyAccountDashboard: React.FC = () => {
                               fontWeight: 800
                             }}
                           >
-                            {isEn ? (s.prop.overallScore === null ? 'Pending Assessment' : s.prop.overallScore > 75 ? 'Critical Zone' : s.prop.overallScore > 45 ? 'Mitigation Needed' : 'Ready for Transaction') : s.prop.auditStatus}
+                            {isEn ? (s.prop.overallScore === null ? 'Data Unavailable' : s.prop.overallScore > 75 ? 'Critical Zone' : s.prop.overallScore > 45 ? 'Mitigation Needed' : 'Ready for Transaction') : s.prop.auditStatus}
                           </span>
                         </div>
 
@@ -1570,10 +1766,10 @@ export const MyAccountDashboard: React.FC = () => {
                           <div className="gt-compare-metric-row">
                             <span className="gt-compare-metric-lbl">
                               <Droplets size={14} style={{ color: '#0284c7' }} />
-                              <span>{isEn ? 'Flood & Inundation:' : 'Banjir & Genangan:'}</span>
+                              <span>{isEn ? 'Flood:' : 'Banjir:'}</span>
                             </span>
                             <span className="gt-compare-metric-val" style={{ color: (s.prop.floodScore ?? 0) > 70 ? '#dc2626' : (s.prop.floodScore ?? 0) > 40 ? '#d97706' : '#16a34a' }}>
-                              {s.prop.floodScore !== null ? `${s.prop.floodScore}/100` : '-'} {s.prop.elevationMeters !== null ? `(+${s.prop.elevationMeters}m dpl)` : ''}
+                              {s.prop.floodScore !== null ? `${s.prop.floodScore}/100` : '-'} {s.prop.elevationMeters !== null ? `(${s.prop.elevationMeters} mdpl)` : ''}
                             </span>
                           </div>
 
@@ -1581,10 +1777,10 @@ export const MyAccountDashboard: React.FC = () => {
                           <div className="gt-compare-metric-row">
                             <span className="gt-compare-metric-lbl">
                               <Mountain size={14} style={{ color: '#ea580c' }} />
-                              <span>{isEn ? 'Active Fault Distance:' : 'Jarak Sesar Aktif:'}</span>
+                              <span>{isEn ? 'Earthquake:' : 'Gempa:'}</span>
                             </span>
-                            <span className="gt-compare-metric-val" style={{ color: (s.prop.nearestFaultKm ?? 99) < 10 ? '#dc2626' : (s.prop.nearestFaultKm ?? 99) < 30 ? '#d97706' : '#16a34a' }}>
-                              {s.prop.nearestFaultKm !== null ? `±${s.prop.nearestFaultKm} km` : '-'} ({s.prop.quakeScore !== null ? `${s.prop.quakeScore}/100` : '-'})
+                            <span className="gt-compare-metric-val" style={{ color: (s.prop.quakeScore ?? 0) > 70 ? '#dc2626' : (s.prop.quakeScore ?? 0) > 40 ? '#d97706' : '#16a34a' }}>
+                              {s.prop.quakeScore !== null ? `${s.prop.quakeScore}/100` : '-'} {s.prop.nearestFaultKm !== null ? `(±${s.prop.nearestFaultKm} km)` : ''}
                             </span>
                           </div>
 
@@ -1592,7 +1788,7 @@ export const MyAccountDashboard: React.FC = () => {
                           <div className="gt-compare-metric-row">
                             <span className="gt-compare-metric-lbl">
                               <Flame size={14} style={{ color: '#e11d48' }} />
-                              <span>{isEn ? 'Heat Stress Index:' : 'Paparan Panas Lokasi:'}</span>
+                              <span>{isEn ? 'Heat Conditions:' : 'Kondisi Panas:'}</span>
                             </span>
                             <span className="gt-compare-metric-val" style={{ color: (s.prop.heatScore ?? 0) > 70 ? '#dc2626' : (s.prop.heatScore ?? 0) > 40 ? '#d97706' : '#16a34a' }}>
                               {s.prop.heatScore !== null ? `${s.prop.heatScore}/100` : '-'}
@@ -1603,10 +1799,10 @@ export const MyAccountDashboard: React.FC = () => {
                           <div className="gt-compare-metric-row">
                             <span className="gt-compare-metric-lbl">
                               <Zap size={14} style={{ color: '#ca8a04' }} />
-                              <span>{isEn ? 'Est. Mitigation Budget:' : 'Estimasi Biaya Mitigasi:'}</span>
+                              <span>{isEn ? 'Mitigation Action:' : 'Perkiraan Mitigasi:'}</span>
                             </span>
                             <span className="gt-compare-metric-val" style={{ color: (s.prop.overallScore ?? 0) > 70 ? '#dc2626' : '#0f172a' }}>
-                              {(s.prop.overallScore ?? 0) > 70 ? (isEn ? 'IDR 80 - 150 Million' : 'Rp 80 - 150 Juta') : (s.prop.overallScore ?? 0) > 40 ? (isEn ? 'IDR 25 - 60 Million' : 'Rp 25 - 60 Juta') : (isEn ? 'IDR 5 - 15 Million' : 'Rp 5 - 15 Juta')}
+                              {(s.prop.overallScore ?? 0) > 70 ? (isEn ? 'Major Mitigation' : 'Mitigasi Utama') : (s.prop.overallScore ?? 0) > 40 ? (isEn ? 'Standard Mitigation' : 'Mitigasi Standar') : (isEn ? 'Routine Maintenance' : 'Pemeliharaan Rutin')}
                             </span>
                           </div>
                         </div>
@@ -1634,105 +1830,267 @@ export const MyAccountDashboard: React.FC = () => {
             );
           })()}
 
-          {/* TAB 3: REPORTS (GROUNDSURE DOSSIER ARCHIVE) */}
+          {/* TAB 3: REPORTS (REPORT REQUEST LIFECYCLE & OFFICIAL DOSSIERS) */}
           {activeTab === 'reports' && (() => {
-            const isPaid = isPaidUser(currentUser?.tierLevel, activeAccountRole);
-            const maxPaidDossiers = getPaidDossierQuota(currentUser?.tierLevel, activeAccountRole);
-            const paidProperties = isPaid ? properties.slice(0, maxPaidDossiers) : [];
+            const filteredRequests = customerRequests.filter((r) => {
+              if (reportFilter === 'in_progress') return r.status !== 'delivered';
+              if (reportFilter === 'delivered') return r.status === 'delivered';
+              return true;
+            });
+
+            const inProgressCount = customerRequests.filter((r) => r.status !== 'delivered').length;
+            const deliveredCount = customerRequests.filter((r) => r.status === 'delivered').length;
 
             return (
               <div className="gt-table-container-card" style={{ padding: '24px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '14px', borderBottom: '1px solid #f1f0ea', flexWrap: 'wrap', gap: '10px' }}>
+                {/* Header with CTA */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid #f1f0ea', flexWrap: 'wrap', gap: '12px' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                       <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
-                        {isEn ? 'Official Groundsure Dossier Archives' : 'Arsip Dossier Groundsure Komprehensif'}
+                        {isEn ? 'Official Report Requests & Archives' : 'Layanan Permohonan & Arsip Laporan Resmi'}
                       </h3>
-                      <span style={{ background: isPaid ? '#ecfdf5' : '#fff7ed', color: isPaid ? '#047857' : '#c2410c', border: `1px solid ${isPaid ? '#a7f3d0' : '#fed7aa'}`, padding: '2px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800 }}>
-                        {isPaid
-                          ? (isEn ? `${paidProperties.length} of ${maxPaidDossiers} Dossiers Active` : `${paidProperties.length} dari ${maxPaidDossiers} Dossier Aktif`)
-                          : (isEn ? 'Free Tier (No Paid Dossiers)' : 'Akun Gratis (Belum Berbayar)')}
+                      <span style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '2px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800 }}>
+                        {isEn ? `${deliveredCount} Delivered` : `${deliveredCount} Laporan Terbit`}
                       </span>
                     </div>
                     <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>
-                      {isEn ? 'Archived official multi-hazard dossiers unlocked via Instant (Rp 35k) or Bundling (Rp 85k) plans.' : 'Arsip dossier komprehensif resmi yang telah di-unlock melalui paket Instant (Rp 35.000) atau Bundling (Rp 85.000).'}
+                      {isEn
+                        ? 'Track geospatial report requests through review, pricing, processing, and download finalized 10–14 page bank-grade dossiers.'
+                        : 'Pantau status permohonan audit geospasial komprehensif (10–14 halaman) berstandar perbankan atau ajukan laporan baru.'}
                     </p>
                   </div>
                   <button
                     type="button"
                     className="gt-btn-primary-sm"
-                    onClick={handleDownloadReportRequest}
+                    onClick={handleCreateNewReportRequest}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                   >
-                    <Plus size={14} />
-                    <span>{isEn ? 'Unlock / Buy Report' : 'Beli / Generate Laporan'}</span>
+                    <Plus size={15} />
+                    <span>{isEn ? 'Request New Report' : 'Ajukan Permohonan Laporan'}</span>
                   </button>
                 </div>
 
-                {paidProperties.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '48px 24px', background: '#fbfaf8', border: '1px dashed #dcd7ce', borderRadius: '12px' }}>
-                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#fff7ed', color: '#c2410c', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
-                      <FileCheck size={24} />
-                    </div>
-                    <h4 style={{ margin: '0 0 6px', fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
-                      {isEn ? 'No Paid Dossier Archives Yet' : 'Belum Ada Arsip Dossier Berbayar'}
+                {/* Lifecycle Pipeline Progress Indicator */}
+                <div style={{ background: '#fafaf9', border: '1px solid #e7e5e4', borderRadius: '12px', padding: '14px 18px', marginBottom: '20px' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#44403c', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    {isEn ? 'Report Request Workflow Stages' : 'Alur Proses Permohonan Laporan GoResilio'}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
+                    {[
+                      { step: '1', title: isEn ? 'Requested' : '1. Diajukan', desc: isEn ? 'Reviewing request' : 'Menunggu review' },
+                      { step: '2', title: isEn ? 'Quotation' : '2. Penawaran', desc: isEn ? 'Price quote issued' : 'Harga diterbitkan' },
+                      { step: '3', title: isEn ? 'Payment' : '3. Pembayaran', desc: isEn ? 'Awaiting payment' : 'Konfirmasi transfer' },
+                      { step: '4', title: isEn ? 'Generating' : '4. Kompilasi', desc: isEn ? 'GIS analysis running' : 'Pengolahan spasial' },
+                      { step: '5', title: isEn ? 'Delivered' : '5. Siap Unduh', desc: isEn ? 'PDF ready for download' : 'Dokumen PDF terbit' },
+                    ].map((s, idx) => (
+                      <div key={idx} style={{ background: '#ffffff', border: '1px solid #e7e5e4', borderRadius: '8px', padding: '8px 10px', fontSize: '0.72rem' }}>
+                        <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: '2px' }}>{s.title}</div>
+                        <div style={{ color: '#78716c', fontSize: '0.68rem' }}>{s.desc}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Success Alert Banner */}
+                {newRequestSuccessMsg && (
+                  <div style={{ padding: '12px 16px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '8px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#065f46' }}>
+                    <CheckCircle2 size={16} style={{ color: '#059669', flexShrink: 0 }} />
+                    <span>{newRequestSuccessMsg}</span>
+                  </div>
+                )}
+
+                {/* Filter Navigation */}
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => setReportFilter('all')}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      fontSize: '0.76rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      border: '1px solid',
+                      borderColor: reportFilter === 'all' ? '#ea580c' : '#e2e8f0',
+                      backgroundColor: reportFilter === 'all' ? '#fff7ed' : '#ffffff',
+                      color: reportFilter === 'all' ? '#c2410c' : '#64748b'
+                    }}
+                  >
+                    {isEn ? `All Requests (${customerRequests.length})` : `Semua Permohonan (${customerRequests.length})`}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReportFilter('in_progress')}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      fontSize: '0.76rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      border: '1px solid',
+                      borderColor: reportFilter === 'in_progress' ? '#ea580c' : '#e2e8f0',
+                      backgroundColor: reportFilter === 'in_progress' ? '#fff7ed' : '#ffffff',
+                      color: reportFilter === 'in_progress' ? '#c2410c' : '#64748b'
+                    }}
+                  >
+                    {isEn ? `In Progress (${inProgressCount})` : `Dalam Proses (${inProgressCount})`}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReportFilter('delivered')}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      fontSize: '0.76rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      border: '1px solid',
+                      borderColor: reportFilter === 'delivered' ? '#ea580c' : '#e2e8f0',
+                      backgroundColor: reportFilter === 'delivered' ? '#fff7ed' : '#ffffff',
+                      color: reportFilter === 'delivered' ? '#c2410c' : '#64748b'
+                    }}
+                  >
+                    {isEn ? `Delivered & Ready (${deliveredCount})` : `Siap Unduh (${deliveredCount})`}
+                  </button>
+                </div>
+
+                {/* Request List Cards */}
+                {filteredRequests.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px 20px', background: '#fafaf9', border: '1px dashed #d6d3d1', borderRadius: '12px' }}>
+                    <FileText size={32} style={{ color: '#a8a29e', margin: '0 auto 12px' }} />
+                    <h4 style={{ margin: '0 0 6px', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
+                      {isEn ? 'No Report Requests in this filter' : 'Tidak Ada Permohonan pada Kategori Ini'}
                     </h4>
-                    <p style={{ margin: '0 auto 18px', maxWidth: '460px', color: '#64748b', fontSize: '0.82rem', lineHeight: 1.5 }}>
+                    <p style={{ margin: '0 auto 16px', maxWidth: '420px', color: '#78716c', fontSize: '0.8rem' }}>
                       {isEn
-                        ? 'Official 10-14 page comprehensive PDF report dossiers are archived here once purchased via the Instant Plan ($2.50 / Rp 35k) or Bundling Plan ($6 / Rp 85k).'
-                        : 'Arsip dossier komprehensif 10–14 halaman berstandar perbankan hanya menyimpan laporan properti resmi yang telah dibeli/di-unlock melalui paket Instant (Rp 35.000) atau Bundling (Rp 85.000).'}
+                        ? 'Click the button below to submit a new comprehensive multi-hazard report request.'
+                        : 'Klik tombol di bawah untuk mengajukan permohonan laporan komprehensif baru.'}
                     </p>
                     <button
                       type="button"
-                      className="gt-btn-primary"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontSize: '0.84rem' }}
-                      onClick={handleDownloadReportRequest}
+                      className="gt-btn-primary-sm"
+                      onClick={handleCreateNewReportRequest}
                     >
-                      <Lock size={14} />
-                      <span>{isEn ? 'Unlock Report Dossier (From Rp 35,000)' : 'Beli Paket Laporan (Mulai Rp 35.000)'}</span>
+                      {isEn ? 'Request New Report' : 'Ajukan Permohonan Laporan'}
                     </button>
                   </div>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
-                    {paidProperties.map((p) => (
-                      <div
-                        key={p.id}
-                        style={{
-                          background: '#fbfaf8',
-                          border: '1px solid #e8e4db',
-                          borderRadius: '12px',
-                          padding: '18px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '12px'
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <div>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#c2410c', fontFamily: 'monospace' }}>REPORT-{p.id}</span>
-                            <h4 style={{ margin: '2px 0 0', fontSize: '0.92rem', fontWeight: 800, color: '#0f172a' }}>{p.name}</h4>
-                            <span style={{ fontSize: '0.74rem', color: '#64748b' }}>{p.city}</span>
-                          </div>
-                          <span style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '2px 8px', borderRadius: '4px', fontSize: '0.66rem', fontWeight: 800 }}>
-                            {isEn ? 'Paid & Verified' : 'Terbayar & Terbit'}
-                          </span>
-                        </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px' }}>
+                    {filteredRequests.map((req) => {
+                      const isDelivered = req.status === 'delivered';
+                      const isPriceProposed = req.status === 'price_proposed';
+                      const isGenerating = req.status === 'generating';
+                      const isPaymentConfirmed = req.status === 'payment_confirmed';
+                      const isRequested = req.status === 'requested';
 
-                        <div style={{ background: '#ffffff', border: '1px solid #e8e4db', borderRadius: '8px', padding: '10px 12px', fontSize: '0.76rem', color: '#475569', display: 'flex', justifyContent: 'space-between' }}>
-                          <span>{isEn ? 'Certificate ID:' : 'Sertifikat ID:'} GT-2026-{p.id.slice(-4)}</span>
-                          <span>{p.lastScanned}</span>
-                        </div>
+                      const statusBadge = isDelivered
+                        ? { bg: '#ecfdf5', text: '#047857', border: '#a7f3d0', label: isEn ? 'Delivered / Ready' : 'Selesai & Siap Unduh' }
+                        : isGenerating
+                        ? { bg: '#eef2ff', text: '#4338ca', border: '#c7d2fe', label: isEn ? 'Compiling GIS Data...' : 'Kompilasi Data Spasial...' }
+                        : isPaymentConfirmed
+                        ? { bg: '#f5f3ff', text: '#6d28d9', border: '#ddd6fe', label: isEn ? 'Payment Confirmed' : 'Pembayaran Terkonfirmasi' }
+                        : isPriceProposed
+                        ? { bg: '#f0f9ff', text: '#0369a1', border: '#bae6fd', label: isEn ? 'Quotation Issued' : 'Penawaran Diterbitkan' }
+                        : { bg: '#fffbeb', text: '#b45309', border: '#fde68a', label: isEn ? 'Under Review' : 'Menunggu Review Admin' };
 
-                        <button
-                          type="button"
-                          className="gt-btn-ghost-sm"
-                          style={{ width: '100%', justifyContent: 'center' }}
-                          onClick={handleDownloadReportRequest}
+                      return (
+                        <div
+                          key={req.id}
+                          style={{
+                            background: '#ffffff',
+                            border: `1px solid ${isDelivered ? '#bbf7d0' : '#e7e5e4'}`,
+                            borderRadius: '12px',
+                            padding: '18px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '12px',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                          }}
                         >
-                          <Download size={14} />
-                          <span>{isEn ? 'Download Full PDF (10–14 Pages)' : 'Unduh PDF Lengkap (10–14 Halaman)'}</span>
-                        </button>
-                      </div>
-                    ))}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                            <div>
+                              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#c2410c', fontFamily: 'monospace' }}>
+                                {req.refNumber}
+                              </span>
+                              <h4 style={{ margin: '2px 0 0', fontSize: '0.94rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.3 }}>
+                                {req.propertyName}
+                              </h4>
+                              <span style={{ fontSize: '0.74rem', color: '#78716c' }}>{req.city}</span>
+                            </div>
+                            <span style={{
+                              background: statusBadge.bg,
+                              color: statusBadge.text,
+                              border: `1px solid ${statusBadge.border}`,
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              fontSize: '0.68rem',
+                              fontWeight: 800,
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {statusBadge.label}
+                            </span>
+                          </div>
+
+                          <div style={{ background: '#fafaf9', border: '1px solid #f0eeeb', borderRadius: '8px', padding: '10px 12px', fontSize: '0.74rem', color: '#44403c', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ color: '#78716c' }}>{isEn ? 'Package:' : 'Paket Laporan:'}</span>
+                              <span style={{ fontWeight: 700 }}>{req.packageType}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ color: '#78716c' }}>{isEn ? 'Date Requested:' : 'Tanggal Pengajuan:'}</span>
+                              <span>{req.requestedDate}</span>
+                            </div>
+                            {req.proposedPrice && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: '#78716c' }}>{isEn ? 'Quotation / Fee:' : 'Biaya / Penawaran:'}</span>
+                                <span style={{ fontWeight: 800, color: '#c2410c' }}>{req.proposedPrice}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Action Button depending on status */}
+                          {isDelivered ? (
+                            <button
+                              type="button"
+                              className="gt-btn-ghost-sm"
+                              style={{
+                                width: '100%',
+                                justifyContent: 'center',
+                                backgroundColor: '#15803d',
+                                color: '#ffffff',
+                                border: 'none',
+                                fontWeight: 700
+                              }}
+                              onClick={handleDownloadReportRequest}
+                            >
+                              <Download size={14} />
+                              <span>{isEn ? 'Download Official PDF (10–14 Pages)' : 'Unduh PDF Resmi (10–14 Halaman)'}</span>
+                            </button>
+                          ) : isPriceProposed ? (
+                            <button
+                              type="button"
+                              className="gt-btn-primary-sm"
+                              style={{ width: '100%', justifyContent: 'center' }}
+                              onClick={() => handleConfirmCustomerPayment(req.id)}
+                            >
+                              <CreditCard size={14} />
+                              <span>{isEn ? `Accept & Pay ${req.proposedPrice || ''}` : `Bayar & Konfirmasi Penawaran`}</span>
+                            </button>
+                          ) : isGenerating ? (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.74rem', color: '#475569' }}>
+                              <Clock size={13} style={{ color: '#0284c7' }} />
+                              <span>{isEn ? 'Estimated delivery: 5-15 mins' : 'Estimasi kompilasi: 5–15 menit'}</span>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.74rem', color: '#64748b' }}>
+                              <Clock size={13} />
+                              <span>{isEn ? 'Awaiting administrative quotation' : 'Menunggu kalkulasi penawaran admin'}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1749,21 +2107,42 @@ export const MyAccountDashboard: React.FC = () => {
                       {isEn ? 'Pre-Transaction Due Diligence Checklist' : 'Checklist Uji Tuntas Pra-Transaksi Properti'}
                     </h3>
                     <p className="gt-panel-sub">
-                      {isEn ? 'Mandatory geospatial risk mitigation steps before signing deeds or closing mortgages.' : 'Langkah mitigasi risiko geospasial wajib sebelum tanda tangan akta PPJB / KPR.'}
+                      {isEn ? 'Mandatory geospatial risk mitigation steps dynamically generated from site hazard intelligence.' : 'Langkah mitigasi risiko geospasial yang dihasilkan secara dinamis berdasarkan data intelijen bahaya lokasi Anda.'}
                     </p>
                   </div>
 
                   {/* Progress Pill Indicator */}
-                  <div style={{ background: completedCount === checklist.length ? '#ecfdf5' : '#fff7ed', border: completedCount === checklist.length ? '1px solid #a7f3d0' : '1px solid #fed7aa', padding: '8px 14px', borderRadius: '10px', textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: completedCount === checklist.length ? '#047857' : '#c2410c', textTransform: 'uppercase' }}>
+                  <div style={{ background: completedCount === checklist.length && checklist.length > 0 ? '#ecfdf5' : '#fff7ed', border: completedCount === checklist.length && checklist.length > 0 ? '1px solid #a7f3d0' : '1px solid #fed7aa', padding: '8px 14px', borderRadius: '10px', textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: completedCount === checklist.length && checklist.length > 0 ? '#047857' : '#c2410c', textTransform: 'uppercase' }}>
                       {completedCount} / {checklist.length} {isEn ? 'Steps Done' : 'Langkah Selesai'} ({checklistPct}%)
                     </div>
                     <div style={{ width: '120px', height: '6px', background: '#e2e8f0', borderRadius: '3px', marginTop: '4px', overflow: 'hidden' }}>
-                      <div style={{ width: `${checklistPct}%`, height: '100%', background: completedCount === checklist.length ? '#10b981' : '#ea580c', transition: 'width 0.3s ease' }} />
+                      <div style={{ width: `${checklistPct}%`, height: '100%', background: completedCount === checklist.length && checklist.length > 0 ? '#10b981' : '#ea580c', transition: 'width 0.3s ease' }} />
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* Assessment Context Banner */}
+              {!assessment ? (
+                <div style={{ padding: '12px 16px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.82rem', color: '#64748b' }}>
+                  <Info size={16} style={{ color: '#0284c7', flexShrink: 0 }} />
+                  <span>
+                    {isEn
+                      ? 'Displaying baseline due diligence items. Perform an interactive location assessment on the main map to unlock site-specific hazard mitigation checks.'
+                      : 'Menampilkan daftar periksa standar uji tuntas pra-transaksi. Lakukan asesmen lokasi pada peta utama untuk mengaktifkan rekomendasi mitigasi spesifik bahaya banjir, gempa, dan panas.'}
+                  </span>
+                </div>
+              ) : (
+                <div style={{ padding: '10px 16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.8rem', color: '#166534' }}>
+                  <CheckCircle2 size={16} style={{ color: '#16a34a', flexShrink: 0 }} />
+                  <span>
+                    {isEn
+                      ? `Active Site Hazard Profile: Flood (${floodRiskScore}/100), Seismic (${quakeRiskScore}/100), Heat Stress (${heatRiskScore}/100). Tailored action items highlighted below.`
+                      : `Profil Bahaya Lokasi Aktif: Banjir (${floodRiskScore}/100), Gempa (${quakeRiskScore}/100), Beban Panas (${heatRiskScore}/100). Tindakan mitigasi disesuaikan di bawah.`}
+                  </span>
+                </div>
+              )}
 
               <div className="gt-checklist-compact-list">
                 {checklist.map((item) => (
@@ -1779,8 +2158,23 @@ export const MyAccountDashboard: React.FC = () => {
                       checked={item.checked}
                       onChange={() => toggleChecklistItem(item.id)}
                     />
-                    <div className="gt-check-label-box">
-                      <strong style={{ color: item.checked ? '#065f46' : '#0f172a' }}>{item.title}</strong>
+                    <div className="gt-check-label-box" style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '2px' }}>
+                        <strong style={{ color: item.checked ? '#065f46' : '#0f172a' }}>{item.title}</strong>
+                        {item.badgeLabel && (
+                          <span style={{
+                            fontSize: '0.66rem',
+                            fontWeight: 700,
+                            padding: '1px 8px',
+                            borderRadius: '4px',
+                            backgroundColor: item.badgeColor ? `${item.badgeColor}15` : '#f1f5f9',
+                            color: item.badgeColor || '#475569',
+                            border: `1px solid ${item.badgeColor ? `${item.badgeColor}40` : '#cbd5e1'}`
+                          }}>
+                            {item.badgeLabel}
+                          </span>
+                        )}
+                      </div>
                       <span>{item.desc}</span>
                     </div>
                   </div>
@@ -1991,8 +2385,8 @@ export const MyAccountDashboard: React.FC = () => {
             </h3>
             <p className="gt-confirm-modal-desc">
               {isEn
-                ? 'Are you sure you want to end your GoTangguh session? You will be safely redirected to the public dashboard.'
-                : 'Apakah Anda yakin ingin keluar dari sesi akun GoTangguh? Sesi aktif Anda akan diakhiri dengan aman.'}
+                ? 'Are you sure you want to end your GoResilio session? You will be safely redirected to the public dashboard.'
+                : 'Apakah Anda yakin ingin keluar dari sesi akun GoResilio? Sesi aktif Anda akan diakhiri dengan aman.'}
             </p>
             <div className="gt-confirm-modal-actions">
               <button

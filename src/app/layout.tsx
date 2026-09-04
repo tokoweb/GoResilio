@@ -8,9 +8,9 @@ import '../presentation/styles/app.css';
 import '../presentation/styles/print_report.css';
 
 export const metadata: Metadata = {
-  title: 'GoTangguh — Platform Uji Tuntas Risiko Bencana & Ketahanan Iklim Properti',
+  title: 'GoResilio — Platform Uji Tuntas Risiko Bencana & Ketahanan Iklim Properti',
   description: 'Platform uji tuntas bahaya multi-ancaman (Banjir, Gempa, Panas Ekstrem, Transportasi) berbasis data terverifikasi (BNPB inaRISK, USGS, Open-Meteo Copernicus DEM, OSM) untuk Pembeli Properti, Developer, dan Perbankan.',
-  keywords: ['gotangguh', 'skrining bencana', 'risiko banjir', 'sesar aktif', 'inarisk bnpb', 'usgs', 'copernicus dem', 'due diligence properti']
+  keywords: ['goresilio', 'skrining bencana', 'risiko banjir', 'sesar aktif', 'inarisk bnpb', 'usgs', 'copernicus dem', 'due diligence properti']
 };
 
 export default function RootLayout({

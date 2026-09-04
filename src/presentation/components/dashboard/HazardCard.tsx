@@ -13,6 +13,7 @@ import {
   FileText
 } from 'lucide-react';
 import type { HazardCategory } from '../../../domain/types/hazard.types';
+import { CanonicalRatingResolver } from '../../../domain/services/CanonicalRatingResolver';
 import { ReportMetricRegistry } from '../../../domain/services/ReportMetricRegistry';
 import type { ReportMetric } from '../../../domain/types/feature.types';
 
@@ -73,21 +74,20 @@ export const HazardCard: React.FC = () => {
 
   const { flood, quake, heat, transport } = assessment;
 
-  // Grade badge mapping
-  const getGradeBadge = (level: string) => {
-    switch (level) {
-      case 'low':
-        return { label: isEn ? 'Low Risk' : 'Risiko Rendah', cls: 'gt-badge-pass' };
-      case 'medium':
-      case 'moderate':
-        return { label: isEn ? 'Moderate' : 'Risiko Sedang', cls: 'gt-badge-warning' };
-      case 'high':
-        return { label: isEn ? 'High Risk' : 'Risiko Tinggi', cls: 'gt-badge-danger' };
-      case 'extreme':
-        return { label: isEn ? 'Extreme' : 'Risiko Ekstrem', cls: 'gt-badge-critical' };
-      default:
-        return { label: isEn ? 'Unrated' : 'Belum Terdata', cls: 'gt-badge-neutral' };
-    }
+  // Grade badge mapping via Canonical Rating Resolver (SSOT)
+  const getGradeBadge = (scoreOrLevel: number | string | null | undefined, explicitScore?: number | null) => {
+    const numScore = typeof scoreOrLevel === 'number' ? scoreOrLevel : explicitScore;
+    const resolved = CanonicalRatingResolver.getHazardRating(numScore, language);
+    const cls = resolved.badgeClass === 'low' ? 'gt-badge-pass'
+      : resolved.badgeClass === 'medium' ? 'gt-badge-warning'
+      : resolved.badgeClass === 'high' ? 'gt-badge-danger'
+      : resolved.badgeClass === 'critical' ? 'gt-badge-critical'
+      : 'gt-badge-neutral';
+    return {
+      label: resolved.rating,
+      fullLabel: resolved.fullLabel,
+      cls
+    };
   };
 
   // Transport coverage badge mapping (PHASE 8.11.1 Requirement 21)
@@ -108,38 +108,37 @@ export const HazardCard: React.FC = () => {
     rel: string,
     obs?: number,
     exp?: number,
-    pct?: number
+    _pct?: number
   ) => {
     const obsVal = obs ?? 0;
     const expVal = exp ?? 0;
-    const pctVal = pct ?? (expVal > 0 ? Math.round((obsVal / expVal) * 100) : 0);
+    const tooltip = isEn
+      ? 'Indicates data completeness and quality, not the risk level.'
+      : 'Menunjukkan kelengkapan dan kualitas data yang tersedia, bukan tingkat risiko.';
 
     switch (rel) {
       case 'measured':
         return {
-          label: isEn ? `Verified (${obsVal}/${expVal})` : `Terverifikasi (${obsVal}/${expVal})`,
+          label: isEn ? `STRONG EVIDENCE (${obsVal}/${expVal} data available)` : `BUKTI KUAT (${obsVal}/${expVal} data tersedia)`,
+          tooltip,
           bg: '#ecfdf5',
           color: '#047857',
           border: '#a7f3d0'
         };
       case 'partially_observed':
+      case 'imputed_model_baseline':
         return {
-          label: isEn ? `Evidence (${pctVal}%)` : `Bukti Parsial (${pctVal}%)`,
+          label: isEn ? `ADEQUATE EVIDENCE (${obsVal}/${expVal} data available)` : `BUKTI CUKUP (${obsVal}/${expVal} data tersedia)`,
+          tooltip,
           bg: '#fffbeb',
           color: '#b45309',
           border: '#fde68a'
         };
-      case 'imputed_model_baseline':
-        return {
-          label: isEn ? `Model Baseline (${obsVal}/${expVal})` : `Model Baseline (${obsVal}/${expVal})`,
-          bg: '#eff6ff',
-          color: '#1d4ed8',
-          border: '#bfdbfe'
-        };
       case 'insufficient_data':
       default:
         return {
-          label: isEn ? `Insufficient (${obsVal}/${expVal})` : `Data Kurang (${obsVal}/${expVal})`,
+          label: isEn ? `LIMITED DATA (${obsVal}/${expVal} data available)` : `DATA TERBATAS (${obsVal}/${expVal} data tersedia)`,
+          tooltip,
           bg: '#f8fafc',
           color: '#64748b',
           border: '#cbd5e1'
@@ -338,8 +337,8 @@ export const HazardCard: React.FC = () => {
               <Waves size={15} className="gt-tab-glyph" />
               <span className="gt-tab-name">{t.dashboard.cards.floodTitle}</span>
             </div>
-            <span className={`gt-tab-rating-tag ${getGradeBadge(flood.level).cls}`}>
-              {getGradeBadge(flood.level).label}
+            <span className={`gt-tab-rating-tag ${getGradeBadge(flood.score).cls}`}>
+              {flood.rating || getGradeBadge(flood.score).label}
             </span>
           </div>
         </button>
@@ -357,8 +356,8 @@ export const HazardCard: React.FC = () => {
               <Activity size={15} className="gt-tab-glyph" />
               <span className="gt-tab-name">{t.dashboard.cards.quakeTitle}</span>
             </div>
-            <span className={`gt-tab-rating-tag ${getGradeBadge(quake.level).cls}`}>
-              {getGradeBadge(quake.level).label}
+            <span className={`gt-tab-rating-tag ${getGradeBadge(quake.score).cls}`}>
+              {quake.rating || getGradeBadge(quake.score).label}
             </span>
           </div>
         </button>
@@ -376,8 +375,8 @@ export const HazardCard: React.FC = () => {
               <Flame size={15} className="gt-tab-glyph" />
               <span className="gt-tab-name">{t.dashboard.cards.heatTitle}</span>
             </div>
-            <span className={`gt-tab-rating-tag ${getGradeBadge(heat.level).cls}`}>
-              {getGradeBadge(heat.level).label}
+            <span className={`gt-tab-rating-tag ${getGradeBadge(heat.score).cls}`}>
+              {heat.rating || getGradeBadge(heat.score).label}
             </span>
           </div>
         </button>
@@ -396,16 +395,21 @@ export const HazardCard: React.FC = () => {
               <span className="gt-tab-name">{t.dashboard.cards.transportTitle}</span>
             </div>
             {(() => {
+              const accessRating = CanonicalRatingResolver.getAccessibilityRating(transport.score, language);
               const transportObserved = transport.observedComponents ?? (
                 (transport.distanceToNearestRoadMeters !== null ? 1 : 0) +
                 (transport.distanceToArterialMeters !== null || (transport.arterialBounded && transport.arterialBounded.state === 'AVAILABLE_BOUNDED') ? 1 : 0) +
                 (transport.distanceToHospitalMeters !== null || (transport.hospitalBounded && transport.hospitalBounded.state === 'AVAILABLE_BOUNDED') ? 1 : 0) +
                 (transport.distanceToTransitHubMeters !== null || (transport.transitBounded && transport.transitBounded.state === 'AVAILABLE_BOUNDED') ? 1 : 0)
               );
-              const badge = getTransportCoverageBadge(transportObserved);
+              const coverageBadge = getTransportCoverageBadge(transportObserved);
+              const label = transport.score !== null ? (transport.rating || accessRating.rating) : coverageBadge.label;
+              const cls = transport.score !== null
+                ? (accessRating.badgeClass === 'low' ? 'gt-badge-pass' : accessRating.badgeClass === 'medium' ? 'gt-badge-warning' : accessRating.badgeClass === 'high' ? 'gt-badge-danger' : 'gt-badge-neutral')
+                : coverageBadge.cls;
               return (
-                <span className={`gt-tab-rating-tag ${badge.cls}`}>
-                  {badge.label}
+                <span className={`gt-tab-rating-tag ${cls}`}>
+                  {label}
                 </span>
               );
             })()}
@@ -420,30 +424,6 @@ export const HazardCard: React.FC = () => {
           <div className="gt-luxury-panel-layout">
             <div className="gt-primary-cards-container">
               {renderSurveyGrid(activePrimaryMetrics)}
-              <div style={{ marginTop: '14px', display: 'flex', justifyContent: 'flex-start' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowTechnicalModal(true)}
-                  className="gt-tech-details-trigger-btn"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '7px 14px',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    background: '#f8fafc',
-                    color: '#334155',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <Layers size={14} />
-                  <span>{isEn ? `View Data & Methodology Details (${allTechnicalMetrics.length} Parameters)` : `Lihat Detail Data & Metodologi (${allTechnicalMetrics.length} Parameter)`}</span>
-                </button>
-              </div>
             </div>
 
             {/* Right: Synthesis & Engineering Directive */}
@@ -455,7 +435,7 @@ export const HazardCard: React.FC = () => {
                     {(() => {
                       const badge = getReliabilityBadge(flood.scoreReliability, flood.observedComponents, flood.expectedComponents, flood.coveragePct);
                       return (
-                        <span style={{ fontSize: '0.68rem', fontWeight: 600, padding: '2px 8px', borderRadius: '12px', background: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}>
+                        <span title={badge.tooltip} style={{ cursor: 'help', fontSize: '0.68rem', fontWeight: 600, padding: '2px 8px', borderRadius: '12px', background: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}>
                           {badge.label}
                         </span>
                       );
@@ -486,30 +466,6 @@ export const HazardCard: React.FC = () => {
           <div className="gt-luxury-panel-layout">
             <div className="gt-primary-cards-container">
               {renderSurveyGrid(activePrimaryMetrics)}
-              <div style={{ marginTop: '14px', display: 'flex', justifyContent: 'flex-start' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowTechnicalModal(true)}
-                  className="gt-tech-details-trigger-btn"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '7px 14px',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    background: '#f8fafc',
-                    color: '#334155',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <Layers size={14} />
-                  <span>{isEn ? `View Data & Methodology Details (${allTechnicalMetrics.length} Parameters)` : `Lihat Detail Data & Metodologi (${allTechnicalMetrics.length} Parameter)`}</span>
-                </button>
-              </div>
             </div>
 
             {/* Right: Synthesis & Engineering Directive */}
@@ -521,7 +477,7 @@ export const HazardCard: React.FC = () => {
                     {(() => {
                       const badge = getReliabilityBadge(quake.scoreReliability, quake.observedComponents, quake.expectedComponents, quake.coveragePct);
                       return (
-                        <span style={{ fontSize: '0.68rem', fontWeight: 600, padding: '2px 8px', borderRadius: '12px', background: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}>
+                        <span title={badge.tooltip} style={{ cursor: 'help', fontSize: '0.68rem', fontWeight: 600, padding: '2px 8px', borderRadius: '12px', background: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}>
                           {badge.label}
                         </span>
                       );
@@ -552,30 +508,6 @@ export const HazardCard: React.FC = () => {
           <div className="gt-luxury-panel-layout">
             <div className="gt-primary-cards-container">
               {renderSurveyGrid(activePrimaryMetrics)}
-              <div style={{ marginTop: '14px', display: 'flex', justifyContent: 'flex-start' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowTechnicalModal(true)}
-                  className="gt-tech-details-trigger-btn"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '7px 14px',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    background: '#f8fafc',
-                    color: '#334155',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <Layers size={14} />
-                  <span>{isEn ? `View Data & Methodology Details (${allTechnicalMetrics.length} Parameters)` : `Lihat Detail Data & Metodologi (${allTechnicalMetrics.length} Parameter)`}</span>
-                </button>
-              </div>
             </div>
 
             {/* Right: Synthesis & Engineering Directive */}
@@ -587,7 +519,7 @@ export const HazardCard: React.FC = () => {
                     {(() => {
                       const badge = getReliabilityBadge(heat.scoreReliability, heat.observedComponents, heat.expectedComponents, heat.coveragePct);
                       return (
-                        <span style={{ fontSize: '0.68rem', fontWeight: 600, padding: '2px 8px', borderRadius: '12px', background: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}>
+                        <span title={badge.tooltip} style={{ cursor: 'help', fontSize: '0.68rem', fontWeight: 600, padding: '2px 8px', borderRadius: '12px', background: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}>
                           {badge.label}
                         </span>
                       );
@@ -618,30 +550,6 @@ export const HazardCard: React.FC = () => {
           <div className="gt-luxury-panel-layout">
             <div className="gt-primary-cards-container">
               {renderSurveyGrid(activePrimaryMetrics)}
-              <div style={{ marginTop: '14px', display: 'flex', justifyContent: 'flex-start' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowTechnicalModal(true)}
-                  className="gt-tech-details-trigger-btn"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '7px 14px',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    background: '#f8fafc',
-                    color: '#334155',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <Layers size={14} />
-                  <span>{isEn ? `View Data & Methodology Details (${allTechnicalMetrics.length} Parameters)` : `Lihat Detail Data & Metodologi (${allTechnicalMetrics.length} Parameter)`}</span>
-                </button>
-              </div>
             </div>
 
             {/* Right: Synthesis & Engineering Directive */}
@@ -653,7 +561,7 @@ export const HazardCard: React.FC = () => {
                     {(() => {
                       const badge = getReliabilityBadge(transport.scoreReliability, transport.observedComponents, transport.expectedComponents, transport.coveragePct);
                       return (
-                        <span style={{ fontSize: '0.68rem', fontWeight: 600, padding: '2px 8px', borderRadius: '12px', background: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}>
+                        <span title={badge.tooltip} style={{ cursor: 'help', fontSize: '0.68rem', fontWeight: 600, padding: '2px 8px', borderRadius: '12px', background: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}>
                           {badge.label}
                         </span>
                       );
@@ -724,7 +632,7 @@ export const HazardCard: React.FC = () => {
                 </div>
                 <div>
                   <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
-                    {isEn ? `Detailed Technical Parameters & Lineage: ${activeTab.toUpperCase()}` : `Detail Parameter Teknis & Silsilah Data: ${activeTab.toUpperCase()}`}
+                    {isEn ? `Basis of Assessment & Data Details: ${activeTab.toUpperCase()}` : `Dasar Penilaian & Detail Data: ${activeTab.toUpperCase()}`}
                   </h3>
                   <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '2px 0 0 0' }}>
                     {isEn ? 'Complete verified spatial metrics, data resolutions, and methodology notes.' : 'Seluruh metrik spasial terverifikasi, resolusi dataset, dan catatan metodologi.'}
@@ -803,7 +711,7 @@ export const HazardCard: React.FC = () => {
             {/* Modal Footer */}
             <div style={{ marginTop: '18px', paddingTop: '14px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                {isEn ? 'Data processed through GoTangguh Open-Source Multi-Hazard Pipeline.' : 'Diproses melalui Pipeline Multi-Hazard Open-Source GoTangguh.'}
+                {isEn ? 'Data processed through GoResilio Open-Source Multi-Hazard Pipeline.' : 'Diproses melalui Pipeline Multi-Hazard Open-Source GoResilio.'}
               </span>
               <button
                 type="button"

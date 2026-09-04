@@ -191,16 +191,16 @@ export async function runPhase11_1Tests(): Promise<{ passed: boolean; results: A
       'p11-closing'
     ].every(id => htmlId.includes(`id="${id}"`));
 
-    const hasWatermark = htmlId.includes('CONTOH LAPORAN RESMI');
+    const noWatermarkId = !htmlId.includes('<div class="watermark">') && !htmlId.includes('CONTOH LAPORAN RESMI');
     const hasTaglineId = htmlId.includes('Kenali Risiko Properti Anda, Siapkan Solusinya');
     const hasAspectsId = htmlId.includes('Potensi Risiko') && htmlId.includes('Paparan') && htmlId.includes('Dampak');
     const hasDisclaimerId = htmlId.includes('Analisis ini merupakan indikator penapisan awal berbasis data spasial publik dan tidak menggantikan uji tuntas teknis, penyelidikan tanah, atau audit struktural profesional.');
 
-    const passedA = has11Sections && hasWatermark && hasTaglineId && hasAspectsId && hasDisclaimerId;
+    const passedA = has11Sections && noWatermarkId && hasTaglineId && hasAspectsId && hasDisclaimerId;
     results.push({
-      test: 'TEST A: Sample Indonesian preserves 11 sections, watermark, and verbatim ID strings',
+      test: 'TEST A: Sample Indonesian preserves 11 sections, clean watermark-free layout, and verbatim ID strings',
       passed: passedA,
-      message: passedA ? 'All 11 sections, CONTOH LAPORAN RESMI watermark, and verbatim ID strings verified' : 'Mismatch in sections or ID strings'
+      message: passedA ? 'All 11 sections, pristine watermark-free layout, and verbatim ID strings verified' : 'Mismatch in sections or ID strings'
     });
   } catch (err: any) {
     results.push({ test: 'TEST A: Sample Indonesian', passed: false, message: err.message });
@@ -231,16 +231,16 @@ export async function runPhase11_1Tests(): Promise<{ passed: boolean; results: A
       'p11-closing'
     ].every(id => htmlEn.includes(`id="${id}"`));
 
-    const hasWatermark = htmlEn.includes('SAMPLE REPORT');
+    const noWatermarkEn = !htmlEn.includes('<div class="watermark">') && !htmlEn.includes('SAMPLE REPORT');
     const hasTaglineEn = htmlEn.includes('Know Your Property Risk, Prepare Your Solution');
     const hasAspectsEn = htmlEn.includes('Hazard Potential') && htmlEn.includes('Exposure') && htmlEn.includes('Impact');  // methodology section
     const hasDisclaimerEn = htmlEn.includes('This analysis serves as an initial screening indicator based on public spatial data and does not replace technical due diligence, soil investigation, or professional structural audit.');
 
-    const passedB = has11Sections && hasWatermark && hasTaglineEn && hasAspectsEn && hasDisclaimerEn;
+    const passedB = has11Sections && noWatermarkEn && hasTaglineEn && hasAspectsEn && hasDisclaimerEn;
     results.push({
-      test: 'TEST B: Sample English preserves 11 sections, watermark, and verbatim EN strings',
+      test: 'TEST B: Sample English preserves 11 sections, clean watermark-free layout, and verbatim EN strings',
       passed: passedB,
-      message: passedB ? 'All 11 sections, SAMPLE REPORT watermark, and verbatim EN strings verified' : 'Mismatch in sections or EN strings'
+      message: passedB ? 'All 11 sections, pristine watermark-free layout, and verbatim EN strings verified' : 'Mismatch in sections or EN strings'
     });
   } catch (err: any) {
     results.push({ test: 'TEST B: Sample English', passed: false, message: err.message });

@@ -3,11 +3,11 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useAssessment } from '../../context/AssessmentContext';
 import { BookConsultationUseCase } from '../../../application/use_cases/BookConsultation.usecase';
 import { CustomSelect } from '../ui/CustomSelect';
-import { CheckCircle2, Send, Check, ShieldCheck, UserCheck, HardHat, Compass, MapPin, Building, Award } from 'lucide-react';
+import { CheckCircle2, Send, Check, ShieldCheck, UserCheck, HardHat, Compass, MapPin, Building, Award, LayoutDashboard } from 'lucide-react';
 
 export const BookDemoSection: React.FC = () => {
   const { language, t } = useLanguage();
-  const { assessment } = useAssessment();
+  const { assessment, openAdminConsole } = useAssessment();
 
   const isEn = language === 'en';
 
@@ -16,7 +16,7 @@ export const BookDemoSection: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [company, setCompany] = useState('');
   const [roleTitle, setRoleTitle] = useState(isEn ? 'Home Buyer / Individual' : 'Pencari Rumah / Pembeli Pribadi');
-  const [packageInterest, setPackageInterest] = useState(isEn ? 'Lite Consultation & Expert Data Review' : 'Konsultasi Lite / Basic: Review Data Ahli (Rp 300rb - 750rb)');
+  const [packageInterest, setPackageInterest] = useState('');
   const [targetLocation, setTargetLocation] = useState(assessment?.location.formattedAddress || '');
   const [date, setDate] = useState('');
   const [notes, setNotes] = useState('');
@@ -43,7 +43,7 @@ export const BookDemoSection: React.FC = () => {
         phone,
         organization: company || (isEn ? 'Individual' : 'Individu / Perorangan'),
         roleTitle,
-        packageInterest,
+        packageInterest: packageInterest || (isEn ? 'Lite Consultation: Expert Data Review' : 'Konsultasi Lite / Basic: Review Data Ahli'),
         targetLocation: targetLocation || assessment?.location.formattedAddress || (isEn ? 'Indonesia / Regional' : 'Indonesia'),
         preferredDate: date,
         notes
@@ -62,9 +62,45 @@ export const BookDemoSection: React.FC = () => {
       <div className="gt-luxury-consult-slab">
         {/* Left Information Column */}
         <div className="gt-consult-info-col">
-          <div className="gt-consult-kicker-tag">
-            <ShieldCheck size={14} />
-            <span>{isEn ? 'OFFICIAL EXPERT CONSULTATION & FIELD VERIFICATION' : 'LAYANAN KONSULTASI AHLI & VERIFIKASI LAPANGAN'}</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
+            <div className="gt-consult-kicker-tag" style={{ marginBottom: 0 }}>
+              <ShieldCheck size={14} />
+              <span>{isEn ? 'OFFICIAL EXPERT CONSULTATION & FIELD VERIFICATION' : 'LAYANAN KONSULTASI AHLI & VERIFIKASI LAPANGAN'}</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => openAdminConsole('reports', 'inquiries')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: '#f8fafc',
+                color: '#334155',
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                padding: '5px 11px',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#fff7ed';
+                e.currentTarget.style.color = '#c2410c';
+                e.currentTarget.style.borderColor = '#fdba74';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#f8fafc';
+                e.currentTarget.style.color = '#334155';
+                e.currentTarget.style.borderColor = '#cbd5e1';
+              }}
+              title={isEn ? 'Open Consultation Admin Dashboard' : 'Buka Dashboard Admin Permohonan Konsultasi'}
+            >
+              <LayoutDashboard size={13} style={{ color: '#c2410c' }} />
+              <span>{isEn ? 'Consultation Admin Dashboard' : 'Dashboard Admin Konsultasi'}</span>
+            </button>
           </div>
 
           <h2 className="gt-consult-title">{t.demo.title}</h2>
@@ -126,20 +162,43 @@ export const BookDemoSection: React.FC = () => {
                 </span>
               </div>
 
-              <button
-                type="button"
-                className="gt-btn-book-another"
-                onClick={() => {
-                  setSubmitted(false);
-                  setFullName('');
-                  setEmail('');
-                  setCompany('');
-                  setDate('');
-                  setNotes('');
-                }}
-              >
-                {isEn ? 'Book Another Consultation' : 'Buat Permohonan Lain'}
-              </button>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '14px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                <button
+                  type="button"
+                  className="gt-btn-book-another"
+                  onClick={() => {
+                    setSubmitted(false);
+                    setFullName('');
+                    setEmail('');
+                    setCompany('');
+                    setDate('');
+                    setNotes('');
+                  }}
+                >
+                  {isEn ? 'Book Another Consultation' : 'Buat Permohonan Lain'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openAdminConsole('reports', 'inquiries')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: '#0f172a',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '9px 16px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <LayoutDashboard size={14} />
+                  <span>{isEn ? 'View in Admin Inbox' : 'Lihat di Inbox Admin'}</span>
+                </button>
+              </div>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="gt-consult-form-body">
@@ -160,12 +219,12 @@ export const BookDemoSection: React.FC = () => {
 
               {/* 2. Email Address */}
               <div className="gt-form-group">
-                <label className="gt-form-label">{isEn ? 'Official Email Address' : 'Alamat Email Resmi'}</label>
+                <label className="gt-form-label">{t.demo.emailLabel}</label>
                 <input
                   type="email"
                   required
                   className="gt-form-input"
-                  placeholder="nama@domain.com"
+                  placeholder={t.demo.emailPlaceholder}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
@@ -173,12 +232,12 @@ export const BookDemoSection: React.FC = () => {
 
               {/* 3. WhatsApp / Phone Number */}
               <div className="gt-form-group">
-                <label className="gt-form-label">{isEn ? 'Active WhatsApp Number' : 'Nomor WhatsApp / Kontak Aktif'}</label>
+                <label className="gt-form-label">{t.demo.phoneLabel || (isEn ? 'Active WhatsApp Number' : 'Nomor WhatsApp / Kontak Aktif')}</label>
                 <input
                   type="tel"
                   required
                   className="gt-form-input"
-                  placeholder="+62 812-3456-7890"
+                  placeholder={t.demo.phonePlaceholder || (isEn ? '+62 812-xxxx-xxxx' : '0812-xxxx-xxxx')}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                 />
@@ -208,24 +267,24 @@ export const BookDemoSection: React.FC = () => {
                   theme="light"
                   value={packageInterest}
                   onChange={(val) => setPackageInterest(val)}
+                  placeholder={t.demo.packagePlaceholder || (isEn ? 'Select service package...' : 'Pilih paket layanan...')}
                   options={[
                     {
-                      value: 'Konsultasi Lite / Basic (Rp 300rb - 750rb)',
-                      label: isEn ? 'Lite Consultation: Expert Data Review ($25)' : 'Konsultasi Lite / Basic: Review Data Ahli (Rp 300rb - 750rb)',
-                      badge: 'Rp 300rb+'
+                      value: 'Konsultasi Lite / Basic: Review Data Ahli',
+                      label: isEn ? 'Lite Consultation: Expert Data Review' : 'Konsultasi Lite / Basic: Review Data Ahli'
                     },
                     {
-                      value: 'Konsultasi Premium / Gold: On-Site Survey (Rp 1.5jt - 5jt)',
-                      label: isEn ? 'Gold Package: On-Site Survey by Architects & Civil Engineers ($100-$350)' : 'Konsultasi Gold: On-Site Survey Arsitek & Sipil (Rp 1.5jt - 5jt)',
+                      value: 'Konsultasi Gold: On-Site Survey Arsitek & Sipil',
+                      label: isEn ? 'Gold Package: On-Site Survey by Architects & Civil Engineers' : 'Konsultasi Gold: On-Site Survey Arsitek & Sipil',
                       badge: 'Populer'
                     },
                     {
-                      value: 'Studi Kelayakan Kawasan Developer (B2B Custom)',
+                      value: 'Studi Kelayakan Kawasan Pengembang (B2B Custom)',
                       label: isEn ? 'Developer Masterplan & Zoning Feasibility (B2B Custom)' : 'Studi Kelayakan Kawasan Pengembang (B2B Custom)',
                       badge: 'B2B Custom'
                     },
                     {
-                      value: 'Layanan Tambahan: Bantuan Pemilihan Lahan & Katalog Desain',
+                      value: 'Layanan Tambahan: Pemilihan Lahan & Katalog Desain Rumah Tangguh',
                       label: isEn ? 'Add-on Service: Land Selection & Resilient House Design Catalog' : 'Layanan Tambahan: Pemilihan Lahan & Katalog Desain Rumah Tangguh'
                     }
                   ]}
@@ -239,7 +298,7 @@ export const BookDemoSection: React.FC = () => {
                 <input
                   type="text"
                   className="gt-form-input"
-                  placeholder={isEn ? 'e.g. BSD Boulevard Barat, Tangerang' : 'Contoh: Jl. BSD Boulevard Barat, Tangerang'}
+                  placeholder={t.demo.locationPlaceholder || (isEn ? 'Enter property location or address' : 'Masukkan alamat atau lokasi properti')}
                   value={targetLocation}
                   onChange={(e) => setTargetLocation(e.target.value)}
                 />

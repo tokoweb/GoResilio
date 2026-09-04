@@ -291,11 +291,27 @@ export const HeroSection: React.FC = () => {
     }
   };
 
-  // Safe accessor for hazard scores matching MultiHazardAssessmentResult schema
-  const floodScore = assessment?.flood?.score ?? null;
-  const quakeScore = assessment?.quake?.score ?? null;
-  const heatScore = assessment?.heat?.score ?? null;
-  const transitScore = assessment?.transport?.score ?? null;
+  // Canonical assessment bindings: Hero has ZERO local classification logic and reads directly from assessment
+  const flood = assessment?.flood;
+  const earthquake = assessment?.earthquake || assessment?.quake;
+  const heat = assessment?.heat;
+  const accessibility = assessment?.accessibility || assessment?.transport;
+
+  const floodScore = flood?.score ?? null;
+  const floodRating = flood?.rating ?? '—';
+  const floodBadgeClass = flood?.badgeClass ?? 'neutral';
+
+  const quakeScore = earthquake?.score ?? null;
+  const quakeRating = earthquake?.rating ?? '—';
+  const quakeBadgeClass = earthquake?.badgeClass ?? 'neutral';
+
+  const heatScore = heat?.score ?? null;
+  const heatRating = heat?.rating ?? '—';
+  const heatBadgeClass = heat?.badgeClass ?? 'neutral';
+
+  const transitScore = accessibility?.score ?? null;
+  const transitRating = accessibility?.rating ?? '—';
+  const transitBadgeClass = accessibility?.badgeClass ?? 'neutral';
 
   const propertyTypeOptions: CustomSelectOption<PropertyType>[] = [
     { value: 'Residential', label: t.hero.types.residential, icon: <Building size={14} /> },
@@ -309,16 +325,6 @@ export const HeroSection: React.FC = () => {
     { value: 'Lender / Bank', label: t.hero.personas.lender, icon: <UserCheck size={14} /> },
     { value: 'Real Estate Agent', label: t.hero.personas.agent, icon: <UserCheck size={14} /> }
   ];
-
-  const getHazardStatusLabel = (status: string | undefined | null, lang: string) => {
-    if (!status) return lang === 'id' ? 'RENDAH' : 'LOW';
-    const s = status.toLowerCase();
-    if (s === 'high' || s === 'tinggi') return lang === 'id' ? 'TINGGI' : 'HIGH';
-    if (s === 'medium' || s === 'moderate' || s === 'sedang') return lang === 'id' ? 'SEDANG' : 'MEDIUM';
-    if (s === 'low' || s === 'rendah') return lang === 'id' ? 'RENDAH' : 'LOW';
-    if (s === 'critical' || s === 'kritis') return lang === 'id' ? 'KRITIS' : 'CRITICAL';
-    return status.toUpperCase();
-  };
 
   return (
     <section className="gt-hero-stage" id="hero">
@@ -550,12 +556,12 @@ export const HeroSection: React.FC = () => {
             </div>
             <div className="gt-hazard-card__body">
               <span className="gt-hazard-metric">{floodScore !== null ? `${floodScore}/100` : '—'}</span>
-              <span className={`gt-hazard-status gt-hazard-status--${assessment?.flood?.status || 'low'}`}>
-                {getHazardStatusLabel(assessment?.flood?.status, language)}
+              <span className={`gt-hazard-status gt-hazard-status--${floodBadgeClass}`}>
+                {floodRating}
               </span>
             </div>
             <div className="gt-hazard-card__foot">
-              {language === 'id' ? 'Curah hujan harian & topografi tapak' : 'Daily precipitation & site topography'}
+              {language === 'id' ? 'Curah hujan harian & bentuk lahan sekitar' : 'Daily precipitation & surrounding landform'}
             </div>
           </div>
 
@@ -569,12 +575,12 @@ export const HeroSection: React.FC = () => {
             </div>
             <div className="gt-hazard-card__body">
               <span className="gt-hazard-metric">{quakeScore !== null ? `${quakeScore}/100` : '—'}</span>
-              <span className={`gt-hazard-status gt-hazard-status--${assessment?.quake?.status || 'low'}`}>
-                {getHazardStatusLabel(assessment?.quake?.status, language)}
+              <span className={`gt-hazard-status gt-hazard-status--${quakeBadgeClass}`}>
+                {quakeRating}
               </span>
             </div>
             <div className="gt-hazard-card__foot">
-              {language === 'id' ? 'Percepatan tanah (PGA) & riwayat gempa' : 'Peak ground acceleration & seismic history'}
+              {language === 'id' ? 'Perkiraan guncangan & riwayat gempa sekitar' : 'Estimated shaking & nearby earthquake history'}
             </div>
           </div>
 
@@ -584,16 +590,16 @@ export const HeroSection: React.FC = () => {
               <div className="gt-hazard-icon-box gt-hazard-icon-box--heat">
                 <Flame size={16} />
               </div>
-              <span className="gt-hazard-card__badge">{language === 'id' ? 'Paparan Panas Lokasi' : 'Site Heat Exposure'}</span>
+              <span className="gt-hazard-card__badge">{language === 'id' ? 'Kondisi Panas' : 'Heat Conditions'}</span>
             </div>
             <div className="gt-hazard-card__body">
               <span className="gt-hazard-metric">{heatScore !== null ? `${heatScore}/100` : '—'}</span>
-              <span className={`gt-hazard-status gt-hazard-status--${assessment?.heat?.status || 'low'}`}>
-                {getHazardStatusLabel(assessment?.heat?.status, language)}
+              <span className={`gt-hazard-status gt-hazard-status--${heatBadgeClass}`}>
+                {heatRating}
               </span>
             </div>
             <div className="gt-hazard-card__foot">
-              {language === 'id' ? 'Suhu permukaan & proyeksi iklim' : 'Surface temperature & climate projection'}
+              {language === 'id' ? 'Suhu udara harian & tren perubahan ke depan' : 'Daily air temperature & future change trend'}
             </div>
           </div>
 
@@ -603,16 +609,16 @@ export const HeroSection: React.FC = () => {
               <div className="gt-hazard-icon-box gt-hazard-icon-box--transit">
                 <Navigation size={16} />
               </div>
-              <span className="gt-hazard-card__badge">{language === 'id' ? 'Aksesibilitas & Transit' : 'Accessibility & Transit'}</span>
+              <span className="gt-hazard-card__badge">{language === 'id' ? 'Transportasi & Akses' : 'Transportation & Access'}</span>
             </div>
             <div className="gt-hazard-card__body">
               <span className="gt-hazard-metric">{transitScore !== null ? `${transitScore}/100` : '—'}</span>
-              <span className={`gt-hazard-status gt-hazard-status--${assessment?.transport?.status || 'low'}`}>
-                {getHazardStatusLabel(assessment?.transport?.status, language)}
+              <span className={`gt-hazard-status gt-hazard-status--${transitBadgeClass}`}>
+                {transitRating}
               </span>
             </div>
             <div className="gt-hazard-card__foot">
-              {language === 'id' ? 'Konektivitas jalan & fasilitas darurat' : 'Road connectivity & emergency facilities'}
+              {language === 'id' ? 'Jarak ke jalan utama, faskes & titik kumpul' : 'Distance to main road, healthcare & evacuation point'}
             </div>
           </div>
         </div>

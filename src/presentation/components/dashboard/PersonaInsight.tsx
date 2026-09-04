@@ -25,7 +25,7 @@ export const PersonaInsight: React.FC = () => {
       <div className="gt-protocol-checklist-wrap">
         <div className="gt-protocol-caption-bar">
           <ClipboardCheck size={14} className="gt-protocol-caption-icon" />
-          <span>{language === 'id' ? 'PROTOKOL VERIFIKASI SEBELUM TRANSAKSI / PEMBANGUNAN' : 'PRE-TRANSACTION DUE DILIGENCE PROTOCOL'}</span>
+          <span>{language === 'id' ? 'PROTOKOL VERIFIKASI SEBELUM TRANSAKSI / PEMBANGUNAN' : 'VERIFICATION PROTOCOL BEFORE TRANSACTION / CONSTRUCTION'}</span>
         </div>
         <ul className="gt-protocol-list">
           {(language === 'id' ? insightData.actionStepsId : insightData.actionStepsEn).map(

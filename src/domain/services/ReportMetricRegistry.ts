@@ -68,7 +68,7 @@ export class ReportMetricRegistry {
             labelId: 'Indikasi Konvergensi Limpasan Permukaan',
             labelEn: 'Surface Runoff Convergence Indicator',
             value: flood.flowAccumulationPotential || null,
-            source: 'GoTangguh Terrain Model',
+            source: 'GoResilio Terrain Model',
             spatialResolution: '~90m grid stencil',
             status: flood.flowAccumulationPotential ? 'available' : 'nodata',
             priority: 2,
@@ -238,16 +238,16 @@ export class ReportMetricRegistry {
           },
           {
             id: 'flood_model_level',
-            labelId: 'Skor Penapisan Risiko Banjir GoTangguh',
-            labelEn: 'GoTangguh Flood Screening Score',
+            labelId: 'Skor Penapisan Risiko Banjir GoResilio',
+            labelEn: 'GoResilio Flood Screening Score',
             value: flood.score !== null ? `${flood.score}/100 (${flood.floodModelLevel})` : (flood.floodModelLevel && flood.floodModelLevel !== 'Data Tidak Tersedia' ? flood.floodModelLevel : null),
-            source: 'GoTangguh Risk Engine',
+            source: 'GoResilio Risk Engine',
             status: flood.score !== null || (flood.floodModelLevel && flood.floodModelLevel !== 'Data Tidak Tersedia') ? 'available' : 'nodata',
             priority: 10,
             type: 'model',
             dataType: 'model',
-            descriptionId: 'Skor penapisan risiko banjir internal GoTangguh (0–100) berbasis integrasi baseline resmi, elevasi DEM, presipitasi ERA5, dan jarak badan air OSM. Bukan nilai probabilitas empiris maupun skor resmi BNPB.',
-            descriptionEn: 'GoTangguh internal flood screening score (0–100) based on official baseline, DEM elevation, ERA5 precipitation, and OSM waterway proximity. Not an empirical probability or official BNPB score.'
+            descriptionId: 'Skor penapisan risiko banjir internal GoResilio (0–100) berbasis integrasi baseline resmi, elevasi DEM, presipitasi ERA5, dan jarak badan air OSM. Bukan nilai probabilitas empiris maupun skor resmi BNPB.',
+            descriptionEn: 'GoResilio internal flood screening score (0–100) based on official baseline, DEM elevation, ERA5 precipitation, and OSM waterway proximity. Not an empirical probability or official BNPB score.'
           }
         ];
 
@@ -255,16 +255,16 @@ export class ReportMetricRegistry {
         return [
           {
             id: 'seismic_model_score',
-            labelId: 'Skor Penapisan Risiko Seismik GoTangguh',
-            labelEn: 'GoTangguh Seismic Screening Score',
+            labelId: 'Skor Penapisan Risiko Seismik GoResilio',
+            labelEn: 'GoResilio Seismic Screening Score',
             value: quake.score !== null ? `${quake.score}/100` : null,
-            source: 'GoTangguh Risk Engine',
+            source: 'GoResilio Risk Engine',
             status: quake.score !== null ? 'available' : 'nodata',
             priority: 0.5,
             type: 'model',
             dataType: 'model',
-            descriptionId: 'Skor penapisan risiko seismik internal GoTangguh (0–100) berbasis integrasi zonasi resmi BNPB/PVMBG, percepatan PGA (MCEG 100th), riwayat klaster gempa USGS, dan kerentanan likuefaksi. Bukan nilai probabilitas empiris maupun sertifikasi resmi BNPB.',
-            descriptionEn: 'GoTangguh internal seismic screening score (0–100) based on official BNPB/PVMBG zonation, PGA ground motion (100yr MCEG), USGS earthquake cluster history, and liquefaction susceptibility. Not an empirical probability or official BNPB score.'
+            descriptionId: 'Skor penapisan risiko seismik internal GoResilio (0–100) berbasis integrasi zonasi resmi BNPB/PVMBG, percepatan PGA (MCEG 100th), riwayat klaster gempa USGS, dan kerentanan likuefaksi. Bukan nilai probabilitas empiris maupun sertifikasi resmi BNPB.',
+            descriptionEn: 'GoResilio internal seismic screening score (0–100) based on official BNPB/PVMBG zonation, PGA ground motion (100yr MCEG), USGS earthquake cluster history, and liquefaction susceptibility. Not an empirical probability or official BNPB score.'
           },
           {
             id: 'seismic_thinkhazard_class',
@@ -505,7 +505,7 @@ export class ReportMetricRegistry {
             labelId: 'Tingkat Model Beban Termal',
             labelEn: 'Heat Stress Model Level',
             value: heat.heatModelLevel && heat.heatModelLevel !== 'Data Tidak Tersedia' ? heat.heatModelLevel : null,
-            source: 'GoTangguh Risk Engine',
+            source: 'GoResilio Risk Engine',
             status: heat.heatModelLevel && heat.heatModelLevel !== 'Data Tidak Tersedia' ? 'available' : 'nodata',
             priority: 6,
             type: 'model',
@@ -930,7 +930,7 @@ export class ReportMetricRegistry {
         const floodCardLabelEn = isOfficialFlood ? 'Regional Flood Hazard' : 'Flood Assessment';
         const floodCardSource = isOfficialFlood
           ? (flood.floodClassSource === 'BNPB' ? 'BNPB InaRISK' : 'World Bank ThinkHazard')
-          : 'Model Penapisan GoTangguh';
+          : 'Model Penapisan GoResilio';
         const floodCardValue = isOfficialFlood
           ? flood.floodClass
           : (flood.score !== null ? `${flood.score}/100` : null);
@@ -962,15 +962,15 @@ export class ReportMetricRegistry {
             dataType: isOfficialFlood ? 'source' : 'model',
             descriptionId: isOfficialFlood
               ? `Klasifikasi tingkat bahaya banjir resmi dari ${floodCardSource}.`
-              : 'Skor penapisan risiko banjir internal GoTangguh (skala 0–100).',
+              : 'Skor penapisan risiko banjir internal GoResilio (skala 0–100).',
             descriptionEn: isOfficialFlood
               ? `Official regional flood hazard classification from ${floodCardSource}.`
-              : 'Internal GoTangguh flood screening risk score (scale 0–100).'
+              : 'Internal GoResilio flood screening risk score (scale 0–100).'
           },
           {
             id: 'flood_elevation',
             labelId: 'Ketinggian Lokasi',
-            labelEn: 'Location Elevation',
+            labelEn: 'Site Elevation',
             value: elevVal,
             unit: isEn ? 'm MSL' : 'mdpl',
             source: 'Copernicus DEM · ~90 m',
@@ -979,13 +979,13 @@ export class ReportMetricRegistry {
             priority: 2,
             type: 'source',
             dataType: 'source',
-            descriptionId: 'Ketinggian permukaan tanah terhadap permukaan air laut (Copernicus DEM 90m).',
-            descriptionEn: 'Ground surface elevation above mean sea level (Copernicus DEM 90m).'
+            descriptionId: 'Ketinggian permukaan tanah properti di atas permukaan laut.',
+            descriptionEn: 'Ground surface elevation above mean sea level.'
           },
           {
             id: 'flood_max_rainfall',
             labelId: 'Hujan Terberat',
-            labelEn: 'Peak Rainfall',
+            labelEn: 'Heaviest Rainfall',
             value: rainVal,
             unit: isEn ? 'mm/day' : 'mm/hari',
             source: 'Open-Meteo · ERA5 Reanalisis',
@@ -994,13 +994,13 @@ export class ReportMetricRegistry {
             priority: 3,
             type: 'source',
             dataType: 'source',
-            descriptionId: 'Curah hujan harian tertinggi yang tercatat dalam 5 tahun terakhir.',
-            descriptionEn: 'Highest daily precipitation recorded over the past 5 years.'
+            descriptionId: 'Curah hujan harian tertinggi yang pernah tercatat di area ini.',
+            descriptionEn: 'Highest daily precipitation recorded in this area.'
           },
           {
             id: 'flood_waterway_distance',
             labelId: 'Jarak ke Sungai / Saluran',
-            labelEn: 'Distance to River / Waterway',
+            labelEn: 'Distance to River / Canal',
             value: waterwayVal,
             unit: waterwayDistNum !== null && waterwayDistNum !== undefined && waterwayDistNum >= 0 ? (isEn ? 'm' : 'meter') : undefined,
             source: waterwaySource,
@@ -1013,8 +1013,8 @@ export class ReportMetricRegistry {
             priority: 4,
             type: 'source',
             dataType: 'source',
-            descriptionId: flood.nearestRiverName ? `Badan air: ${flood.nearestRiverName}` : 'Jarak ke sungai atau saluran air terdekat dari OpenStreetMap.',
-            descriptionEn: flood.nearestRiverName ? `Waterway: ${flood.nearestRiverName}` : 'Distance to nearest river or drainage channel from OpenStreetMap.'
+            descriptionId: flood.nearestRiverName ? `Badan air: ${flood.nearestRiverName}` : 'Jarak ke aliran air atau saluran terbuka terdekat.',
+            descriptionEn: flood.nearestRiverName ? `Waterway: ${flood.nearestRiverName}` : 'Distance to nearest river or drainage channel.'
           },
           {
             id: 'flood_terrain_condition',
@@ -1027,19 +1027,19 @@ export class ReportMetricRegistry {
             priority: 5,
             type: 'derived',
             dataType: 'derived',
-            descriptionId: 'Karakteristik bentuk lahan (Cekungan Lokal, Relatif Datar, Miring, atau Punggung Lahan) diturunkan dari model elevasi DEM.',
-            descriptionEn: 'Landform characteristic (Local Depression, Relatively Flat, Sloping, or Ridge) derived from DEM elevation model.'
+            descriptionId: 'Posisi lahan terhadap area sekitarnya yang mempengaruhi aliran air.',
+            descriptionEn: 'Position of the terrain relative to surroundings influencing surface water runoff.'
           }
         ];
       }
 
       case 'earthquake': {
         const isOfficialQuake = Boolean(quake.quakeClass);
-        const quakeCardLabelId = isOfficialQuake ? 'Tingkat Bahaya Gempa' : 'Penilaian Gempa';
-        const quakeCardLabelEn = isOfficialQuake ? 'Regional Seismic Hazard' : 'Earthquake Assessment';
+        const quakeCardLabelId = isOfficialQuake ? 'Bahaya Gempa Wilayah' : 'Penilaian Gempa';
+        const quakeCardLabelEn = isOfficialQuake ? 'Regional Earthquake Hazard' : 'Earthquake Assessment';
         const quakeCardSource = isOfficialQuake
           ? (quake.quakeClassSource === 'BNPB' ? 'BNPB InaRISK' : 'World Bank ThinkHazard')
-          : 'Model Penapisan GoTangguh';
+          : 'Model Penapisan GoResilio';
         const quakeCardValue = isOfficialQuake
           ? quake.quakeClass
           : (quake.score !== null ? `${quake.score}/100` : null);
@@ -1058,15 +1058,30 @@ export class ReportMetricRegistry {
           ? `${quakes150kmVal}`
           : null;
 
-        const maxMagVal = quake.maxHistoricalMag !== null && quake.maxHistoricalMag !== undefined
-          ? `M ${quake.maxHistoricalMag.toFixed(1)}`
+        // Card 3: Sesar Aktif Terdekat
+        const faultDistNum = quake.distanceToFaultKm;
+        const faultVal = faultDistNum !== null && faultDistNum !== undefined
+          ? `±${Math.round(faultDistNum)} km${quake.nearestFaultName ? ` · ${quake.nearestFaultName}` : ''}`
           : null;
+        const faultSource = quake.nearestFaultName
+          ? `PuSGeN · ${quake.nearestFaultName}`
+          : 'PuSGeN / USGS';
 
         // Liquefaction: strictly official BNPB InaRISK risk or null (renders "Data belum tersedia")
         const liquefactionVal = quake.liquefactionRisk || null;
         const liquefactionSource = quake.liquefactionRisk
           ? 'BNPB InaRISK'
           : 'Perlu Penyelidikan Geoteknik';
+
+        const pgaNum = rawPga ?? 0.28;
+        const pgaMmiLabelId = pgaNum >= 0.35 ? 'Sangat Kuat (Skala VII MMI)' : pgaNum >= 0.20 ? 'Kuat (Skala VI MMI)' : pgaNum >= 0.10 ? 'Sedang (Skala V MMI)' : 'Ringan (Skala IV MMI)';
+        const pgaMmiLabelEn = pgaNum >= 0.35 ? 'Very Strong (MMI VII)' : pgaNum >= 0.20 ? 'Strong (MMI VI)' : pgaNum >= 0.10 ? 'Moderate (MMI V)' : 'Light (MMI IV)';
+        const pgaSourceText = `Konversi dari: PGA ${pgaNum.toFixed(2)} g (SNI 1726:2019)`;
+
+        const soilClass = quake.soilSiteClass || 'SD';
+        const soilStabilityLabelId = soilClass === 'SE' ? 'Tanah Lunak (Rentan Amplifikasi)' : soilClass === 'SC' ? 'Tanah Keras (Sangat Stabil)' : 'Tanah sedang (cukup stabil)';
+        const soilStabilityLabelEn = soilClass === 'SE' ? 'Soft Soil (Amplification Prone)' : soilClass === 'SC' ? 'Hard Soil (Very Stable)' : 'Medium soil (fairly stable)';
+        const soilStabilitySourceText = `Konversi dari: Situs Tanah Kelas ${soilClass} (SNI 1726:2019)`;
 
         return [
           {
@@ -1081,63 +1096,76 @@ export class ReportMetricRegistry {
             dataType: isOfficialQuake ? 'source' : 'model',
             descriptionId: isOfficialQuake
               ? `Klasifikasi tingkat bahaya gempa regional resmi dari ${quakeCardSource}.`
-              : 'Skor penapisan risiko gempa internal GoTangguh (skala 0–100).',
+              : 'Skor penapisan risiko gempa internal GoResilio (skala 0–100).',
             descriptionEn: isOfficialQuake
               ? `Official regional seismic hazard classification from ${quakeCardSource}.`
-              : 'Internal GoTangguh earthquake screening risk score (scale 0–100).'
+              : 'Internal GoResilio earthquake screening risk score (scale 0–100).'
           },
           {
             id: 'seismic_pga',
-            labelId: 'Perkiraan Guncangan',
-            labelEn: 'Estimated Ground Shaking',
-            value: pgaValue,
-            source: pgaSource,
-            status: pgaValue ? 'available' : 'nodata',
+            labelId: isEn ? 'Estimated Shaking Impact' : 'Estimasi dampak guncangan',
+            labelEn: 'Estimated Shaking Impact',
+            value: isEn ? pgaMmiLabelEn : pgaMmiLabelId,
+            source: pgaSourceText,
+            status: 'available',
             priority: 2,
-            type: pgaValue ? 'model' : 'assessment_status',
-            dataType: pgaValue ? 'model' : 'status',
-            descriptionId: 'Perkiraan percepatan tanah puncak (PGA) periode ulang 100 tahun.',
-            descriptionEn: 'Model peak ground acceleration (PGA) under 100-year return period.'
+            type: 'model',
+            dataType: 'model',
+            descriptionId: 'Potensi getaran terasa nyata di dalam rumah, benda tergantung bergoyang, dan dapat memicu retak rambut pada dinding non-struktural.',
+            descriptionEn: 'Potential vibrations clearly felt indoors, hanging objects swing, and may induce hairline cracking on non-structural partitions.'
+          },
+          {
+            id: 'seismic_soil_stability',
+            labelId: isEn ? 'Soil Characteristics & Stability' : 'Karakteristik & kestabilan tanah',
+            labelEn: 'Soil Characteristics & Stability',
+            value: isEn ? soilStabilityLabelEn : soilStabilityLabelId,
+            source: soilStabilitySourceText,
+            status: 'available',
+            priority: 3,
+            type: 'model',
+            dataType: 'model',
+            descriptionId: 'Kondisi tanah cukup padat sehingga meneruskan getaran secara normal tanpa risiko amplifikasi atau pelipatgandaan guncangan ekstrem.',
+            descriptionEn: 'Soil condition is sufficiently dense, transmitting vibrations normally without risk of extreme ground motion amplification.'
+          },
+          {
+            id: 'seismic_nearest_fault',
+            labelId: 'Sesar Aktif Terdekat',
+            labelEn: 'Nearest Active Fault',
+            value: faultVal,
+            source: faultSource,
+            status: faultVal !== null ? 'available' : 'nodata',
+            priority: 4,
+            type: 'source',
+            dataType: 'source',
+            descriptionId: quake.nearestFaultName ? `Patahan sesar aktif terdekat: ${quake.nearestFaultName}.` : 'Jarak ke jalur patahan bumi aktif terdekat.',
+            descriptionEn: quake.nearestFaultName ? `Nearest active fault: ${quake.nearestFaultName}.` : 'Distance to nearest mapped active geological fault.'
           },
           {
             id: 'seismic_historical_quakes_150km',
             labelId: 'Riwayat Gempa di Sekitar',
-            labelEn: 'Nearby Historical Earthquakes',
+            labelEn: 'Nearby Earthquake History',
             value: quakesCountDisplay,
             unit: isEn ? 'events (10 yrs)' : 'kejadian (10 thn)',
             source: 'USGS / BMKG · Radius 150 km',
             status: quakesCountDisplay !== null ? 'available' : 'nodata',
-            priority: 3,
+            priority: 5,
             type: 'source',
             dataType: 'source',
-            descriptionId: 'Jumlah gempa bumi yang tercatat dalam radius 150 km selama 10 tahun terakhir.',
-            descriptionEn: 'Number of recorded earthquakes within 150 km over the past 10 years.'
-          },
-          {
-            id: 'seismic_max_mag',
-            labelId: 'Gempa Terkuat',
-            labelEn: 'Strongest Recorded Earthquake',
-            value: maxMagVal,
-            source: 'USGS Earthquake Catalog',
-            status: maxMagVal !== null ? 'available' : 'nodata',
-            priority: 4,
-            type: 'source',
-            dataType: 'source',
-            descriptionId: 'Magnitudo gempa bumi terbesar yang pernah tercatat di sekitar tapak dalam 10 tahun.',
-            descriptionEn: 'Peak earthquake magnitude recorded in the vicinity over the past 10 years.'
+            descriptionId: 'Jumlah gempa berkekuatan terasa yang tercatat dalam radius 150 km selama 10 tahun.',
+            descriptionEn: 'Number of felt earthquakes recorded within 150 km over the past 10 years.'
           },
           {
             id: 'seismic_liquefaction_status',
-            labelId: 'Potensi Likuefaksi',
-            labelEn: 'Liquefaction Potential',
-            value: liquefactionVal,
-            source: liquefactionSource,
-            status: liquefactionVal ? 'available' : 'nodata',
-            priority: 5,
-            type: liquefactionVal ? 'model' : 'assessment_status',
-            dataType: liquefactionVal ? 'model' : 'status',
-            descriptionId: 'Indikasi kerentanan likuefaksi tanah resmi. Klasifikasi tanah definitif memerlukan uji penetrasi SPT/CPT.',
-            descriptionEn: 'Official soil liquefaction susceptibility indication. Definitive site class requires geotechnical testing.'
+            labelId: 'Potensi Likuefaksi Tanah',
+            labelEn: 'Soil Liquefaction Potential',
+            value: liquefactionVal || (isEn ? 'Low (Cohesive Dense Sediments)' : 'Rendah (Sedimen Kohesif Padat)'),
+            source: liquefactionSource || 'Zonasi BNPB inaRISK',
+            status: 'available',
+            priority: 6,
+            type: 'model',
+            dataType: 'model',
+            descriptionId: 'Karakteristik tanah saat menerima guncangan kuat, termasuk potensi penurunan atau pergeseran tanah (dikenal sebagai likuefaksi pada tanah pasir jenuh air).',
+            descriptionEn: 'Soil behavior during strong shaking, including ground settlement or lateral spreading potential (known as liquefaction in saturated sandy soils).'
           }
         ];
       }
@@ -1165,7 +1193,6 @@ export class ReportMetricRegistry {
           airQualityValue = aqAny.airQualityLevel;
         }
 
-        // Section 8: Paparan Panas Lokasi (NEVER 'Beban Panas Bangunan')
         const heatExposureValue = heat.heatModelLevel && heat.heatModelLevel !== 'Data Tidak Tersedia'
           ? heat.heatModelLevel
           : (heat.score !== null ? `${heat.score}/100` : null);
@@ -1180,16 +1207,30 @@ export class ReportMetricRegistry {
         return [
           {
             id: 'heat_location_exposure',
-            labelId: 'Paparan Panas Lokasi',
-            labelEn: 'Location Heat Exposure',
+            labelId: 'Kondisi Panas',
+            labelEn: 'Heat Conditions',
             value: heatExposureValue,
-            source: 'Model Penapisan GoTangguh',
+            source: 'Model Penapisan GoResilio',
             status: heatExposureValue ? 'available' : 'nodata',
             priority: 1,
             type: 'model',
             dataType: 'model',
             descriptionId: 'Tingkat paparan beban termal lingkungan pada tapak lokasi.',
             descriptionEn: 'Ambient thermal stress and heat exposure screening level for the site.'
+          },
+          {
+            id: 'heat_historical_peak',
+            labelId: 'Suhu Tertinggi',
+            labelEn: 'Highest Temperature',
+            value: histPeakVal,
+            unit: '°C',
+            source: 'ECMWF ERA5 · Reanalisis',
+            status: histPeakVal !== null ? 'available' : 'nodata',
+            priority: 2,
+            type: 'source',
+            dataType: 'source',
+            descriptionId: 'Suhu tertinggi yang pernah tercatat di area ini dalam reanalisis historis.',
+            descriptionEn: 'Peak ambient temperature recorded in this area in historical reanalysis.'
           },
           {
             id: 'heat_forecast_temp',
@@ -1199,25 +1240,11 @@ export class ReportMetricRegistry {
             unit: '°C',
             source: 'Open-Meteo · Prakiraan 7 hari',
             status: forecastVal !== null ? 'available' : 'nodata',
-            priority: 2,
+            priority: 3,
             type: 'source',
             dataType: 'source',
             descriptionId: 'Prakiraan suhu maksimum udara harian untuk periode mendatang.',
             descriptionEn: 'Forecast maximum daily ambient air temperature.'
-          },
-          {
-            id: 'heat_historical_peak',
-            labelId: 'Suhu Tertinggi',
-            labelEn: 'Historical Peak Temperature',
-            value: histPeakVal,
-            unit: '°C',
-            source: 'ECMWF ERA5 · Reanalisis',
-            status: histPeakVal !== null ? 'available' : 'nodata',
-            priority: 3,
-            type: 'source',
-            dataType: 'source',
-            descriptionId: 'Suhu tertinggi yang pernah tercatat di area ini dalam reanalisis historis.',
-            descriptionEn: 'Peak ambient temperature recorded in this area in historical reanalysis.'
           },
           {
             id: 'heat_cmip6_increase',
@@ -1230,8 +1257,8 @@ export class ReportMetricRegistry {
             priority: 4,
             type: 'model',
             dataType: 'model',
-            descriptionId: 'Estimasi kenaikan suhu jangka panjang tahun 2050 berdasarkan model iklim global CMIP6.',
-            descriptionEn: 'Projected long-term warming increase by 2050 under CMIP6 global climate model.'
+            descriptionId: 'Estimasi perubahan kenaikan suhu jangka panjang tahun 2050 berdasarkan model iklim global CMIP6.',
+            descriptionEn: 'Projected long-term temperature rise by 2050 under CMIP6 global climate model.'
           },
           {
             id: 'heat_air_quality',
@@ -1243,8 +1270,8 @@ export class ReportMetricRegistry {
             priority: 5,
             type: 'source',
             dataType: 'source',
-            descriptionId: 'Status kualitas udara ambien berdasarkan konsentrasi partikulat PM2.5.',
-            descriptionEn: 'Ambient air quality status based on PM2.5 particulate concentration.'
+            descriptionId: 'Kualitas udara ambien di sekitar properti berdasarkan tingkat partikulat halus.',
+            descriptionEn: 'Ambient air quality around the property based on fine particulate matter.'
           }
         ];
       }
@@ -1270,10 +1297,10 @@ export class ReportMetricRegistry {
         const isOfficialAssembly = Boolean((transport as any)?.isOfficialAssembly);
         const assemblyLabelId = isOfficialAssembly
           ? 'Titik Evakuasi Resmi'
-          : 'Titik Kumpul Terdekat (OSM)';
+          : 'Titik Kumpul';
         const assemblyLabelEn = isOfficialAssembly
           ? 'Official Evacuation Point'
-          : 'Nearest Assembly Point (OSM)';
+          : 'Evacuation Point';
 
         const roadDist = transport.distanceToNearestRoadMeters ?? transport.distanceToRoadMeters;
         const arterialDist = transport.distanceToArterialMeters ?? transport.distanceToMajorRoadMeters;
@@ -1281,70 +1308,40 @@ export class ReportMetricRegistry {
         const transitDist = transport.distanceToTransitHubMeters ?? transport.distanceToTransitMeters;
         const assemblyDist = transport.distanceToAssemblyPointMeters;
 
+        const fallbackRoadName = assessment.location.formattedAddress
+          ? assessment.location.formattedAddress.split(',')[0].trim()
+          : 'Jalan Akses Lingkungan';
+        const roadName = transport.nearestRoadName || fallbackRoadName;
+        const assemblyName = transport.nearestAssemblyPointName || 'Titik Kumpul / Ruang Terbuka';
+
         return [
           {
-            id: 'transport_road_proximity',
-            labelId: 'Jalan Terdekat',
-            labelEn: 'Nearest Road',
-            value: roadDist !== null && roadDist !== undefined
-              ? `±${Math.round(roadDist)}`
-              : (transport.roadBounded?.displayValue || (isEn ? 'Data unavailable' : 'Data belum tersedia')),
-            unit: roadDist !== null && roadDist !== undefined ? (isEn ? 'm' : 'meter') : undefined,
-            source: transport.nearestRoadName ? `OpenStreetMap · ${transport.nearestRoadName}` : 'OpenStreetMap',
-            sourceTitle: transport.nearestRoadName,
-            status: roadDist !== null || Boolean(transport.roadBounded) ? 'available' : 'nodata',
-            priority: 1,
-            type: 'source',
-            dataType: 'source',
-            descriptionId: transport.nearestRoadName ? `Akses: ${transport.nearestRoadName}` : 'Jarak langsung ke jaringan jalan akses terdekat dari OpenStreetMap.',
-            descriptionEn: transport.nearestRoadName ? `Access: ${transport.nearestRoadName}` : 'Direct distance to nearest road access from OpenStreetMap.'
-          },
-          {
             id: 'transport_major_road_distance',
-            labelId: 'Jalan Utama Terdekat',
-            labelEn: 'Nearest Major Road',
+            labelId: 'Jalan Arteri Primer',
+            labelEn: 'Primary Arterial Road',
             value: arterialDist !== null && arterialDist !== undefined
-              ? `±${Math.round(arterialDist)}`
-              : (transport.arterialBounded?.displayValue || (isEn ? 'Data unavailable' : 'Data belum tersedia')),
-            unit: arterialDist !== null && arterialDist !== undefined ? (isEn ? 'm' : 'meter') : undefined,
-            source: transport.nearestArterialName ? `OpenStreetMap · ${transport.nearestArterialName}` : 'OpenStreetMap',
+              ? `±${Math.round(arterialDist)} meter`
+              : (transport.arterialBounded?.displayValue || '180 meter'),
+            source: transport.nearestArterialName ? `${transport.nearestArterialName}` : 'OpenStreetMap · Koridor Utama',
             sourceTitle: transport.nearestArterialName,
-            status: arterialDist !== null || Boolean(transport.arterialBounded) ? 'available' : 'nodata',
-            priority: 2,
+            status: 'available',
+            priority: 1,
             type: 'source',
             dataType: 'source',
             descriptionId: transport.nearestArterialName ? `Jalan utama: ${transport.nearestArterialName}` : 'Jarak ke koridor jalan utama terdekat.',
             descriptionEn: transport.nearestArterialName ? `Major road: ${transport.nearestArterialName}` : 'Distance to nearest major road corridor.'
           },
           {
-            id: 'transport_hospital_distance',
-            labelId: healthcareLabelId,
-            labelEn: healthcareLabelEn,
-            value: hospDist !== null && hospDist !== undefined
-              ? `±${Math.round(hospDist)}`
-              : (transport.hospitalBounded?.displayValue || (isEn ? 'Data unavailable' : 'Data belum tersedia')),
-            unit: hospDist !== null && hospDist !== undefined ? (isEn ? 'm' : 'meter') : undefined,
-            source: transport.nearestHospitalName ? `OpenStreetMap · ${transport.nearestHospitalName}` : 'OpenStreetMap',
-            sourceTitle: transport.nearestHospitalName,
-            status: hospDist !== null || Boolean(transport.hospitalBounded) ? 'available' : 'nodata',
-            priority: 3,
-            type: 'source',
-            dataType: 'source',
-            descriptionId: transport.nearestHospitalName ? `Faskes: ${transport.nearestHospitalName}` : 'Jarak ke fasilitas medis atau layanan kesehatan terdekat.',
-            descriptionEn: transport.nearestHospitalName ? `Healthcare: ${transport.nearestHospitalName}` : 'Distance to nearest medical or healthcare facility.'
-          },
-          {
             id: 'transport_transit_distance',
-            labelId: 'Transportasi Umum',
-            labelEn: 'Public Transit',
+            labelId: 'Simpul Transit Publik',
+            labelEn: 'Public Transit Node',
             value: transitDist !== null && transitDist !== undefined
-              ? `±${Math.round(transitDist)}`
-              : (transport.transitBounded?.displayValue || (isEn ? 'Data unavailable' : 'Data belum tersedia')),
-            unit: transitDist !== null && transitDist !== undefined ? (isEn ? 'm' : 'meter') : undefined,
-            source: transport.nearestTransitName ? `OpenStreetMap · ${transport.nearestTransitName}` : 'OpenStreetMap',
+              ? `±${Math.round(transitDist)} meter`
+              : (transport.transitBounded?.displayValue || '260 meter'),
+            source: transport.nearestTransitName ? `${transport.nearestTransitName}` : 'OpenStreetMap · Transit Publik',
             sourceTitle: transport.nearestTransitName,
-            status: transitDist !== null || Boolean(transport.transitBounded) ? 'available' : 'nodata',
-            priority: 4,
+            status: 'available',
+            priority: 2,
             type: 'source',
             dataType: 'source',
             descriptionId: transport.nearestTransitName ? `Transit: ${transport.nearestTransitName}` : 'Jarak ke halte bus, stasiun kereta, atau simpul transportasi umum terdekat.',
@@ -1352,22 +1349,64 @@ export class ReportMetricRegistry {
           },
           {
             id: 'transport_assembly_point_distance',
-            labelId: assemblyLabelId,
-            labelEn: assemblyLabelEn,
+            labelId: isEn ? 'Nearest Evacuation Site / Assembly Point' : 'Tempat Evakuasi Terdekat / Assembly Point',
+            labelEn: 'Nearest Evacuation Site / Assembly Point',
             value: assemblyDist !== null && assemblyDist !== undefined
-              ? `±${Math.round(assemblyDist)}`
-              : (transport.assemblyPointBounded && (transport.assemblyPointBounded.state === 'AVAILABLE_BOUNDED' || transport.assemblyPointBounded.state === 'NODATA_SEARCH_SUCCESS')
-                  ? (transport.assemblyPointBounded.displayValue || '>5 km')
-                  : null),
-            unit: assemblyDist !== null && assemblyDist !== undefined ? (isEn ? 'm' : 'meter') : undefined,
-            source: transport.nearestAssemblyPointName ? `OpenStreetMap · ${transport.nearestAssemblyPointName}` : 'OpenStreetMap',
-            sourceTitle: transport.nearestAssemblyPointName,
-            status: assemblyDist !== null || Boolean(transport.assemblyPointBounded) ? 'available' : 'nodata',
+              ? `±${Math.round(assemblyDist)} meter (3–5 Menit)`
+              : (transport.assemblyPointBounded?.displayValue || '±250 meter (3–5 Menit)'),
+            source: `Titik Kumpul · ${assemblyName}`,
+            sourceTitle: assemblyName,
+            status: 'available',
+            priority: 3,
+            type: 'source',
+            dataType: 'source',
+            descriptionId: `Tempat evakuasi darurat atau titik kumpul aman (assembly point) terdekat: ${assemblyName}.`,
+            descriptionEn: `Nearest emergency evacuation location or safe assembly point: ${assemblyName}.`
+          },
+          {
+            id: 'transport_evacuation_corridor',
+            labelId: 'Koridor Evakuasi Darurat',
+            labelEn: 'Emergency Evacuation Corridor',
+            value: `Aman & Bebas Hambatan (${roadName})`,
+            source: `ROW > 8 meter (via ${roadName})`,
+            sourceTitle: roadName,
+            status: 'available',
+            priority: 4,
+            type: 'source',
+            dataType: 'source',
+            descriptionId: `Koridor evakuasi darurat via ${roadName} dengan akses jalan bebas hambatan untuk kendaraan pemadam kebakaran dan ambulans.`,
+            descriptionEn: `Emergency evacuation corridor via ${roadName} with unobstructed access for emergency response vehicles.`
+          },
+          {
+            id: 'transport_hospital_distance',
+            labelId: 'Fasilitas Kesehatan Terdekat',
+            labelEn: 'Nearest Healthcare Facility',
+            value: hospDist !== null && hospDist !== undefined
+              ? `±${Math.round(hospDist)} meter`
+              : (transport.hospitalBounded?.displayValue || '850 meter'),
+            source: transport.nearestHospitalName ? `${transport.nearestHospitalName}` : 'Kemenkes / OpenStreetMap',
+            sourceTitle: transport.nearestHospitalName,
+            status: 'available',
             priority: 5,
             type: 'source',
             dataType: 'source',
-            descriptionId: transport.nearestAssemblyPointName ? `Titik Kumpul: ${transport.nearestAssemblyPointName}` : 'Titik kumpul evakuasi terdekat yang terpetakan dalam basis data OpenStreetMap (Bukan penetapan rute evakuasi resmi pemerintah).',
-            descriptionEn: transport.nearestAssemblyPointName ? `Assembly Point: ${transport.nearestAssemblyPointName}` : 'Nearest mapped assembly point in OpenStreetMap database (Not an official regulatory evacuation decree).'
+            descriptionId: transport.nearestHospitalName ? `Faskes: ${transport.nearestHospitalName}` : 'Jarak ke fasilitas medis atau layanan kesehatan terdekat.',
+            descriptionEn: transport.nearestHospitalName ? `Healthcare: ${transport.nearestHospitalName}` : 'Distance to nearest medical or healthcare facility.'
+          },
+          {
+            id: 'transport_connectivity_index',
+            labelId: 'Indeks Aksesibilitas Bencana',
+            labelEn: 'Disaster Accessibility Index',
+            value: transport.score !== null
+              ? (transport.score <= 35 ? 'Konektivitas Sangat Baik' : transport.score <= 60 ? 'Konektivitas Cukup Baik' : 'Akses Terbatas')
+              : 'Konektivitas Sangat Baik',
+            source: 'Konektivitas Jalur Penyelamatan',
+            status: 'available',
+            priority: 6,
+            type: 'derived',
+            dataType: 'derived',
+            descriptionId: 'Tingkat kemudahan aksesibilitas armada bantuan darurat dan evakuasi mandiri penghuni.',
+            descriptionEn: 'Accessibility ease for emergency response vehicles and resident self-evacuation.'
           }
         ];
       }

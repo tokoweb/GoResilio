@@ -54,13 +54,14 @@ export class BookConsultationUseCase {
             id: bookingId,
             voucherCode: bookingId,
             clientName: input.fullName,
+            role: input.roleTitle,
             clientEmail: input.email,
             clientPhone: input.phone || null,
             targetLocation: input.targetLocation,
             packageType: input.packageInterest,
             assignedExpert: 'Tim Peneliti RDI & BGP Consultant',
             scheduledDate: input.preferredDate,
-            status: 'MENUNGGU DISPATCH',
+            status: 'Baru',
             notes: input.notes
           })
         });

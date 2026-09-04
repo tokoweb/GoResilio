@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PerformSiteAssessmentUseCase } from '../../../application/use_cases/PerformSiteAssessment.usecase';
 import { RateLimiter } from '../../../infrastructure/security/rateLimiter';
 import { InputValidator } from '../../../infrastructure/security/inputValidator';
-import type { PropertyType, UserPersona } from '../../../domain/types/hazard.types';
+import type { PropertyType, UserPersona, AssessmentDepth } from '../../../domain/types/hazard.types';
 
 export async function POST(req: NextRequest) {
   // 1. Enforce rate limiting: 30 scan evaluations per minute per IP
@@ -19,14 +19,17 @@ export async function POST(req: NextRequest) {
     const propertyType: PropertyType = body.propertyType === 'Commercial' ? 'Commercial' : 'Residential';
     const validPersonas: UserPersona[] = ['Home Buyer', 'Home Owner', 'Property Developer', 'Lender / Bank', 'Real Estate Agent'];
     const userPersona: UserPersona = validPersonas.includes(body.userPersona) ? body.userPersona : 'Home Buyer';
+    const depth: AssessmentDepth = body.depth === 'deep' ? 'deep' : 'screening';
 
     const result = await PerformSiteAssessmentUseCase.execute({
       latitude,
       longitude,
       formattedAddress: sanitizedAddress,
       propertyType,
-      userPersona
+      userPersona,
+      depth
     });
+
 
     return NextResponse.json({ success: true, data: result });
   } catch (error: any) {
